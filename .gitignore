@@ -1,0 +1,10 @@
+# Ignore OS / IDE / environment stuff
+node_modules/    ← huge folder created by npm/yarn (don’t push to GitHub)
+.DS_Store        ← Mac system file (you don’t need it)
+Thumbs.db        ← Windows system file (you don’t need it)
+*.log            ← all files ending with .log (logs aren’t code)
+
+# Ignore build/output
+dist/            ← compiled output (rebuildable, not source code)
+build/           ← same as above
+.env             ← environment variables (keep private, don’t push)
