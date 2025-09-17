@@ -364,6 +364,54 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* AI Features Quick Access */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-6">AI-Powered Features</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg shadow border-l-4 border-blue-500">
+            <div className="flex items-center mb-4">
+              <span className="text-3xl mr-3">📊</span>
+              <h3 className="text-lg font-semibold">Cash Flow Forecasting</h3>
+            </div>
+            <p className="text-gray-600 mb-4">AI-powered predictions for your future cash flow based on spending patterns.</p>
+            <button
+              onClick={() => navigate('/reports')}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            >
+              View Forecasts
+            </button>
+          </div>
+
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg shadow border-l-4 border-green-500">
+            <div className="flex items-center mb-4">
+              <span className="text-3xl mr-3">🎯</span>
+              <h3 className="text-lg font-semibold">Smart Recommendations</h3>
+            </div>
+            <p className="text-gray-600 mb-4">Personalized budget optimization and debt reduction strategies.</p>
+            <button
+              onClick={() => navigate('/reports')}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+            >
+              Get Recommendations
+            </button>
+          </div>
+
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg shadow border-l-4 border-purple-500">
+            <div className="flex items-center mb-4">
+              <span className="text-3xl mr-3">🏆</span>
+              <h3 className="text-lg font-semibold">Financial Wellness</h3>
+            </div>
+            <p className="text-gray-600 mb-4">Track your financial health score and earn achievements.</p>
+            <button
+              onClick={() => navigate('/reports')}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
+            >
+              View Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Recent Transactions */}
       {recentTransactions.length > 0 && (
         <div className="mb-8">

@@ -8,6 +8,9 @@ const investmentsRoutes = require('./investments');
 const transactionsRoutes = require('./transactions');
 const settingsRoutes = require('./settings');
 const notificationsRoutes = require('./notifications');
+const recommendationsRoutes = require('./recommendations');
+const gamificationRoutes = require('./gamification');
+const receiptsRoutes = require('./receipts');
 
 // Export all routes
 module.exports = {
@@ -20,5 +23,8 @@ module.exports = {
   investmentsRoutes,
   transactionsRoutes,
   settingsRoutes,
-  notificationsRoutes
+  notificationsRoutes,
+  recommendationsRoutes,
+  gamificationRoutes,
+  receiptsRoutes
 };

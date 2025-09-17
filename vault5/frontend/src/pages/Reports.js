@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import CashFlowProjection from '../components/CashFlowProjection';
+import GamificationDashboard from '../components/GamificationDashboard';
 
 const Reports = () => {
   const [report, setReport] = useState(null);
@@ -123,6 +125,10 @@ const Reports = () => {
           </div>
         </div>
       )}
+
+      <CashFlowProjection />
+
+      <GamificationDashboard />
     </div>
   );
 };

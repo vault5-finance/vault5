@@ -1,10 +1,22 @@
 const { Transaction, User } = require('../models');
+const { analyzeTransaction } = require('../services/fraudDetection');
 
 // Get all transactions for a user
 const getTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({ user: req.user._id })
+    const { startDate, endDate, limit = 100 } = req.query;
+    let query = { user: req.user._id };
+
+    // Add date filtering if provided
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    const transactions = await Transaction.find(query)
       .sort({ date: -1 })
+      .limit(parseInt(limit))
       .populate('allocations.account', 'type percentage');
     res.json(transactions);
   } catch (error) {
@@ -33,6 +45,14 @@ const createTransaction = async (req, res) => {
       category: category || null,
       date: date || new Date()
     });
+
+    // Perform fraud analysis
+    const fraudAnalysis = await analyzeTransaction(req.user._id, transaction);
+    transaction.fraudRisk = {
+      riskScore: fraudAnalysis.riskScore,
+      isHighRisk: fraudAnalysis.isHighRisk,
+      flags: fraudAnalysis.flags
+    };
 
     await transaction.save();
 

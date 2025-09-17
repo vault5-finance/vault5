@@ -27,6 +27,19 @@ const transactionSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  fraudRisk: {
+    riskScore: {
+      type: Number,
+      default: 0
+    },
+    isHighRisk: {
+      type: Boolean,
+      default: false
+    },
+    flags: [{
+      type: String
+    }]
+  },
   allocations: [{
     account: {
       type: mongoose.Schema.Types.ObjectId,

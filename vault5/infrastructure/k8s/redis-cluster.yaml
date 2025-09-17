@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: caching
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: caching
+data:
+  redis.conf: |
+    cluster-enabled yes
+    cluster-config-file /data/nodes.conf
+    cluster-node-timeout 5000
+    appendonly yes
+    protected-mode no
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-cluster
+  namespace: caching
+spec:
+  serviceName: redis-cluster
+  replicas: 6
+  selector:
+    matchLabels:
+      app: redis-cluster
+  template:
+    metadata:
+      labels:
+        app: redis-cluster
+    spec:
+      containers:
+      - name: redis
+        image: redis:6-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        - name: config
+          mountPath: /etc/redis
+        command: ["redis-server", "/etc/redis/redis.conf"]
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: redis-config
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster
+  namespace: caching
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+  clusterIP: None
+  selector:
+    app: redis-cluster
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redis-cluster-init
+  namespace: caching
+spec:
+  template:
+    spec:
+      containers:
+      - name: redis-cluster-init
+        image: redis:6-alpine
+        command:
+        - sh
+        - -c
+        - |
+          echo "Creating Redis cluster..."
+          redis-cli --cluster create \
+            redis-cluster-0.redis-cluster.caching.svc.cluster.local:6379 \
+            redis-cluster-1.redis-cluster.caching.svc.cluster.local:6379 \
+            redis-cluster-2.redis-cluster.caching.svc.cluster.local:6379 \
+            redis-cluster-3.redis-cluster.caching.svc.cluster.local:6379 \
+            redis-cluster-4.redis-cluster.caching.svc.cluster.local:6379 \
+            redis-cluster-5.redis-cluster.caching.svc.cluster.local:6379 \
+            --cluster-replicas 1 --cluster-yes
+      restartPolicy: Never

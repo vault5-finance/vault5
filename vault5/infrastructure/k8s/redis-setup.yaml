@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-policies
+  namespace: caching
+data:
+  caching-policies: |
+    # Redis Caching Policies for Vault5 Microservices
+    # Session Storage: Use keys with prefix 'session:*', TTL 24 hours
+    # User Data Cache: prefix 'user:*', TTL 1 hour
+    # Financial Data Cache: prefix 'finance:*', TTL 30 minutes
+    # API Response Cache: prefix 'api:*', TTL 5 minutes
+    # Inter-service Communication: Pub/Sub channels 'service-events', 'user-updates', 'transaction-alerts'
+  session-config: |
+    # Session storage configuration
+    # Keys: session:{user_id}
+    # Data: JSON with session info
+    # TTL: 86400 seconds (24 hours)
+  pubsub-channels: |
+    # Pub/Sub Channels
+    # - service-events: For inter-service notifications
+    # - user-updates: For user data changes
+    # - transaction-alerts: For transaction events
+    # - cache-invalidation: For cache clearing across services
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redis-init
+  namespace: caching
+spec:
+  template:
+    spec:
+      containers:
+      - name: redis-init
+        image: redis:6-alpine
+        command:
+        - sh
+        - -c
+        - |
+          # Wait for cluster to be ready
+          sleep 30
+          # Set initial cache policies (example)
+          redis-cli -c -h redis-cluster-0.redis-cluster.caching.svc.cluster.local SET cache:policy:session "TTL=86400" EX 3600
+          redis-cli -c -h redis-cluster-0.redis-cluster.caching.svc.cluster.local SET cache:policy:user "TTL=3600" EX 3600
+          redis-cli -c -h redis-cluster-0.redis-cluster.caching.svc.cluster.local SET cache:policy:finance "TTL=1800" EX 3600
+          redis-cli -c -h redis-cluster-0.redis-cluster.caching.svc.cluster.local SET cache:policy:api "TTL=300" EX 3600
+          # Subscribe to channels (this will run in background, but for init, just test)
+          echo "Redis initialization complete"
+      restartPolicy: Never

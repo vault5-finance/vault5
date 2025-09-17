@@ -274,4 +274,49 @@ const Landing = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="text-2xl font-bold text-white mb-4">Vault5</div>
-              <p className="text-gray-300 mb-4">Financial freedom through discipline and automation.</
+              <p className="text-gray-300 mb-4">Financial freedom through discipline and automation.</p>
+              <div className="flex space-x-4">
+                <a href="#" className="text-gray-400 hover:text-white">📘</a>
+                <a href="#" className="text-gray-400 hover:text-white">🐦</a>
+                <a href="#" className="text-gray-400 hover:text-white">📷</a>
+                <a href="#" className="text-gray-400 hover:text-white">💼</a>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Product</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/personal" className="hover:text-white">Personal</Link></li>
+                <li><Link to="/business" className="hover:text-white">Business</Link></li>
+                <li><Link to="/developers" className="hover:text-white">Developers</Link></li>
+                <li><Link to="/app" className="hover:text-white">Mobile App</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Support</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
+                <li><Link to="/contact" className="hover:text-white">Contact Us</Link></li>
+                <li><Link to="/security" className="hover:text-white">Security</Link></li>
+                <li><Link to="/fees" className="hover:text-white">Fees</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Company</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/about" className="hover:text-white">About</Link></li>
+                <li><Link to="/blog" className="hover:text-white">Blog</Link></li>
+                <li><Link to="/legal" className="hover:text-white">Legal</Link></li>
+                <li><Link to="/contact" className="hover:text-white">Careers</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 Vault5. All rights reserved. | <Link to="/legal" className="hover:text-white">Privacy</Link> | <Link to="/legal" className="hover:text-white">Terms</Link> | <Link to="/legal" className="hover:text-white">Accessibility</Link></p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Landing;

@@ -1,0 +1,170 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-declarative-config
+  namespace: kong
+data:
+  kong.yml: |
+    _format_version: "1.1"
+    services:
+    - name: auth-service
+      url: http://auth-service.microservices.svc.cluster.local:3000
+      routes:
+      - name: auth-route
+        paths:
+        - /api/auth
+        plugins:
+        - name: cors
+          config:
+            origins:
+            - "*"
+            methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            credentials: true
+        - name: rate-limiting
+          config:
+            minute: 100
+            hour: 1000
+    - name: accounts-service
+      url: http://accounts-service.microservices.svc.cluster.local:3001
+      routes:
+      - name: accounts-route
+        paths:
+        - /api/accounts
+        plugins:
+        - name: jwt
+        - name: cors
+          config:
+            origins:
+            - "*"
+            methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            credentials: true
+        - name: rate-limiting
+          config:
+            minute: 200
+            hour: 2000
+        - name: request-transformer
+          config:
+            add:
+              headers:
+              - "X-Service: accounts"
+    - name: transactions-service
+      url: http://transactions-service.microservices.svc.cluster.local:3002
+      routes:
+      - name: transactions-route
+        paths:
+        - /api/transactions
+        plugins:
+        - name: jwt
+        - name: cors
+          config:
+            origins:
+            - "*"
+            methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            credentials: true
+        - name: rate-limiting
+          config:
+            minute: 300
+            hour: 3000
+        - name: request-transformer
+          config:
+            add:
+              headers:
+              - "X-Service: transactions"
+    - name: investments-service
+      url: http://investments-service.microservices.svc.cluster.local:3003
+      routes:
+      - name: investments-route
+        paths:
+        - /api/investments
+        plugins:
+        - name: jwt
+        - name: cors
+          config:
+            origins:
+            - "*"
+            methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            credentials: true
+        - name: rate-limiting
+          config:
+            minute: 150
+            hour: 1500
+        - name: request-transformer
+          config:
+            add:
+              headers:
+              - "X-Service: investments"
+    - name: loans-service
+      url: http://loans-service.microservices.svc.cluster.local:3004
+      routes:
+      - name: loans-route
+        paths:
+        - /api/loans
+        plugins:
+        - name: jwt
+        - name: cors
+          config:
+            origins:
+            - "*"
+            methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            credentials: true
+        - name: rate-limiting
+          config:
+            minute: 100
+            hour: 1000
+        - name: request-transformer
+          config:
+            add:
+              headers:
+              - "X-Service: loans"
+    consumers:
+    - username: vault5-user
+      jwt_secrets:
+      - key: vault5-jwt-key
+        secret: vault5-jwt-secret
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kong-config-job
+  namespace: kong
+spec:
+  template:
+    spec:
+      containers:
+      - name: kong-config
+        image: kong:latest
+        command:
+        - sh
+        - -c
+        - |
+          curl -X POST http://kong-admin:8001/config \
+            -H "Content-Type: application/json" \
+            -d @/etc/kong/kong.yml
+        volumeMounts:
+        - name: config
+          mountPath: /etc/kong
+      volumes:
+      - name: config
+        configMap:
+          name: kong-declarative-config
+      restartPolicy: Never
