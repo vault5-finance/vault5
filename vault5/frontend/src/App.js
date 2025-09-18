@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { ToastProvider } from './contexts/ToastContext';
 import './index.css';
 
 import NavBar from './components/NavBar';
@@ -26,6 +27,7 @@ import Profile from './pages/Profile';
 import AboutUs from './pages/AboutUs';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
+import AdminLogin from './pages/AdminLogin';
 import Banking from './pages/Banking';
 
 // Protected Route Component
@@ -34,10 +36,34 @@ const ProtectedRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" replace />;
 };
 
+// Admin Protected Route Component
+const AdminProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  if (!token) return <Navigate to="/admin-login" replace />;
+
+  // Check if user has any admin role
+  const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+  if (!adminRoles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+
+  return children;
+};
+
 // Public Route Component (redirects authenticated users)
 const PublicRoute = ({ children }) => {
   const token = localStorage.getItem('token');
-  return token ? <Navigate to="/dashboard" replace /> : children;
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  if (!token) return children;
+
+  // Redirect admins (any admin role) to admin panel, users to dashboard
+  const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+  if (adminRoles.includes(user.role)) {
+    return <Navigate to="/admin" replace />;
+  }
+ 
+  return <Navigate to="/dashboard" replace />;
 };
 
 function App() {
@@ -45,12 +71,13 @@ function App() {
   const isLandingPage = location.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {!isLandingPage && <NavBar />}
-      <Routes>
+    <ToastProvider>
+      <div className="min-h-screen bg-gray-100">
+        {!isLandingPage && <NavBar />}
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupChoice /></PublicRoute>} />
         <Route path="/signup/email" element={<PublicRoute><SignupEmail /></PublicRoute>} />
@@ -58,6 +85,7 @@ function App() {
         <Route path="/signup/personal" element={<PublicRoute><SignupPersonal /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/admin-login" element={<AdminLogin />} />
 
         {/* Public Marketing Pages */}
         <Route path="/personal" element={<div className="p-8"><h1 className="text-3xl font-bold">Personal Banking</h1><p className="mt-4">Coming soon...</p></div>} />
@@ -82,8 +110,8 @@ function App() {
         <Route path="/banking" element={<ProtectedRoute><Banking /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+        <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+        <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
 
         {/* Placeholder Pages for Future Features */}
         <Route path="/wallet" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Wallet</h1><p className="mt-4">Recharge, withdraw, and manage your accounts.</p></div></ProtectedRoute>} />
@@ -91,8 +119,9 @@ function App() {
         <Route path="/chamas" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Chamas</h1><p className="mt-4">Join or create pooled savings groups.</p></div></ProtectedRoute>} />
         <Route path="/insurance" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Insurance</h1><p className="mt-4">Coming soon...</p></div></ProtectedRoute>} />
         <Route path="/send-request" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Send & Request Money</h1><p className="mt-4">Send money via Email, Phone, or VaultTag.</p></div></ProtectedRoute>} />
-      </Routes>
-    </div>
+        </Routes>
+      </div>
+    </ToastProvider>
   );
 }
 

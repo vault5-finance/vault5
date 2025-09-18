@@ -1,366 +1,296 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import api from '../services/api';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    activeUsers: 0,
-    totalUsers: 0,
-    revenue: 0,
-    pendingLoans: 0,
-    systemHealth: 'healthy'
-  });
+  const [user, setUser] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [timeFilter, setTimeFilter] = useState('24h');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/login');
+      navigate('/admin/login');
       return;
     }
 
-    // Check if user is admin
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user.role !== 'admin') {
-      navigate('/dashboard');
-      return;
+    // Decode token to get user info
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      setUser(payload);
+
+      // Fetch admin stats if super admin
+      if (payload.role === 'super_admin') {
+        fetchAdminStats();
+        fetchAdmins();
+      }
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      navigate('/admin/login');
     }
 
-    loadDashboardStats();
-    loadRecentActivity();
-  }, [navigate, timeFilter]);
+    setLoading(false);
+  }, [navigate]);
 
-  const loadDashboardStats = async () => {
+  const fetchAdminStats = async () => {
     try {
-      // These would be real API calls in production
-      setStats({
-        activeUsers: 1250,
-        totalUsers: 15420,
-        revenue: 45678.90,
-        pendingLoans: 23,
-        systemHealth: 'healthy'
-      });
+      const response = await api.get('/api/admin/stats');
+      setStats(response.data.data);
     } catch (error) {
-      console.error('Error loading dashboard stats:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching admin stats:', error);
     }
   };
 
-  const loadRecentActivity = async () => {
+  const fetchAdmins = async () => {
     try {
-      // Mock data - in production this would come from API
-      const activities = [
-        {
-          id: 1,
-          type: 'user',
-          message: 'New user registered: john@example.com',
-          time: '2 minutes ago',
-          icon: '👤',
-          color: 'blue',
-          action: () => navigate('/admin/users')
-        },
-        {
-          id: 2,
-          type: 'loan',
-          message: 'Loan #1234 approved for $5,000',
-          time: '15 minutes ago',
-          icon: '✅',
-          color: 'green',
-          action: () => navigate('/admin/loans')
-        },
-        {
-          id: 3,
-          type: 'transaction',
-          message: 'Large transaction flagged: $50,000 transfer',
-          time: '1 hour ago',
-          icon: '⚠️',
-          color: 'red',
-          action: () => navigate('/admin/transactions')
-        },
-        {
-          id: 4,
-          type: 'system',
-          message: 'System backup completed successfully',
-          time: '3 hours ago',
-          icon: '🔄',
-          color: 'gray',
-          action: null
-        },
-        {
-          id: 5,
-          type: 'user',
-          message: 'User account suspended: suspicious activity',
-          time: '5 hours ago',
-          icon: '🚫',
-          color: 'red',
-          action: () => navigate('/admin/users')
-        }
-      ];
-      setRecentActivity(activities);
+      const response = await api.get('/api/admin');
+      setAdmins(response.data.data);
     } catch (error) {
-      console.error('Error loading activity:', error);
+      console.error('Error fetching admins:', error);
     }
   };
 
-  const quickActions = [
-    {
-      title: 'Approve Loan',
-      description: 'Review and approve pending loan applications',
-      icon: '✅',
-      action: () => navigate('/admin/loans'),
-      color: 'green'
-    },
-    {
-      title: 'Suspend User',
-      description: 'Temporarily suspend user accounts',
-      icon: '🚫',
-      action: () => navigate('/admin/users'),
-      color: 'red'
-    },
-    {
-      title: 'Flag Transaction',
-      description: 'Mark suspicious transactions for review',
-      icon: '⚠️',
-      action: () => navigate('/admin/transactions'),
-      color: 'yellow'
-    },
-    {
-      title: 'System Health',
-      description: 'Check database and API status',
-      icon: '🔧',
-      action: () => navigate('/admin/settings'),
-      color: 'blue'
-    }
-  ];
+  const handleCreateAdmin = () => {
+    navigate('/admin/create');
+  };
 
-  if (loading) return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-white text-xl">Loading admin dashboard...</div>
-    </div>
-  );
+  const handleManageAdmins = () => {
+    navigate('/admin/manage');
+  };
+
+  const getDashboardByRole = () => {
+    switch (user?.role) {
+      case 'super_admin':
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold text-gray-900">Super Admin Dashboard</h1>
+              <div className="space-x-4">
+                <button
+                  onClick={handleCreateAdmin}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Create Admin
+                </button>
+                <button
+                  onClick={handleManageAdmins}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                >
+                  Manage Admins
+                </button>
+              </div>
+            </div>
+
+            {/* Stats Cards */}
+            {stats && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                  <h3 className="text-lg font-semibold text-gray-900">Total Admins</h3>
+                  <p className="text-3xl font-bold text-blue-600">{stats.totalAdmins}</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                  <h3 className="text-lg font-semibold text-gray-900">Active Admins</h3>
+                  <p className="text-3xl font-bold text-green-600">{stats.activeAdmins}</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                  <h3 className="text-lg font-semibold text-gray-900">Inactive Admins</h3>
+                  <p className="text-3xl font-bold text-red-600">{stats.inactiveAdmins}</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                  <h3 className="text-lg font-semibold text-gray-900">Departments</h3>
+                  <p className="text-3xl font-bold text-purple-600">{stats.breakdown?.length || 0}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Recent Admins */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold mb-4">Recent Admins</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full table-auto">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-4 py-2 text-left">Name</th>
+                      <th className="px-4 py-2 text-left">Email</th>
+                      <th className="px-4 py-2 text-left">Role</th>
+                      <th className="px-4 py-2 text-left">Department</th>
+                      <th className="px-4 py-2 text-left">Status</th>
+                      <th className="px-4 py-2 text-left">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {admins.slice(0, 5).map((admin) => (
+                      <tr key={admin._id} className="border-t">
+                        <td className="px-4 py-2">{admin.name}</td>
+                        <td className="px-4 py-2">{admin.emails?.[0]?.email || 'N/A'}</td>
+                        <td className="px-4 py-2 capitalize">{admin.role.replace('_', ' ')}</td>
+                        <td className="px-4 py-2 capitalize">{admin.department}</td>
+                        <td className="px-4 py-2">
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            admin.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {admin.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2">{new Date(admin.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'finance_admin':
+        return (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-900">Finance Admin Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Pending Approvals</h3>
+                <p className="text-3xl font-bold text-orange-600">12</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Today's Transactions</h3>
+                <p className="text-3xl font-bold text-blue-600">156</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Flagged Items</h3>
+                <p className="text-3xl font-bold text-red-600">3</p>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold mb-4">Recent Loan Applications</h3>
+              <p className="text-gray-600">Loan management interface would go here</p>
+            </div>
+          </div>
+        );
+
+      case 'compliance_admin':
+        return (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-900">Compliance & Risk Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Flagged Transactions</h3>
+                <p className="text-3xl font-bold text-red-600">8</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Pending KYC</h3>
+                <p className="text-3xl font-bold text-orange-600">15</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">AML Alerts</h3>
+                <p className="text-3xl font-bold text-yellow-600">2</p>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold mb-4">Compliance Monitoring</h3>
+              <p className="text-gray-600">Fraud detection and compliance monitoring interface would go here</p>
+            </div>
+          </div>
+        );
+
+      case 'support_admin':
+        return (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-900">Customer Support Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Open Tickets</h3>
+                <p className="text-3xl font-bold text-orange-600">23</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Resolved Today</h3>
+                <p className="text-3xl font-bold text-green-600">18</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Avg Response Time</h3>
+                <p className="text-3xl font-bold text-blue-600">2.3h</p>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold mb-4">Recent Support Tickets</h3>
+              <p className="text-gray-600">Customer support ticket management interface would go here</p>
+            </div>
+          </div>
+        );
+
+      case 'content_admin':
+        return (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-900">Content & Marketing Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Published Articles</h3>
+                <p className="text-3xl font-bold text-blue-600">45</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Active Campaigns</h3>
+                <p className="text-3xl font-bold text-green-600">7</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Push Notifications</h3>
+                <p className="text-3xl font-bold text-purple-600">12</p>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold mb-4">Content Management</h3>
+              <p className="text-gray-600">Blog posts, FAQs, and marketing content management interface would go here</p>
+            </div>
+          </div>
+        );
+
+      case 'system_admin':
+        return (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-900">System Administration Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Server Uptime</h3>
+                <p className="text-3xl font-bold text-green-600">99.9%</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">Active Users</h3>
+                <p className="text-3xl font-bold text-blue-600">1,247</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900">API Calls</h3>
+                <p className="text-3xl font-bold text-purple-600">45.2K</p>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold mb-4">System Monitoring</h3>
+              <p className="text-gray-600">Server monitoring, logs, and infrastructure management interface would go here</p>
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="text-center py-12">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+            <p className="text-gray-600">You don't have permission to access this dashboard.</p>
+          </div>
+        );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Admin Header */}
-      <header className="bg-gray-800 shadow-lg border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <div className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-bold mr-4">
-                ADMIN
-              </div>
-              <h1 className="text-2xl font-bold text-white">Vault5 Admin Panel</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  stats.systemHealth === 'healthy' ? 'bg-green-400' :
-                  stats.systemHealth === 'warning' ? 'bg-yellow-400' : 'bg-red-400'
-                }`}></div>
-                <span className="text-sm text-gray-300">System: {stats.systemHealth}</span>
-              </div>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                User Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex">
-        {/* Sidebar */}
-        <nav className="w-64 bg-gray-800 min-h-screen border-r border-gray-700">
-          <div className="p-6">
-            <div className="space-y-2">
-              {[
-                { name: 'Dashboard', active: true, path: '/admin', icon: '📊' },
-                { name: 'Users', active: false, path: '/admin/users', icon: '👥' },
-                { name: 'Transactions', active: false, path: '/admin/transactions', icon: '💳' },
-                { name: 'Loans', active: false, path: '/admin/loans', icon: '💰' },
-                { name: 'Reports', active: false, path: '/admin/reports', icon: '📈' },
-                { name: 'Content', active: false, path: '/admin/content', icon: '📝' },
-                { name: 'Audit Logs', active: false, path: '/admin/audit', icon: '📋' },
-                { name: 'Settings', active: false, path: '/admin/settings', icon: '⚙️' }
-              ].map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
-                    item.active
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  }`}
-                >
-                  <span className="mr-3">{item.icon}</span>
-                  {item.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </nav>
-
-        {/* Main Content */}
-        <main className="flex-1 p-8">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-            {[
-              {
-                name: 'Active Users',
-                value: stats.activeUsers.toLocaleString(),
-                change: '+12%',
-                changeType: 'increase',
-                trend: [1200, 1180, 1220, 1250],
-                icon: '👥'
-              },
-              {
-                name: 'Total Users',
-                value: stats.totalUsers.toLocaleString(),
-                change: '+8%',
-                changeType: 'increase',
-                trend: [15200, 15100, 15300, 15420],
-                icon: '📈'
-              },
-              {
-                name: 'Revenue',
-                value: `$${stats.revenue.toLocaleString()}`,
-                change: '+23%',
-                changeType: 'increase',
-                trend: [42000, 43000, 44500, 45678],
-                icon: '💰'
-              },
-              {
-                name: 'Pending Loans',
-                value: stats.pendingLoans,
-                change: '-5%',
-                changeType: 'decrease',
-                trend: [25, 24, 23, 23],
-                icon: '📋',
-                urgent: stats.pendingLoans > 20
-              }
-            ].map((stat, index) => (
-              <motion.div
-                key={stat.name}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className={`bg-gray-800 rounded-lg p-6 border ${stat.urgent ? 'border-red-500' : 'border-gray-700'}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-400 text-sm">{stat.name}</p>
-                    <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
-                    <div className="flex items-center mt-2">
-                      <span className={`text-sm font-medium ${
-                        stat.changeType === 'increase' ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                        {stat.change}
-                      </span>
-                      <span className="text-gray-500 text-sm ml-2">vs last week</span>
-                    </div>
-                  </div>
-                  <div className="text-3xl">{stat.icon}</div>
-                </div>
-                {/* Mini sparkline */}
-                <div className="mt-4 h-8 flex items-end space-x-1">
-                  {stat.trend.map((value, i) => (
-                    <div
-                      key={i}
-                      className="bg-blue-500 rounded-sm flex-1"
-                      style={{ height: `${(value / Math.max(...stat.trend)) * 100}%` }}
-                    ></div>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Quick Actions */}
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                {quickActions.map((action, index) => (
-                  <motion.button
-                    key={action.title}
-                    onClick={action.action}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className={`w-full flex items-center p-3 rounded-lg transition-colors ${
-                      action.color === 'green' ? 'bg-green-900/20 hover:bg-green-900/30 border border-green-700' :
-                      action.color === 'red' ? 'bg-red-900/20 hover:bg-red-900/30 border border-red-700' :
-                      action.color === 'yellow' ? 'bg-yellow-900/20 hover:bg-yellow-900/30 border border-yellow-700' :
-                      'bg-blue-900/20 hover:bg-blue-900/30 border border-blue-700'
-                    }`}
-                  >
-                    <span className="text-xl mr-3">{action.icon}</span>
-                    <div className="text-left">
-                      <div className="font-medium text-white">{action.title}</div>
-                      <div className="text-sm text-gray-400">{action.description}</div>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="lg:col-span-2 bg-gray-800 rounded-lg border border-gray-700">
-              <div className="p-6 border-b border-gray-700">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
-                  <select
-                    value={timeFilter}
-                    onChange={(e) => setTimeFilter(e.target.value)}
-                    className="bg-gray-700 text-white px-3 py-1 rounded text-sm border border-gray-600"
-                  >
-                    <option value="1h">Last Hour</option>
-                    <option value="24h">Last 24 Hours</option>
-                    <option value="7d">Last 7 Days</option>
-                    <option value="30d">Last 30 Days</option>
-                  </select>
-                </div>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                {recentActivity.map((activity, index) => (
-                  <motion.div
-                    key={activity.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className={`p-4 border-b border-gray-700 hover:bg-gray-700/50 cursor-pointer transition-colors ${
-                      activity.action ? 'cursor-pointer' : ''
-                    }`}
-                    onClick={activity.action}
-                  >
-                    <div className="flex items-center">
-                      <span className="text-xl mr-3">{activity.icon}</span>
-                      <div className="flex-1">
-                        <p className="text-white font-medium">{activity.message}</p>
-                        <p className="text-gray-400 text-sm">{activity.time}</p>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        activity.color === 'green' ? 'bg-green-900 text-green-300' :
-                        activity.color === 'red' ? 'bg-red-900 text-red-300' :
-                        activity.color === 'blue' ? 'bg-blue-900 text-blue-300' :
-                        'bg-gray-900 text-gray-300'
-                      }`}>
-                        {activity.type}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </main>
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {getDashboardByRole()}
       </div>
     </div>
   );

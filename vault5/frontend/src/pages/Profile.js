@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const Profile = () => {
+  const { showError, showSuccess, showInfo } = useToast();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('personal');
@@ -77,43 +79,46 @@ const Profile = () => {
     setUpdating(true);
     try {
       await api.put('/api/auth/profile', user);
-      alert('Profile updated successfully');
+      showSuccess('Profile updated successfully');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating profile');
+      showError(error.response?.data?.message || 'Error updating profile');
     } finally {
       setUpdating(false);
     }
   };
 
   const handleAddEmail = async () => {
-    if (!newEmail) return alert('Please enter an email address');
+    if (!newEmail) {
+      showError('Please enter an email address');
+      return;
+    }
     try {
       await api.post('/api/auth/add-email', { email: newEmail });
-      alert('Verification email sent! Please check your email.');
+      showSuccess('Verification email sent! Please check your email.');
       setNewEmail('');
       loadProfile();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error adding email');
+      showError(error.response?.data?.message || 'Error adding email');
     }
   };
 
   const handleVerifyEmail = async (emailId, token) => {
     try {
       await api.post('/api/auth/verify-email', { emailId, token });
-      alert('Email verified successfully!');
+      showSuccess('Email verified successfully!');
       loadProfile();
     } catch (error) {
-      alert(error.response?.data?.message || 'Verification failed');
+      showError(error.response?.data?.message || 'Verification failed');
     }
   };
 
   const handleSetPrimaryEmail = async (emailId) => {
     try {
       await api.patch('/api/auth/set-primary-email', { emailId });
-      alert('Primary email updated successfully!');
+      showSuccess('Primary email updated successfully!');
       loadProfile();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating primary email');
+      showError(error.response?.data?.message || 'Error updating primary email');
     }
   };
 
@@ -122,42 +127,45 @@ const Profile = () => {
     if (!confirm('Are you sure you want to remove this email?')) return;
     try {
       await api.delete(`/api/auth/remove-email/${emailId}`);
-      alert('Email removed successfully!');
+      showSuccess('Email removed successfully!');
       loadProfile();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error removing email');
+      showError(error.response?.data?.message || 'Error removing email');
     }
   };
 
   const handleAddPhone = async () => {
-    if (!newPhone) return alert('Please enter a phone number');
+    if (!newPhone) {
+      showError('Please enter a phone number');
+      return;
+    }
     try {
       await api.post('/api/auth/add-phone', { phone: newPhone });
-      alert('Verification code sent! Please check your phone.');
+      showSuccess('Verification code sent! Please check your phone.');
       setNewPhone('');
       loadProfile();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error adding phone');
+      showError(error.response?.data?.message || 'Error adding phone');
     }
   };
 
   const handleVerifyPhone = async (phoneId, code) => {
     try {
       await api.post('/api/auth/verify-phone', { phoneId, code });
-      alert('Phone verified successfully!');
+      showSuccess('Phone verified successfully!');
       loadProfile();
     } catch (error) {
-      alert(error.response?.data?.message || 'Verification failed');
+      showError(error.response?.data?.message || 'Verification failed');
     }
   };
 
   const handleSetPrimaryPhone = async (phoneId) => {
     try {
       await api.patch('/api/auth/set-primary-phone', { phoneId });
-      alert('Primary phone updated successfully!');
+      showSuccess('Primary phone updated successfully!');
       loadProfile();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating primary phone');
+      showError(error.response?.data?.message || 'Error updating primary phone');
     }
   };
 
@@ -166,64 +174,65 @@ const Profile = () => {
     if (!confirm('Are you sure you want to remove this phone number?')) return;
     try {
       await api.delete(`/api/auth/remove-phone/${phoneId}`);
-      alert('Phone removed successfully!');
+      showSuccess('Phone removed successfully!');
       loadProfile();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error removing phone');
+      showError(error.response?.data?.message || 'Error removing phone');
     }
   };
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      return alert('New passwords do not match');
+      showError('New passwords do not match');
+      return;
     }
     try {
       await api.post('/api/auth/change-password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });
-      alert('Password changed successfully!');
+      showSuccess('Password changed successfully!');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
-      alert(error.response?.data?.message || 'Error changing password');
+      showError(error.response?.data?.message || 'Error changing password');
     }
   };
 
   const handleFileUpload = async (documentType, file) => {
     if (!file) return;
-
+ 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
+      showError('File size must be less than 5MB');
       return;
     }
-
+ 
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Only JPEG, PNG images and PDF files are allowed');
+      showError('Only JPEG, PNG images and PDF files are allowed');
       return;
     }
-
+ 
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('document', file);
       formData.append('type', documentType);
-
+ 
       // This would be a real API call in production
       // For now, we'll simulate the upload and update status
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate upload delay
-
+ 
       setKycDocuments(prev => ({
         ...prev,
         [documentType]: { ...prev[documentType], status: 'pending', file: file.name }
       }));
-
-      alert(`${documentType} uploaded successfully! It will be reviewed within 24 hours.`);
+ 
+      showSuccess(`${documentType} uploaded successfully! It will be reviewed within 24 hours.`);
     } catch (error) {
-      alert('Error uploading document. Please try again.');
+      showError('Error uploading document. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -737,7 +746,7 @@ const Profile = () => {
                         });
                         setUser({...user, flags: { ...user.flags, twoFactorEnabled: e.target.checked }});
                       } catch (error) {
-                        alert('Error updating 2FA setting');
+                        showError('Error updating 2FA setting');
                       }
                     }}
                     className="rounded"

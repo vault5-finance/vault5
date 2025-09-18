@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const Banking = () => {
   const navigate = useNavigate();
+  const { showError, showSuccess } = useToast();
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [transactions, setTransactions] = useState([]);
@@ -45,9 +47,9 @@ const Banking = () => {
               await api.post('/api/plaid/exchange-token', { public_token });
               setConnected(true);
               await checkConnectionStatus();
-              alert('Bank account connected successfully!');
+              showSuccess('Bank account connected successfully!');
             } catch (error) {
-              alert('Failed to connect bank account');
+              showError('Failed to connect bank account');
             }
           },
           onExit: (err, metadata) => {
@@ -60,7 +62,7 @@ const Banking = () => {
       };
       document.head.appendChild(script);
     } catch (error) {
-      alert('Failed to initialize bank connection');
+      showError('Failed to initialize bank connection');
     } finally {
       setLoading(false);
     }
@@ -71,9 +73,9 @@ const Banking = () => {
     try {
       await api.get('/api/plaid/transactions');
       await checkConnectionStatus();
-      alert('Transactions synced successfully!');
+      showSuccess('Transactions synced successfully!');
     } catch (error) {
-      alert('Failed to sync transactions');
+      showError('Failed to sync transactions');
     } finally {
       setLoading(false);
     }

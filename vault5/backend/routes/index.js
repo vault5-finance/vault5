@@ -1,4 +1,5 @@
 const authRoutes = require('./auth');
+const adminRoutes = require('./admin');
 const accountsRoutes = require('./accounts');
 const goalsRoutes = require('./goals');
 const lendingRoutes = require('./lending');
@@ -15,6 +16,7 @@ const receiptsRoutes = require('./receipts');
 // Export all routes
 module.exports = {
   authRoutes,
+  adminRoutes,
   accountsRoutes,
   goalsRoutes,
   lendingRoutes,

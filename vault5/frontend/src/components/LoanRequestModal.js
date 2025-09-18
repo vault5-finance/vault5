@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-
+import { useToast } from '../contexts/ToastContext';
+ 
 const LoanRequestModal = ({ isOpen, onClose, onSubmit, userAccounts = [] }) => {
+  const { showError, showSuccess, showInfo } = useToast();
   const [form, setForm] = useState({
     borrowerName: '',
     borrowerContact: '',
@@ -58,11 +60,12 @@ const LoanRequestModal = ({ isOpen, onClose, onSubmit, userAccounts = [] }) => {
       const response = await api.post('/api/auth/verify-mfa', { code: mfaCode });
       if (response.data.verified) {
         setMfaVerified(true);
+        showSuccess('MFA verified');
       } else {
-        alert('Invalid MFA code');
+        showError('Invalid MFA code');
       }
     } catch (error) {
-      alert('MFA verification failed');
+      showError('MFA verification failed');
     }
   };
 
@@ -71,26 +74,27 @@ const LoanRequestModal = ({ isOpen, onClose, onSubmit, userAccounts = [] }) => {
 
     // Security validations
     if (!securityChecks.amountWithinLimits) {
-      alert('Loan amount exceeds your available credit limit');
+      showError('Loan amount exceeds your available credit limit');
       return;
     }
-
+ 
     if (!securityChecks.dailyLimitCheck) {
-      alert('Daily loan request limit exceeded');
+      showError('Daily loan request limit exceeded');
       return;
     }
-
+ 
     if (securityChecks.mfaRequired && !mfaVerified) {
-      alert('MFA verification required for this transaction');
+      showInfo('MFA verification required for this transaction');
       return;
     }
-
+ 
     setLoading(true);
     try {
       await onSubmit({ ...form, securityChecks });
       onClose();
+      showSuccess('Loan request submitted');
     } catch (error) {
-      alert('Loan request failed: ' + error.message);
+      showError('Loan request failed: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }

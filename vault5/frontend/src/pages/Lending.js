@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import LoanRequestModal from '../components/LoanRequestModal';
+import { useToast } from '../contexts/ToastContext';
 
 const Lending = () => {
+  const { showError, showSuccess } = useToast();
   const [lendings, setLendings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -43,10 +45,10 @@ const Lending = () => {
     try {
       const response = await api.post('/api/lending', loanData);
       setLendings([response.data, ...lendings]);
-      alert('Lending request created successfully with security verification');
+      showSuccess('Lending request created successfully with security verification');
     } catch (error) {
       console.error('Create lending error:', error);
-      alert(error.response?.data?.message || 'Error creating lending request');
+      showError(error.response?.data?.message || 'Error creating lending request');
     }
   };
 
@@ -56,11 +58,11 @@ const Lending = () => {
     api.put(`/api/lending/${id}/status`, { status, actualReturnDate })
     .then(response => {
       setLendings(lendings.map(l => l._id === id ? response.data : l));
-      alert('Status updated successfully');
+      showSuccess('Status updated successfully');
     })
     .catch(error => {
       console.error('Update status error:', error);
-      alert(error.response?.data?.message || 'Error updating status');
+      showError(error.response?.data?.message || 'Error updating status');
     });
   };
 

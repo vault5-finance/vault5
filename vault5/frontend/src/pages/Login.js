@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import PasswordInput from '../components/PasswordInput';
+import { useToast } from '../contexts/ToastContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { showError } = useToast();
   const [form, setForm] = useState({ email: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -15,18 +17,20 @@ const Login = () => {
     setSubmitting(true);
     try {
       const res = await api.post('/api/auth/login', form);
+      console.log('Login response:', res.data);
       if (res.data && res.data.token) {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
 
         // Check for admin redirect
         const redirectPath = res.data.redirect || '/dashboard';
+        console.log('Redirecting to:', redirectPath, 'User role:', res.data.user.role);
         navigate(redirectPath);
       } else {
-        alert('Login failed: Invalid response');
+        showError('Login failed: Invalid response');
       }
     } catch (err) {
-      alert(err?.response?.data?.message || 'Login failed');
+      showError(err?.response?.data?.message || 'Login failed');
     } finally {
       setSubmitting(false);
     }

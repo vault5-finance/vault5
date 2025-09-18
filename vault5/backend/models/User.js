@@ -3,8 +3,15 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
-    trim: true
+    required: function() {
+      // Name is required only after registration step 2 (when personal details are collected)
+      return this.registrationStep >= 2;
+    },
+    trim: true,
+    immutable: function() {
+      // Name cannot be changed once set (after registration step 2)
+      return this.registrationStep >= 2;
+    }
   },
   emails: [{
     email: {
@@ -54,15 +61,50 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'],
     default: 'user'
+  },
+  department: {
+    type: String,
+    enum: ['none', 'system', 'finance', 'compliance', 'support', 'content'],
+    default: 'none'
+  },
+  permissions: [{
+    type: String,
+    enum: [
+      // Super Admin - All permissions
+      'admin.create', 'admin.update', 'admin.delete', 'admin.view_all',
+
+      // System Admin permissions
+      'system.view', 'system.update', 'system.monitor', 'system.deploy',
+
+      // Finance Admin permissions
+      'finance.view', 'finance.approve', 'finance.disburse', 'finance.reconcile',
+
+      // Compliance Admin permissions
+      'compliance.view', 'compliance.approve', 'compliance.audit', 'compliance.report',
+
+      // Support Admin permissions
+      'support.view', 'support.resolve', 'support.reset', 'support.compensate',
+
+      // Content Admin permissions
+      'content.view', 'content.update', 'content.publish', 'content.notify'
+    ]
+  }],
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   avatar: {
     type: String,
     default: ''
   },
   dob: {
-    type: Date
+    type: Date,
+    immutable: function() {
+      // Date of birth cannot be changed once set (after registration step 2)
+      return this.registrationStep >= 2;
+    }
   },
   vaultTag: {
     type: String,
@@ -83,9 +125,6 @@ const userSchema = new mongoose.Schema({
   country: {
     type: String,
     default: 'Kenya'
-  },
-  lastLogin: {
-    type: Date
   },
   flags: {
     suspicious: {
@@ -116,10 +155,6 @@ const userSchema = new mongoose.Schema({
     default: false
   },
   kycCompleted: {
-    type: Boolean,
-    default: false
-  },
-  isActive: {
     type: Boolean,
     default: false
   },
@@ -184,10 +219,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Virtual properties for backward compatibility
-userSchema.virtual('email').get(function() {
-  const primaryEmail = this.emails.find(e => e.isPrimary);
-  return primaryEmail ? primaryEmail.email : null;
-});
+// Removed virtual email field to prevent index conflicts
 
 userSchema.virtual('phone').get(function() {
   const primaryPhone = this.phones.find(p => p.isPrimary);
@@ -215,7 +247,54 @@ userSchema.pre('save', function(next) {
     this.phones[0].isPrimary = true;
   }
 
+  // Auto-assign permissions based on role
+  if (this.isModified('role') || this.isNew) {
+    this.permissions = this.getDefaultPermissions(this.role);
+  }
+
+  // Auto-assign department based on role
+  if (this.isModified('role') || this.isNew) {
+    this.department = this.getDepartmentFromRole(this.role);
+  }
+
   next();
 });
+
+// Helper method to get default permissions for a role
+userSchema.methods.getDefaultPermissions = function(role) {
+  const permissionMap = {
+    super_admin: [
+      'admin.create', 'admin.update', 'admin.delete', 'admin.view_all',
+      'system.view', 'system.update', 'system.monitor', 'system.deploy',
+      'finance.view', 'finance.approve', 'finance.disburse', 'finance.reconcile',
+      'compliance.view', 'compliance.approve', 'compliance.audit', 'compliance.report',
+      'support.view', 'support.resolve', 'support.reset', 'support.compensate',
+      'content.view', 'content.update', 'content.publish', 'content.notify'
+    ],
+    system_admin: ['system.view', 'system.update', 'system.monitor', 'system.deploy'],
+    finance_admin: ['finance.view', 'finance.approve', 'finance.disburse', 'finance.reconcile'],
+    compliance_admin: ['compliance.view', 'compliance.approve', 'compliance.audit', 'compliance.report'],
+    support_admin: ['support.view', 'support.resolve', 'support.reset', 'support.compensate'],
+    content_admin: ['content.view', 'content.update', 'content.publish', 'content.notify'],
+    user: []
+  };
+
+  return permissionMap[role] || [];
+};
+
+// Helper method to get department from role
+userSchema.methods.getDepartmentFromRole = function(role) {
+  const departmentMap = {
+    super_admin: 'none',
+    system_admin: 'system',
+    finance_admin: 'finance',
+    compliance_admin: 'compliance',
+    support_admin: 'support',
+    content_admin: 'content',
+    user: 'none'
+  };
+
+  return departmentMap[role] || 'none';
+};
 
 module.exports = mongoose.model('User', userSchema);

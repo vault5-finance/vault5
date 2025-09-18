@@ -51,9 +51,6 @@ router.post('/check-vault-tag', checkVaultTag);
 router.post('/forgot-password', authLimiter, auditLog('password_change', 'auth'), forgotPassword);
 router.post('/reset-password', authLimiter, auditLog('password_change', 'auth'), resetPassword);
 
-// Password reset routes
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
 
 // Multi-email/phone management routes (protected)
 router.post('/add-email', protect, addEmail);

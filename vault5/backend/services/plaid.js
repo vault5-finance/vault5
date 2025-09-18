@@ -5,13 +5,13 @@ const { PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV } = process.env;
 const getPlaidEnvironment = (env) => {
   switch (env) {
     case 'sandbox':
-      return plaid.environments.sandbox;
+      return 'sandbox';
     case 'development':
-      return plaid.environments.development;
+      return 'development';
     case 'production':
-      return plaid.environments.production;
+      return 'production';
     default:
-      return plaid.environments.sandbox; // Default to sandbox
+      return 'sandbox'; // Default to sandbox
   }
 };
 
@@ -28,6 +28,7 @@ if (PLAID_CLIENT_ID && PLAID_SECRET && PLAID_ENV) {
         version: '2020-09-14'
       }
     });
+    console.log('Plaid client initialized successfully');
   } catch (error) {
     console.warn('Failed to initialize Plaid client with new API:', error.message);
     try {
@@ -40,6 +41,7 @@ if (PLAID_CLIENT_ID && PLAID_SECRET && PLAID_ENV) {
           version: '2020-09-14'
         }
       });
+      console.log('Plaid client initialized with fallback syntax');
     } catch (fallbackError) {
       console.warn('Failed to initialize Plaid client with fallback:', fallbackError.message);
       client = null;

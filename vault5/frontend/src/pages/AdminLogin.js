@@ -1,5 +1,3 @@
-ault5/frontend/src/pages/AdminLogin.js</path>
-<content lines="1-24">
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
@@ -18,7 +16,9 @@ const AdminLogin = () => {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-    if (token && user.role === 'admin') {
+    // Check if user has any admin role
+    const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+    if (token && adminRoles.includes(user.role)) {
       navigate('/admin');
     }
   }, [navigate]);
@@ -40,7 +40,8 @@ const AdminLogin = () => {
       const { token, user, redirect } = response.data;
 
       // Verify this is an admin user
-      if (user.role !== 'admin') {
+      const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+      if (!adminRoles.includes(user.role)) {
         setError('Access denied. Admin credentials required.');
         return;
       }

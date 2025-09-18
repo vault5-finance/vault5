@@ -37,6 +37,18 @@ loadSecrets().then(secretsLoaded => {
 .then(async () => {
   console.log('MongoDB connected');
 
+  // One-time migration: drop legacy unique index on `email` if it exists (migrated to emails[])
+  try {
+    const idx = await mongoose.connection.db.collection('users').indexes();
+    const legacyEmailIdx = idx.find(i => i.name === 'email_1');
+    if (legacyEmailIdx) {
+      console.log('Dropping legacy index email_1 on users collection');
+      await mongoose.connection.db.collection('users').dropIndex('email_1');
+    }
+  } catch (e) {
+    console.warn('Index check/drop skipped:', e.message);
+  }
+
   // Seed default user if not exists
   const email = 'bnyaliti@gmail.com';
   const exists = await User.findOne({ email });
@@ -59,7 +71,7 @@ loadSecrets().then(secretsLoaded => {
       phone,
       city,
       avatar,
-      role: 'admin'
+      role: 'super_admin'
     });
     await user.save();
 
@@ -97,6 +109,7 @@ loadSecrets().then(secretsLoaded => {
 // Routes
 const {
   authRoutes,
+  adminRoutes,
   accountsRoutes,
   goalsRoutes,
   lendingRoutes,
@@ -112,6 +125,7 @@ const {
 } = require('./routes');
 const plaidRoutes = require('./routes/plaid');
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/lending', lendingRoutes);

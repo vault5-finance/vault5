@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const SignupEmail = () => {
   const navigate = useNavigate();
+  const { showError, showSuccess, showInfo } = useToast();
   const [form, setForm] = useState({ email: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [showExistingModal, setShowExistingModal] = useState(false);
@@ -46,12 +48,12 @@ const SignupEmail = () => {
     e.preventDefault();
 
     if (form.password !== form.confirmPassword) {
-      alert('Passwords do not match');
+      showError('Passwords do not match');
       return;
     }
-
+   
     if (passwordStrength < 40) {
-      alert('Password is too weak. Please use a stronger password.');
+      showError('Password is too weak. Please use a stronger password.');
       return;
     }
 
@@ -68,9 +70,15 @@ const SignupEmail = () => {
         return;
       }
 
-      // Email is available, proceed to phone verification
-      // Store signup data temporarily
+      // Email is available, create temporary user (step 1)
+      const step1Response = await api.post('/api/auth/register/step1', {
+        email: form.email,
+        password: form.password
+      });
+
+      // Store signup data with userId
       sessionStorage.setItem('signupData', JSON.stringify({
+        userId: step1Response.data.userId,
         email: form.email,
         password: form.password
       }));
@@ -79,7 +87,7 @@ const SignupEmail = () => {
 
     } catch (error) {
       console.error('Signup check error:', error);
-      alert(error.response?.data?.message || 'Error checking email availability');
+      showError(error.response?.data?.message || 'Error checking email availability');
     } finally {
       setLoading(false);
     }

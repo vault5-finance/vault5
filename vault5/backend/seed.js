@@ -4,6 +4,26 @@ const User = require('./models/User');
 const Account = require('./models/Account');
 require('dotenv').config();
 
+const updateExistingAdmins = async () => {
+  try {
+    console.log('Updating existing admin users...');
+
+    // Update any users with role 'admin' to 'super_admin'
+    const result = await User.updateMany(
+      { role: 'admin' },
+      { $set: { role: 'super_admin' } }
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log(`Updated ${result.modifiedCount} admin users to super_admin role`);
+    }
+
+    console.log('Admin role update completed');
+  } catch (err) {
+    console.error('Update error:', err);
+  }
+};
+
 const seedAdminUsers = async () => {
   try {
     const uri = process.env.MONGO_URI;
@@ -12,6 +32,9 @@ const seedAdminUsers = async () => {
     }
 
     await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    // First update any existing admin users
+    await updateExistingAdmins();
 
     const adminUsers = [
       {
@@ -22,7 +45,7 @@ const seedAdminUsers = async () => {
         phone: '+254712345678',
         city: 'Nairobi',
         avatar: 'https://ui-avatars.com/api/?name=Vault5+Admin',
-        role: 'admin'
+        role: 'super_admin'
       },
       {
         email: 'bnyaliti@gmail.com',
@@ -32,7 +55,7 @@ const seedAdminUsers = async () => {
         phone: '+254745959794',
         city: 'Nairobi',
         avatar: 'https://ui-avatars.com/api/?name=Bryson+Nyaliti',
-        role: 'admin'
+        role: 'super_admin'
       }
     ];
 

@@ -59,6 +59,7 @@ const NavBar = () => {
               <Link to="/blog" className="text-gray-700 hover:text-blue-600">Blog</Link>
             </div>
             <div className="hidden md:flex items-center space-x-4">
+              <Link to="/admin-login" className="text-gray-500 hover:text-blue-600 text-sm">Admin</Link>
               <Link to="/login" className="text-gray-700 hover:text-blue-600">Login</Link>
               <Link to="/register" className="text-white px-4 py-2 rounded-lg font-medium" style={{ background: 'var(--gradient-primary)' }}>
                 Get Started

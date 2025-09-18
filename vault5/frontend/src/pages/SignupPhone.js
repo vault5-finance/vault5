@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const SignupPhone = () => {
   const navigate = useNavigate();
+  const { showError, showSuccess, showInfo } = useToast();
   const [form, setForm] = useState({ phone: '', countryCode: '+254' });
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState('phone'); // 'phone' or 'otp'
@@ -46,22 +48,31 @@ const SignupPhone = () => {
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
-
+  
     if (!form.phone || form.phone.length < 9) {
-      alert('Please enter a valid phone number');
+      showError('Please enter a valid phone number');
       return;
     }
-
+  
+    // Ensure registration step 1 is complete
+    const signupData = JSON.parse(sessionStorage.getItem('signupData') || '{}');
+    if (!signupData.userId) {
+      showInfo('Start with your email to create a session');
+      navigate('/signup/email');
+      return;
+    }
+  
     setLoading(true);
-
+  
     try {
       const fullPhone = form.countryCode + form.phone.replace(/^0+/, '');
       await api.post('/api/auth/send-otp', { phone: fullPhone });
       setStep('otp');
       setResendTimer(60); // 60 seconds cooldown
+      showSuccess('Verification code sent');
     } catch (error) {
       console.error('Send OTP error:', error);
-      alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+      showError(error.response?.data?.message || 'Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -69,29 +80,41 @@ const SignupPhone = () => {
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
-
+  
     if (!otp || otp.length !== 6) {
-      alert('Please enter a valid 6-digit OTP');
+      showError('Please enter a valid 6-digit OTP');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       const fullPhone = form.countryCode + form.phone.replace(/^0+/, '');
-      await api.post('/api/auth/verify-otp', { phone: fullPhone, otp });
-
-      // Store phone in signup data
+  
+      // Get signup data and userId
       const signupData = JSON.parse(sessionStorage.getItem('signupData') || '{}');
+      const userId = signupData.userId;
+  
+      if (!userId) {
+        showInfo('Session expired. Please start registration again.');
+        navigate('/signup/email');
+        return;
+      }
+  
+      // Verify OTP only (do not commit step 2 here)
+      await api.post('/api/auth/verify-otp', { phone: fullPhone, otp });
+  
+      // Update signup data with verified phone
       signupData.phone = fullPhone;
       sessionStorage.setItem('signupData', JSON.stringify(signupData));
-
+  
+      showSuccess('Phone verified successfully');
       // Proceed to next step
       navigate('/signup/personal');
-
+  
     } catch (error) {
       console.error('Verify OTP error:', error);
-      alert(error.response?.data?.message || 'Invalid OTP. Please try again.');
+      showError(error.response?.data?.message || 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -99,17 +122,17 @@ const SignupPhone = () => {
 
   const handleResendOTP = async () => {
     if (resendTimer > 0) return;
-
+  
     setLoading(true);
-
+  
     try {
       const fullPhone = form.countryCode + form.phone.replace(/^0+/, '');
       await api.post('/api/auth/send-otp', { phone: fullPhone });
       setResendTimer(60);
-      alert('OTP sent successfully');
+      showSuccess('OTP sent successfully');
     } catch (error) {
       console.error('Resend OTP error:', error);
-      alert('Failed to resend OTP. Please try again.');
+      showError('Failed to resend OTP. Please try again.');
     } finally {
       setLoading(false);
     }

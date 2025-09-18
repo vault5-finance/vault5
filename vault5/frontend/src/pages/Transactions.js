@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const Transactions = () => {
+  const { showError, showSuccess, showInfo } = useToast();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -67,7 +69,7 @@ const Transactions = () => {
       fetchTransactions();
     } catch (error) {
       console.error('Failed to save transaction:', error);
-      alert('Failed to save transaction');
+      showError('Failed to save transaction');
     }
   };
 
@@ -90,7 +92,7 @@ const Transactions = () => {
         fetchTransactions();
       } catch (error) {
         console.error('Failed to delete transaction:', error);
-        alert('Failed to delete transaction');
+        showError('Failed to delete transaction');
       }
     }
   };
@@ -108,13 +110,13 @@ const Transactions = () => {
         <h1 className="text-3xl font-bold">Transactions</h1>
         <div className="flex space-x-3">
           <button
-            onClick={() => alert('Export to CSV coming soon!')}
+            onClick={() => showInfo('Export to CSV coming soon!')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             Export CSV
           </button>
           <button
-            onClick={() => alert('Export to PDF coming soon!')}
+            onClick={() => showInfo('Export to PDF coming soon!')}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
           >
             Export PDF

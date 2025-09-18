@@ -88,12 +88,19 @@ const register = async (req, res) => {
 
     const token = generateToken(user._id);
 
+    // Resolve primary email for response
+    let primaryEmail = user.email;
+    if (user.emails && user.emails.length > 0) {
+      const primaryEmailEntry = user.emails.find(e => e.isPrimary) || user.emails[0];
+      primaryEmail = primaryEmailEntry?.email;
+    }
+ 
     res.status(201).json({
       token,
       user: {
         id: user._id,
         name: user.name,
-        email: user.email,
+        email: primaryEmail,
         dob: user.dob,
         phone: user.phone,
         city: user.city,
@@ -146,24 +153,39 @@ const login = async (req, res) => {
     const token = generateToken(user._id);
 
     // Role-based redirect logic
+    console.log('User role during login:', user.role);
+
+    // Get primary email for backward compatibility
+    let primaryEmail = user.email; // Legacy field
+    if (user.emails && user.emails.length > 0) {
+      const primaryEmailEntry = user.emails.find(e => e.isPrimary);
+      if (primaryEmailEntry) {
+        primaryEmail = primaryEmailEntry.email;
+      }
+    }
+
     const response = {
       token,
       user: {
         id: user._id,
         name: user.name,
-        email: user.email,
+        email: primaryEmail,
         avatar: user.avatar,
         role: user.role,
       },
     };
 
-    // Set redirect based on user role
-    if (user.role === 'admin') {
+    // Set redirect based on user role (supports extended admin roles)
+    const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+    if (adminRoles.includes(user.role)) {
       response.redirect = '/admin';
+      console.log('Admin user detected, redirecting to /admin');
     } else {
       response.redirect = '/dashboard';
+      console.log('Regular user detected, redirecting to /dashboard');
     }
 
+    console.log('Login response:', { redirect: response.redirect, userRole: user.role });
     res.json(response);
   } catch (err) {
     console.error('Login error:', err);
@@ -204,10 +226,17 @@ const updateProfile = async (req, res) => {
 
     await user.save();
 
+    // Resolve primary email for response
+    let primaryEmail = user.email;
+    if (user.emails && user.emails.length > 0) {
+      const primaryEmailEntry = user.emails.find(e => e.isPrimary) || user.emails[0];
+      primaryEmail = primaryEmailEntry?.email;
+    }
+
     res.json({
       id: user._id,
       name: user.name,
-      email: user.email,
+      email: primaryEmail,
       dob: user.dob,
       phone: user.phone,
       city: user.city,
@@ -242,19 +271,31 @@ const registerStep1 = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create partial user
-    const user = new User({
-      email,
+    // Create partial user data (don't save yet to avoid index conflicts)
+    const userData = {
+      emails: [{
+        email: email.toLowerCase(),
+        isPrimary: true,
+        isVerified: false
+      }],
       password: hashedPassword,
       registrationStep: 1,
       isVerified: false
-    });
+    };
 
-    await user.save();
+    // For now, just store in memory/session - will be saved in step 2
+    // In production, use Redis or similar for temporary storage
+    const tempUserId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Store userData temporarily (in production, use Redis)
+    if (!global.tempUsers) {
+      global.tempUsers = {};
+    }
+    global.tempUsers[tempUserId] = userData;
+    console.log('Stored temp user:', tempUserId, Object.keys(global.tempUsers));
 
     // Return user ID for session continuity
     res.status(201).json({
-      userId: user._id,
+      userId: tempUserId,
       message: 'Step 1 completed. Proceed to step 2.'
     });
   } catch (error) {
@@ -265,10 +306,15 @@ const registerStep1 = async (req, res) => {
 
 const registerStep2 = async (req, res) => {
   try {
-    const { userId, firstName, middleName, lastName, dob, phone, city } = req.body;
+    const { firstName, middleName, lastName, dob, phone, city } = req.body;
+    const userId = req.params.userId || req.body.userId;
 
-    const user = await User.findById(userId);
-    if (!user || user.registrationStep !== 1) {
+    // Check if this is a temporary user ID
+    console.log('Step 2 - Checking userId:', userId);
+    console.log('Step 2 - Available temp users:', global.tempUsers ? Object.keys(global.tempUsers) : 'none');
+    const tempUserData = global.tempUsers && global.tempUsers[userId];
+    console.log('Step 2 - Found temp user data:', !!tempUserData);
+    if (!tempUserData) {
       return res.status(400).json({ message: 'Invalid user or step' });
     }
 
@@ -286,27 +332,24 @@ const registerStep2 = async (req, res) => {
       return res.status(400).json({ message: 'Phone number already in use' });
     }
 
-    user.name = `${firstName} ${middleName ? middleName + ' ' : ''}${lastName}`.trim();
-    user.dob = dob;
-    user.city = city;
-    user.registrationStep = 2;
-
-    // Initialize emails and phones arrays with the data from step 1
-    if (!user.emails || user.emails.length === 0) {
-      user.emails = [{
-        email: user.email, // This was set in step 1
+    // Create the actual user from temporary data
+    const user = new User({
+      ...tempUserData,
+      name: `${firstName} ${middleName ? middleName + ' ' : ''}${lastName}`.trim(),
+      dob: new Date(dob),
+      city,
+      registrationStep: 2,
+      phones: [{
+        phone,
         isPrimary: true,
         isVerified: false
-      }];
-    }
-
-    user.phones = [{
-      phone,
-      isPrimary: true,
-      isVerified: false
-    }];
+      }]
+    });
 
     await user.save();
+
+    // Clean up temporary data
+    delete global.tempUsers[userId];
 
     res.json({
       userId: user._id,
@@ -320,7 +363,8 @@ const registerStep2 = async (req, res) => {
 
 const registerStep3 = async (req, res) => {
   try {
-    const { userId, address, termsAccepted } = req.body;
+    const { address, termsAccepted } = req.body;
+    const userId = req.params.userId || req.body.userId;
     const avatar = req.file ? `/uploads/${req.file.filename}` : null;
 
     const user = await User.findById(userId);
@@ -351,7 +395,8 @@ const registerStep3 = async (req, res) => {
 
 const registerStep4 = async (req, res) => {
   try {
-    const { userId, kycSkipped } = req.body;
+    const { kycSkipped } = req.body;
+    const userId = req.params.userId || req.body.userId;
 
     const user = await User.findById(userId);
     if (!user || user.registrationStep !== 3) {
@@ -383,15 +428,22 @@ const registerStep4 = async (req, res) => {
     // Create token
     const token = generateToken(user._id);
 
+    // Determine primary email for messaging
+    let primaryEmail = user.email;
+    if (user.emails && user.emails.length > 0) {
+      const primaryEmailEntry = user.emails.find(e => e.isPrimary) || user.emails[0];
+      primaryEmail = primaryEmailEntry?.email;
+    }
+
     // Send verification email stub
-    console.log(`Verification email sent to ${user.email}`);
+    console.log(`Verification email sent to ${primaryEmail}`);
 
     res.status(201).json({
       token,
       user: {
         id: user._id,
         name: user.name,
-        email: user.email,
+        email: primaryEmail,
         role: user.role
       },
       message: 'Registration completed successfully'
