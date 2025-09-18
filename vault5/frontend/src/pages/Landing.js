@@ -271,7 +271,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="relative z-10 bg-black/20 backdrop-blur-sm mt-20">
         <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
             <div>
               <div className="text-2xl font-bold text-white mb-4">Vault5</div>
               <p className="text-gray-300 mb-4">Financial freedom through discipline and automation.</p>
@@ -307,6 +307,15 @@ const Landing = () => {
                 <li><Link to="/blog" className="hover:text-white">Blog</Link></li>
                 <li><Link to="/legal" className="hover:text-white">Legal</Link></li>
                 <li><Link to="/contact" className="hover:text-white">Careers</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Resources</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
+                <li><Link to="/security" className="hover:text-white">Security</Link></li>
+                <li><Link to="/fees" className="hover:text-white">Fees & Pricing</Link></li>
+                <li><Link to="/developers" className="hover:text-white">API Docs</Link></li>
               </ul>
             </div>
           </div>

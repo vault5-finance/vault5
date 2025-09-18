@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  transaction-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: transaction-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - LOG_LEVEL=info
+      - POSTGRES_URI=postgresql://transaction_user:transaction_password@postgres:5432/transaction_service_db
+      - REDIS_URI=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-here}
+      - USER_SERVICE_URI=http://user-service:3001
+      - EVENT_BUS_URI=http://event-bus:4000
+      - SERVICE_TOKEN=${SERVICE_TOKEN}
+      - FRAUD_DETECTION_ENABLED=true
+      - ALLOCATION_ENGINE_ENABLED=true
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - vault5-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./logs:/app/logs
+
+  # Database for transaction service
+  postgres:
+    image: postgres:15-alpine
+    container_name: transaction-postgres
+    environment:
+      - POSTGRES_DB=transaction_service_db
+      - POSTGRES_USER=transaction_user
+      - POSTGRES_PASSWORD=transaction_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - transaction_postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - vault5-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transaction_user -d transaction_service_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for transaction service
+  redis:
+    image: redis:7-alpine
+    container_name: transaction-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - transaction_redis_data:/data
+    networks:
+      - vault5-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  transaction_postgres_data:
+  transaction_redis_data:
+
+networks:
+  vault5-network:
+    external: true
+    name: vault5-network

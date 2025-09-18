@@ -6,12 +6,47 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true
-  },
+  emails: [{
+    email: {
+      type: String,
+      required: true,
+      lowercase: true
+    },
+    isPrimary: {
+      type: Boolean,
+      default: false
+    },
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+    verificationToken: String,
+    verificationExpires: Date,
+    addedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  phones: [{
+    phone: {
+      type: String,
+      required: true
+    },
+    isPrimary: {
+      type: Boolean,
+      default: false
+    },
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+    verificationCode: String,
+    verificationExpires: Date,
+    addedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   password: {
     type: String,
     required: true,
@@ -29,8 +64,42 @@ const userSchema = new mongoose.Schema({
   dob: {
     type: Date
   },
-  phone: {
-    type: String
+  vaultTag: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true
+  },
+  kycStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'not_required'],
+    default: 'not_required'
+  },
+  limitsTier: {
+    type: String,
+    enum: ['basic', 'premium', 'enterprise'],
+    default: 'basic'
+  },
+  country: {
+    type: String,
+    default: 'Kenya'
+  },
+  lastLogin: {
+    type: Date
+  },
+  flags: {
+    suspicious: {
+      type: Boolean,
+      default: false
+    },
+    locked: {
+      type: Boolean,
+      default: false
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false
+    }
   },
   city: {
     type: String
@@ -112,6 +181,41 @@ const userSchema = new mongoose.Schema({
   }]
 }, {
   timestamps: true
+});
+
+// Virtual properties for backward compatibility
+userSchema.virtual('email').get(function() {
+  const primaryEmail = this.emails.find(e => e.isPrimary);
+  return primaryEmail ? primaryEmail.email : null;
+});
+
+userSchema.virtual('phone').get(function() {
+  const primaryPhone = this.phones.find(p => p.isPrimary);
+  return primaryPhone ? primaryPhone.phone : null;
+});
+
+userSchema.virtual('phoneVerified').get(function() {
+  const primaryPhone = this.phones.find(p => p.isPrimary);
+  return primaryPhone ? primaryPhone.isVerified : false;
+});
+
+// Ensure virtual fields are serialized
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
+// Pre-save middleware to ensure at least one primary email and phone
+userSchema.pre('save', function(next) {
+  // Ensure at least one primary email
+  if (this.emails.length > 0 && !this.emails.some(e => e.isPrimary)) {
+    this.emails[0].isPrimary = true;
+  }
+
+  // Ensure at least one primary phone
+  if (this.phones.length > 0 && !this.phones.some(p => p.isPrimary)) {
+    this.phones[0].isPrimary = true;
+  }
+
+  next();
 });
 
 module.exports = mongoose.model('User', userSchema);

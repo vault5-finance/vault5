@@ -1,14 +1,53 @@
 const plaid = require('plaid');
 const { PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV } = process.env;
 
-const client = new plaid.Client({
-  clientID: PLAID_CLIENT_ID,
-  secret: PLAID_SECRET,
-  env: plaid.environments[PLAID_ENV],
-  options: {
-    version: '2020-09-14'
+// Map environment string to Plaid environment object
+const getPlaidEnvironment = (env) => {
+  switch (env) {
+    case 'sandbox':
+      return plaid.environments.sandbox;
+    case 'development':
+      return plaid.environments.development;
+    case 'production':
+      return plaid.environments.production;
+    default:
+      return plaid.environments.sandbox; // Default to sandbox
   }
-});
+};
+
+// Only initialize client if credentials are available
+let client = null;
+if (PLAID_CLIENT_ID && PLAID_SECRET && PLAID_ENV) {
+  try {
+    // Try the new Plaid SDK v38+ syntax
+    client = new plaid.PlaidApi({
+      clientId: PLAID_CLIENT_ID,
+      secret: PLAID_SECRET,
+      env: getPlaidEnvironment(PLAID_ENV),
+      options: {
+        version: '2020-09-14'
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to initialize Plaid client with new API:', error.message);
+    try {
+      // Fallback to old syntax
+      client = new plaid.Client({
+        clientID: PLAID_CLIENT_ID,
+        secret: PLAID_SECRET,
+        env: getPlaidEnvironment(PLAID_ENV),
+        options: {
+          version: '2020-09-14'
+        }
+      });
+    } catch (fallbackError) {
+      console.warn('Failed to initialize Plaid client with fallback:', fallbackError.message);
+      client = null;
+    }
+  }
+} else {
+  console.warn('Plaid credentials not configured - Plaid features will be disabled');
+}
 
 // Create link token for client-side Plaid Link
 const createLinkToken = async (userId) => {

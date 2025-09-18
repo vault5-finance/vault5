@@ -1,102 +1,93 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 const SignupChoice = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleChoice = (type) => {
-    navigate(`/signup/${type}`);
+  const handlePersonalSignup = async () => {
+    setLoading(true);
+    try {
+      // Start with email collection for personal accounts
+      navigate('/signup/email');
+    } catch (error) {
+      console.error('Signup error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Join Vault5
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">💰</span>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Create your Vault5 account
           </h1>
-          <p className="text-xl text-gray-600">
-            Choose your account type to get started
+          <p className="text-gray-600">
+            Join millions managing their finances smarter
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Personal Account */}
-          <div
-            onClick={() => handleChoice('personal')}
-            className="bg-white rounded-xl shadow-lg p-8 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 border-transparent hover:border-blue-200"
-          >
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl">👤</span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Personal</h3>
-              <p className="text-gray-600 mb-6">
-                Send, save, and grow your money with smart allocation and secure lending.
-              </p>
-              <div className="space-y-2 text-sm text-gray-500">
-                <div>✓ Smart income allocation</div>
-                <div>✓ Secure lending & borrowing</div>
-                <div>✓ Investment tracking</div>
-                <div>✓ Mobile money integration</div>
-              </div>
-            </div>
-          </div>
+        {/* Main CTA Button */}
+        <button
+          onClick={handlePersonalSignup}
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+        >
+          {loading ? 'Creating account...' : 'Get started'}
+        </button>
 
-          {/* Business Account */}
-          <div
-            onClick={() => handleChoice('business')}
-            className="bg-white rounded-xl shadow-lg p-8 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 border-transparent hover:border-green-200"
-          >
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl">🏢</span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Business</h3>
-              <p className="text-gray-600 mb-6">
-                Run payroll, pay suppliers, and manage cashflow for your business.
-              </p>
-              <div className="space-y-2 text-sm text-gray-500">
-                <div>✓ Bulk payments & payroll</div>
-                <div>✓ Invoice management</div>
-                <div>✓ Business analytics</div>
-                <div>✓ Multi-user access</div>
-              </div>
-            </div>
+        {/* Features */}
+        <div className="space-y-3 mb-8">
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="text-green-500 mr-3">✓</span>
+            Send and receive money securely
           </div>
-
-          {/* Developer Account */}
-          <div
-            onClick={() => handleChoice('developer')}
-            className="bg-white rounded-xl shadow-lg p-8 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 border-transparent hover:border-purple-200"
-          >
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl">⚡</span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Developer</h3>
-              <p className="text-gray-600 mb-6">
-                Integrate Vault5 Wallet & APIs for your applications.
-              </p>
-              <div className="space-y-2 text-sm text-gray-500">
-                <div>✓ RESTful API access</div>
-                <div>✓ Sandbox environment</div>
-                <div>✓ Webhook integrations</div>
-                <div>✓ Developer documentation</div>
-              </div>
-            </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="text-green-500 mr-3">✓</span>
+            Smart budget allocation
+          </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="text-green-500 mr-3">✓</span>
+            Track investments and savings
+          </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="text-green-500 mr-3">✓</span>
+            24/7 customer support
           </div>
         </div>
 
-        <div className="text-center mt-12">
-          <p className="text-gray-600">
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate('/login')}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Sign in here
-            </button>
+        {/* Divider */}
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Already have an account?</span>
+          </div>
+        </div>
+
+        {/* Sign In Link */}
+        <button
+          onClick={() => navigate('/login')}
+          className="w-full border-2 border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          Sign in
+        </button>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500">
+            By signing up, you agree to our{' '}
+            <a href="#" className="text-blue-600 hover:underline">Terms of Service</a>
+            {' '}and{' '}
+            <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
           </p>
         </div>
       </div>

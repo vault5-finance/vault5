@@ -102,6 +102,7 @@ const NavBar = () => {
                   <div className="flex space-x-6 mr-4">
                     <Link to="/dashboard" className="nav-link">Dashboard</Link>
                     <Link to="/transactions" className="nav-link">Transactions</Link>
+                    <Link to="/banking" className="nav-link">Banking</Link>
                     <Link to="/reports" className="nav-link">Reports</Link>
                     <Link to="/lending" className="nav-link">Lending</Link>
                     <Link to="/loans" className="nav-link">Loans</Link>
@@ -190,6 +191,7 @@ const NavBar = () => {
               <div className="space-y-2">
                 <Link to="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Dashboard</Link>
                 <Link to="/transactions" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Transactions</Link>
+                <Link to="/banking" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Banking</Link>
                 <Link to="/reports" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Reports</Link>
                 <Link to="/lending" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Lending</Link>
                 <Link to="/loans" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Loans</Link>

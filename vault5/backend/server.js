@@ -110,7 +110,7 @@ const {
   gamificationRoutes,
   receiptsRoutes
 } = require('./routes');
-const plaidRoutes = require('./routes/plaid'); // Added Plaid routes
+const plaidRoutes = require('./routes/plaid');
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/goals', goalsRoutes);
@@ -124,7 +124,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/receipts', receiptsRoutes);
-app.use('/api/plaid', plaidRoutes); // Added Plaid routes
+app.use('/api/plaid', plaidRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

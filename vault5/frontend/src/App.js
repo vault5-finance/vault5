@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './index.css';
 
 import NavBar from './components/NavBar';
@@ -12,7 +12,7 @@ import SignupEmail from './pages/SignupEmail';
 import SignupPhone from './pages/SignupPhone';
 import SignupPersonal from './pages/SignupPersonal';
 import ForgotPassword from './pages/ForgotPassword';
-import AdminPanel from './pages/AdminPanel';
+import ResetPassword from './pages/ResetPassword';
 
 import Dashboard from './pages/Dashboard';
 import Reports from './pages/Reports';
@@ -24,6 +24,9 @@ import Blog from './pages/Blog';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import AboutUs from './pages/AboutUs';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
+import Banking from './pages/Banking';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -38,18 +41,23 @@ const PublicRoute = ({ children }) => {
 };
 
 function App() {
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
+
   return (
     <div className="min-h-screen bg-gray-100">
-      <NavBar />
+      {!isLandingPage && <NavBar />}
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupChoice /></PublicRoute>} />
-        <Route path="/signup/:type" element={<PublicRoute><SignupEmail /></PublicRoute>} />
-        <Route path="/signup/:type/phone" element={<PublicRoute><SignupPhone /></PublicRoute>} />
-        <Route path="/signup/personal/details" element={<PublicRoute><SignupPersonal /></PublicRoute>} />
+        <Route path="/signup/email" element={<PublicRoute><SignupEmail /></PublicRoute>} />
+        <Route path="/signup/phone" element={<PublicRoute><SignupPhone /></PublicRoute>} />
+        <Route path="/signup/personal" element={<PublicRoute><SignupPersonal /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
 
         {/* Public Marketing Pages */}
         <Route path="/personal" element={<div className="p-8"><h1 className="text-3xl font-bold">Personal Banking</h1><p className="mt-4">Coming soon...</p></div>} />
@@ -71,8 +79,11 @@ function App() {
         <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
+        <Route path="/banking" element={<ProtectedRoute><Banking /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
 
         {/* Placeholder Pages for Future Features */}
         <Route path="/wallet" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Wallet</h1><p className="mt-4">Recharge, withdraw, and manage your accounts.</p></div></ProtectedRoute>} />

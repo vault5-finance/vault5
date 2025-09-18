@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const SignupPhone = () => {
-  const { type } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState({ phone: '', countryCode: '+254' });
   const [otp, setOtp] = useState('');
@@ -88,7 +87,7 @@ const SignupPhone = () => {
       sessionStorage.setItem('signupData', JSON.stringify(signupData));
 
       // Proceed to next step
-      navigate(`/signup/${type}/details`);
+      navigate('/signup/personal');
 
     } catch (error) {
       console.error('Verify OTP error:', error);
@@ -117,12 +116,7 @@ const SignupPhone = () => {
   };
 
   const getAccountTypeTitle = () => {
-    switch (type) {
-      case 'personal': return 'Personal Account';
-      case 'business': return 'Business Account';
-      case 'developer': return 'Developer Account';
-      default: return 'Account';
-    }
+    return 'Vault5 Account';
   };
 
   return (
@@ -230,7 +224,7 @@ const SignupPhone = () => {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => step === 'phone' ? navigate(`/signup/${type}`) : setStep('phone')}
+              onClick={() => step === 'phone' ? navigate('/signup/email') : setStep('phone')}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               ← {step === 'phone' ? 'Back to email' : 'Change phone number'}

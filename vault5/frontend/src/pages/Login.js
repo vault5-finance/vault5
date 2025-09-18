@@ -17,7 +17,11 @@ const Login = () => {
       const res = await api.post('/api/auth/login', form);
       if (res.data && res.data.token) {
         localStorage.setItem('token', res.data.token);
-        navigate('/dashboard');
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+
+        // Check for admin redirect
+        const redirectPath = res.data.redirect || '/dashboard';
+        navigate(redirectPath);
       } else {
         alert('Login failed: Invalid response');
       }
@@ -65,7 +69,7 @@ const Login = () => {
         </form>
         <p className="mt-4 text-center text-sm">
           Don't have an account?{' '}
-          <Link to="/register" className="text-blue-600 hover:underline">Register</Link>
+          <Link to="/signup" className="text-blue-600 hover:underline">Sign Up</Link>
         </p>
       </div>
     </div>

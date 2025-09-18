@@ -8,17 +8,12 @@ const SignupPersonal = () => {
     firstName: '',
     lastName: '',
     dateOfBirth: '',
-    nationality: 'Kenya',
     address: '',
     city: '',
-    postalCode: '',
     country: 'Kenya',
-    vaultTag: '',
-    acceptTerms: false,
-    acceptPrivacy: false
+    acceptTerms: false
   });
   const [loading, setLoading] = useState(false);
-  const [vaultTagAvailable, setVaultTagAvailable] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -26,29 +21,6 @@ const SignupPersonal = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-
-    // Check vault tag availability
-    if (name === 'vaultTag' && value.length >= 3) {
-      checkVaultTagAvailability(value);
-    }
-  };
-
-  const checkVaultTagAvailability = async (tag) => {
-    try {
-      const response = await api.post('/api/auth/check-vault-tag', { vaultTag: tag });
-      setVaultTagAvailable(response.data.available);
-    } catch (error) {
-      setVaultTagAvailable(false);
-    }
-  };
-
-  const generateVaultTag = () => {
-    const firstName = form.firstName.toLowerCase().replace(/[^a-z]/g, '');
-    const lastName = form.lastName.toLowerCase().replace(/[^a-z]/g, '');
-    const randomNum = Math.floor(Math.random() * 999) + 1;
-    const suggested = `${firstName}${lastName}${randomNum}`;
-    setForm(prev => ({ ...prev, vaultTag: suggested }));
-    checkVaultTagAvailability(suggested);
   };
 
   const handleSubmit = async (e) => {
@@ -63,13 +35,8 @@ const SignupPersonal = () => {
       return;
     }
 
-    if (!form.acceptTerms || !form.acceptPrivacy) {
-      alert('Please accept the Terms of Service and Privacy Policy.');
-      return;
-    }
-
-    if (form.vaultTag && !vaultTagAvailable) {
-      alert('Please choose a different VaultTag or leave it blank for auto-generation.');
+    if (!form.acceptTerms) {
+      alert('Please accept the Terms of Service.');
       return;
     }
 
@@ -250,79 +217,27 @@ const SignupPersonal = () => {
               </div>
             </div>
 
-            {/* VaultTag */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                VaultTag (Optional)
+            {/* Terms */}
+            <div className="flex items-start">
+              <input
+                type="checkbox"
+                id="terms"
+                name="acceptTerms"
+                checked={form.acceptTerms}
+                onChange={handleChange}
+                className="mt-1 mr-3"
+                required
+              />
+              <label htmlFor="terms" className="text-sm text-gray-700">
+                I agree to the{' '}
+                <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
+                  Terms of Service
+                </a>
+                {' '}and{' '}
+                <a href="/privacy" className="text-blue-600 hover:text-blue-800 underline">
+                  Privacy Policy
+                </a>
               </label>
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    name="vaultTag"
-                    value={form.vaultTag}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="yourname123"
-                    minLength="3"
-                    maxLength="20"
-                  />
-                  <span className="absolute left-3 top-2.5 text-gray-400">@</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={generateVaultTag}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-                >
-                  Generate
-                </button>
-              </div>
-              {form.vaultTag && (
-                <p className={`text-xs mt-1 ${vaultTagAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                  {vaultTagAvailable ? '✓ VaultTag available' : '✗ VaultTag not available'}
-                </p>
-              )}
-              <p className="text-xs text-gray-500 mt-1">
-                Your unique identifier for easy payments and transfers
-              </p>
-            </div>
-
-            {/* Terms and Privacy */}
-            <div className="space-y-3">
-              <div className="flex items-start">
-                <input
-                  type="checkbox"
-                  id="terms"
-                  name="acceptTerms"
-                  checked={form.acceptTerms}
-                  onChange={handleChange}
-                  className="mt-1 mr-3"
-                  required
-                />
-                <label htmlFor="terms" className="text-sm text-gray-700">
-                  I agree to the{' '}
-                  <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
-                    Terms of Service
-                  </a>
-                </label>
-              </div>
-              <div className="flex items-start">
-                <input
-                  type="checkbox"
-                  id="privacy"
-                  name="acceptPrivacy"
-                  checked={form.acceptPrivacy}
-                  onChange={handleChange}
-                  className="mt-1 mr-3"
-                  required
-                />
-                <label htmlFor="privacy" className="text-sm text-gray-700">
-                  I agree to the{' '}
-                  <a href="/privacy" className="text-blue-600 hover:text-blue-800 underline">
-                    Privacy Policy
-                  </a>
-                </label>
-              </div>
             </div>
 
             <button
@@ -336,7 +251,7 @@ const SignupPersonal = () => {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => navigate('/signup/personal/phone')}
+              onClick={() => navigate('/signup/phone')}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               ← Back to phone verification

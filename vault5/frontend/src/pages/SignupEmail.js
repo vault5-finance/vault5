@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const SignupEmail = () => {
-  const { type } = useParams(); // personal, business, or developer
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
@@ -72,12 +71,11 @@ const SignupEmail = () => {
       // Email is available, proceed to phone verification
       // Store signup data temporarily
       sessionStorage.setItem('signupData', JSON.stringify({
-        type,
         email: form.email,
         password: form.password
       }));
 
-      navigate(`/signup/${type}/phone`);
+      navigate('/signup/phone');
 
     } catch (error) {
       console.error('Signup check error:', error);
@@ -99,12 +97,7 @@ const SignupEmail = () => {
   };
 
   const getAccountTypeTitle = () => {
-    switch (type) {
-      case 'personal': return 'Personal Account';
-      case 'business': return 'Business Account';
-      case 'developer': return 'Developer Account';
-      default: return 'Account';
-    }
+    return 'Vault5 Account';
   };
 
   return (
@@ -214,7 +207,7 @@ const SignupEmail = () => {
               onClick={() => navigate('/signup')}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              ← Back to account type selection
+              ← Back
             </button>
           </div>
         </div>

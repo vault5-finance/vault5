@@ -41,9 +41,20 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Name, email, password, DOB, phone, and city are required' });
     }
 
-    const exists = await User.findOne({ email });
-    if (exists) {
-      return res.status(400).json({ message: 'User already exists' });
+    // Check if email already exists in any user's emails array
+    const existingUser = await User.findOne({
+      'emails.email': email.toLowerCase()
+    });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    // Check if phone already exists in any user's phones array
+    const existingPhoneUser = await User.findOne({
+      'phones.phone': phone
+    });
+    if (existingPhoneUser) {
+      return res.status(400).json({ message: 'Phone number already in use' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -53,10 +64,18 @@ const register = async (req, res) => {
 
     const user = new User({
       name,
-      email,
+      emails: [{
+        email: email.toLowerCase(),
+        isPrimary: true,
+        isVerified: false
+      }],
+      phones: [{
+        phone,
+        isPrimary: true,
+        isVerified: false
+      }],
       password: hashed,
       dob: new Date(dob),
-      phone,
       city,
       avatar,
     });
@@ -92,10 +111,27 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).select('+password');
+
+    // Try to find user with new email array structure first
+    let user = await User.findOne({
+      'emails.email': email.toLowerCase()
+    }).select('+password');
+
+    // If not found, try legacy email field for backward compatibility
+    if (!user) {
+      user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    }
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // For new email array structure, check if email is verified
+    if (user.emails && user.emails.length > 0) {
+      const emailEntry = user.emails.find(e => e.email === email.toLowerCase());
+      if (emailEntry && !emailEntry.isVerified) {
+        return res.status(401).json({ message: 'Email not verified. Please check your email for verification link.' });
+      }
     }
 
     const match = await bcrypt.compare(password, user.password);
@@ -103,9 +139,14 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
     const token = generateToken(user._id);
 
-    res.json({
+    // Role-based redirect logic
+    const response = {
       token,
       user: {
         id: user._id,
@@ -114,7 +155,16 @@ const login = async (req, res) => {
         avatar: user.avatar,
         role: user.role,
       },
-    });
+    };
+
+    // Set redirect based on user role
+    if (user.role === 'admin') {
+      response.redirect = '/admin';
+    } else {
+      response.redirect = '/dashboard';
+    }
+
+    res.json(response);
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -180,10 +230,12 @@ const registerStep1 = async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 8 characters long' });
     }
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
+    // Check if email already exists in any user's emails array
+    const existingUser = await User.findOne({
+      'emails.email': email.toLowerCase()
+    });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'Email already exists' });
     }
 
     // Hash password
@@ -226,11 +278,33 @@ const registerStep2 = async (req, res) => {
       return res.status(400).json({ message: 'Invalid phone number format' });
     }
 
+    // Check if phone already exists in any user's phones array
+    const existingPhoneUser = await User.findOne({
+      'phones.phone': phone
+    });
+    if (existingPhoneUser) {
+      return res.status(400).json({ message: 'Phone number already in use' });
+    }
+
     user.name = `${firstName} ${middleName ? middleName + ' ' : ''}${lastName}`.trim();
     user.dob = dob;
-    user.phone = phone;
     user.city = city;
     user.registrationStep = 2;
+
+    // Initialize emails and phones arrays with the data from step 1
+    if (!user.emails || user.emails.length === 0) {
+      user.emails = [{
+        email: user.email, // This was set in step 1
+        isPrimary: true,
+        isVerified: false
+      }];
+    }
+
+    user.phones = [{
+      phone,
+      isPrimary: true,
+      isVerified: false
+    }];
 
     await user.save();
 
@@ -288,6 +362,17 @@ const registerStep4 = async (req, res) => {
     user.registrationStep = 4;
     user.isActive = true;
 
+    // Mark primary email and phone as verified for new registrations
+    if (user.emails && user.emails.length > 0) {
+      const primaryEmail = user.emails.find(e => e.isPrimary);
+      if (primaryEmail) primaryEmail.isVerified = true;
+    }
+
+    if (user.phones && user.phones.length > 0) {
+      const primaryPhone = user.phones.find(p => p.isPrimary);
+      if (primaryPhone) primaryPhone.isVerified = true;
+    }
+
     await user.save();
 
     // Auto-create 6 default accounts
@@ -325,7 +410,9 @@ const checkEmail = async (req, res) => {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      'emails.email': email.toLowerCase()
+    });
     if (user) {
       return res.json({
         exists: true,
@@ -399,6 +486,8 @@ const checkVaultTag = async (req, res) => {
     console.error('Check vault tag error:', error);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
 // POST /api/auth/forgot-password
 const forgotPassword = async (req, res) => {
   try {
@@ -407,10 +496,27 @@ const forgotPassword = async (req, res) => {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    const user = await User.findOne({ email });
+    // Try to find user with new email array structure first
+    let user = await User.findOne({
+      'emails.email': email.toLowerCase()
+    });
+
+    // If not found, try legacy email field for backward compatibility
+    if (!user) {
+      user = await User.findOne({ email: email.toLowerCase() });
+    }
+
     if (!user) {
       // For security, don't reveal if user doesn't exist
       return res.json({ message: 'If your email exists, a password reset link has been sent' });
+    }
+
+    // For new email array structure, check if email is verified
+    if (user.emails && user.emails.length > 0) {
+      const emailEntry = user.emails.find(e => e.email === email.toLowerCase());
+      if (emailEntry && !emailEntry.isVerified) {
+        return res.status(400).json({ message: 'Email not verified. Please verify your email first.' });
+      }
     }
 
     // Generate reset token (expires in 10 minutes)
@@ -479,21 +585,287 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = {
-  register,
-  login,
-  getProfile,
-  updateProfile,
-  registerStep1,
-  registerStep2,
-  registerStep3,
-  registerStep4,
-  checkEmail,
-  sendOTP,
-  verifyOTP,
-  checkVaultTag,
-  forgotPassword,
-  resetPassword,
+// POST /api/auth/add-email
+const addEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ 'emails.email': email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    // Check limit (max 6 emails)
+    if (user.emails.length >= 6) {
+      return res.status(400).json({ message: 'Maximum 6 emails allowed' });
+    }
+
+    // Generate verification token
+    const verificationToken = jwt.sign(
+      { email: email.toLowerCase(), userId: user._id },
+      process.env.JWT_SECRET || 'dev_secret',
+      { expiresIn: '24h' }
+    );
+
+    user.emails.push({
+      email: email.toLowerCase(),
+      isPrimary: false,
+      isVerified: false,
+      verificationToken,
+      verificationExpires: Date.now() + 86400000 // 24 hours
+    });
+
+    await user.save();
+
+    // Send verification email (simulated)
+    console.log(`Verification email sent to ${email}: http://localhost:3000/verify-email?token=${verificationToken}`);
+
+    res.json({ message: 'Verification email sent' });
+  } catch (error) {
+    console.error('Add email error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// POST /api/auth/verify-email
+const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: 'Token is required' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
+    const user = await User.findById(decoded.userId);
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const emailEntry = user.emails.find(e => e.email === decoded.email && e.verificationToken === token);
+    if (!emailEntry) return res.status(400).json({ message: 'Invalid token' });
+
+    emailEntry.isVerified = true;
+    emailEntry.verificationToken = undefined;
+    emailEntry.verificationExpires = undefined;
+
+    await user.save();
+
+    res.json({ message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// POST /api/auth/add-phone
+const addPhone = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ message: 'Phone is required' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Check if phone already exists
+    const existingUser = await User.findOne({ 'phones.phone': phone });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Phone number already in use' });
+    }
+
+    // Check limit (max 3 phones)
+    if (user.phones.length >= 3) {
+      return res.status(400).json({ message: 'Maximum 3 phone numbers allowed' });
+    }
+
+    // Generate verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.phones.push({
+      phone,
+      isPrimary: false,
+      isVerified: false,
+      verificationCode,
+      verificationExpires: Date.now() + 600000 // 10 minutes
+    });
+
+    await user.save();
+
+    // Send verification SMS (simulated)
+    console.log(`Verification code sent to ${phone}: ${verificationCode}`);
+
+    res.json({ message: 'Verification code sent' });
+  } catch (error) {
+    console.error('Add phone error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// POST /api/auth/verify-phone
+const verifyPhone = async (req, res) => {
+  try {
+    const { phone, code } = req.body;
+    if (!phone || !code) return res.status(400).json({ message: 'Phone and code are required' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const phoneEntry = user.phones.find(p => p.phone === phone && p.verificationCode === code);
+    if (!phoneEntry) return res.status(400).json({ message: 'Invalid code' });
+
+    phoneEntry.isVerified = true;
+    phoneEntry.verificationCode = undefined;
+    phoneEntry.verificationExpires = undefined;
+
+    await user.save();
+
+    res.json({ message: 'Phone verified successfully' });
+  } catch (error) {
+    console.error('Verify phone error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// PATCH /api/auth/set-primary-email
+const setPrimaryEmail = async (req, res) => {
+  try {
+    const { emailId } = req.body;
+    if (!emailId) return res.status(400).json({ message: 'Email ID is required' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const emailEntry = user.emails.id(emailId);
+    if (!emailEntry) return res.status(404).json({ message: 'Email not found' });
+
+    if (!emailEntry.isVerified) return res.status(400).json({ message: 'Email must be verified first' });
+
+    // Set all emails to non-primary
+    user.emails.forEach(e => e.isPrimary = false);
+    // Set selected email as primary
+    emailEntry.isPrimary = true;
+
+    await user.save();
+
+    res.json({ message: 'Primary email updated successfully' });
+  } catch (error) {
+    console.error('Set primary email error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// PATCH /api/auth/set-primary-phone
+const setPrimaryPhone = async (req, res) => {
+  try {
+    const { phoneId } = req.body;
+    if (!phoneId) return res.status(400).json({ message: 'Phone ID is required' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const phoneEntry = user.phones.id(phoneId);
+    if (!phoneEntry) return res.status(404).json({ message: 'Phone not found' });
+
+    if (!phoneEntry.isVerified) return res.status(400).json({ message: 'Phone must be verified first' });
+
+    // Set all phones to non-primary
+    user.phones.forEach(p => p.isPrimary = false);
+    // Set selected phone as primary
+    phoneEntry.isPrimary = true;
+
+    await user.save();
+
+    res.json({ message: 'Primary phone updated successfully' });
+  } catch (error) {
+    console.error('Set primary phone error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// DELETE /api/auth/remove-email/:emailId
+const removeEmail = async (req, res) => {
+  try {
+    const { emailId } = req.params;
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const emailIndex = user.emails.findIndex(e => e._id.toString() === emailId);
+    if (emailIndex === -1) return res.status(404).json({ message: 'Email not found' });
+
+    const emailEntry = user.emails[emailIndex];
+
+    // Cannot remove primary email
+    if (emailEntry.isPrimary) {
+      return res.status(400).json({ message: 'Cannot remove primary email' });
+    }
+
+    user.emails.splice(emailIndex, 1);
+    await user.save();
+
+    res.json({ message: 'Email removed successfully' });
+  } catch (error) {
+    console.error('Remove email error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// DELETE /api/auth/remove-phone/:phoneId
+const removePhone = async (req, res) => {
+  try {
+    const { phoneId } = req.params;
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const phoneIndex = user.phones.findIndex(p => p._id.toString() === phoneId);
+    if (phoneIndex === -1) return res.status(404).json({ message: 'Phone not found' });
+
+    const phoneEntry = user.phones[phoneIndex];
+
+    // Cannot remove primary phone
+    if (phoneEntry.isPrimary) {
+      return res.status(400).json({ message: 'Cannot remove primary phone' });
+    }
+
+    user.phones.splice(phoneIndex, 1);
+    await user.save();
+
+    res.json({ message: 'Phone removed successfully' });
+  } catch (error) {
+    console.error('Remove phone error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// POST /api/auth/change-password
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new passwords are required' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
 
 module.exports = {
@@ -509,4 +881,15 @@ module.exports = {
   sendOTP,
   verifyOTP,
   checkVaultTag,
+  forgotPassword,
+  resetPassword,
+  addEmail,
+  verifyEmail,
+  addPhone,
+  verifyPhone,
+  setPrimaryEmail,
+  setPrimaryPhone,
+  removeEmail,
+  removePhone,
+  changePassword,
 };

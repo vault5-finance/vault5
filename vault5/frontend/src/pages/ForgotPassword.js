@@ -1,5 +1,3 @@
-ault5/frontend/src/pages/ForgotPassword.js</path>
-<content lines="1-24">
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
