@@ -60,6 +60,9 @@ const NavBar = () => {
             <div className="hidden md:flex space-x-8">
               <Link to="/about" className="text-gray-700 hover:text-blue-600">About</Link>
               <Link to="/blog" className="text-gray-700 hover:text-blue-600">Blog</Link>
+              <Link to="/legal" className="text-gray-700 hover:text-blue-600">Legal</Link>
+              <Link to="/terms" className="text-gray-700 hover:text-blue-600">Terms</Link>
+              <Link to="/privacy" className="text-gray-700 hover:text-blue-600">Privacy</Link>
             </div>
             <div className="hidden md:flex items-center space-x-4">
               <Link to="/admin-login" className="text-gray-500 hover:text-blue-600 text-sm">Admin</Link>
@@ -119,6 +122,7 @@ const NavBar = () => {
                       <Link to="/investments" className="nav-link">Investments</Link>
                       <Link to="/settings" className="nav-link">Settings</Link>
                       <Link to="/profile" className="nav-link">Profile</Link>
+                      <Link to="/legal" className="nav-link">Legal</Link>
                       {adminRoles.includes(user.role) && (
                         <Link to="/admin" className="nav-link">Admin</Link>
                       )}
@@ -220,6 +224,9 @@ const NavBar = () => {
                     <Link to="/investments" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Investments</Link>
                     <Link to="/blog" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Blog</Link>
                     <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>About</Link>
+                    <Link to="/legal" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Legal</Link>
+                    <Link to="/terms" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Terms</Link>
+                    <Link to="/privacy" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Privacy</Link>
                     <Link to="/settings" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Settings</Link>
                     <Link to="/profile" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Profile</Link>
                     {adminRoles.includes(user.role) && (

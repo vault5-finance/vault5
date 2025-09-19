@@ -36,6 +36,9 @@ import AdminCompliance from './pages/AdminCompliance';
 import AdminSupport from './pages/AdminSupport';
 import AdminContent from './pages/AdminContent';
 import AdminSystem from './pages/AdminSystem';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Legal from './pages/Legal';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -95,15 +98,135 @@ function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
 
         {/* Public Marketing Pages */}
-        <Route path="/personal" element={<div className="p-8"><h1 className="text-3xl font-bold">Personal Banking</h1><p className="mt-4">Coming soon...</p></div>} />
-        <Route path="/business" element={<div className="p-8"><h1 className="text-3xl font-bold">Business Banking</h1><p className="mt-4">Coming soon...</p></div>} />
-        <Route path="/developers" element={<div className="p-8"><h1 className="text-3xl font-bold">Developer API</h1><p className="mt-4">Coming soon...</p></div>} />
-        <Route path="/app" element={<div className="p-8"><h1 className="text-3xl font-bold">Mobile App</h1><p className="mt-4">Coming soon...</p></div>} />
-        <Route path="/help" element={<div className="p-8"><h1 className="text-3xl font-bold">Help Center</h1><p className="mt-4">Coming soon...</p></div>} />
-        <Route path="/contact" element={<div className="p-8"><h1 className="text-3xl font-bold">Contact Us</h1><p className="mt-4">Coming soon...</p></div>} />
-        <Route path="/fees" element={<div className="p-8"><h1 className="text-3xl font-bold">Fees & Pricing</h1><p className="mt-4">Coming soon...</p></div>} />
-        <Route path="/security" element={<div className="p-8"><h1 className="text-3xl font-bold">Security</h1><p className="mt-4">Coming soon...</p></div>} />
-        <Route path="/legal" element={<div className="p-8"><h1 className="text-3xl font-bold">Legal & Privacy</h1><p className="mt-4">Coming soon...</p></div>} />
+        <Route
+          path="/personal"
+          element={
+            <div className="p-8">
+              <h1 className="text-3xl font-bold">Personal Banking</h1>
+              <p className="mt-4 text-gray-700">
+                Vault5 helps individuals practice financial discipline and reach freedom sooner.
+              </p>
+              <ul className="mt-4 list-disc pl-6 text-gray-700">
+                <li>6-vault allocation: Daily, Emergency, Investments, Long-Term, Fun, Charity</li>
+                <li>Smart budgets, cashflow, and health score</li>
+                <li>Lending rules and surplus nudges for better habits</li>
+              </ul>
+            </div>
+          }
+        />
+        <Route
+          path="/business"
+          element={
+            <div className="p-8">
+              <h1 className="text-3xl font-bold">Business Banking (Preview)</h1>
+              <p className="mt-4 text-gray-700">
+                Controls for small teams and chamas: roles, approvals, expense rules, and reports.
+              </p>
+              <ul className="mt-4 list-disc pl-6 text-gray-700">
+                <li>Expense policies and approval flows</li>
+                <li>Vendor payments and reconciliations</li>
+                <li>Role-based access for treasurers and members</li>
+              </ul>
+            </div>
+          }
+        />
+        <Route
+          path="/developers"
+          element={
+            <div className="p-8">
+              <h1 className="text-3xl font-bold">Developer API</h1>
+              <p className="mt-4 text-gray-700">Build on top of Vault5 with secure APIs and webhooks.</p>
+              <ul className="mt-4 list-disc pl-6 text-gray-700">
+                <li>OAuth2 + JWT flows</li>
+                <li>Transactions, allocations, lending, and analytics endpoints</li>
+                <li>Sandbox for rapid prototyping</li>
+              </ul>
+            </div>
+          }
+        />
+        <Route
+          path="/app"
+          element={
+            <div className="p-8">
+              <h1 className="text-3xl font-bold">Mobile App</h1>
+              <p className="mt-4 text-gray-700">
+                Native apps with offline mode, instant notifications, and biometric login.
+              </p>
+              <ul className="mt-4 list-disc pl-6 text-gray-700">
+                <li>Tap-to-allocate income into your 6 vaults</li>
+                <li>Track goals and loans anywhere</li>
+                <li>Android/iOS store links coming soon</li>
+              </ul>
+            </div>
+          }
+        />
+        <Route
+          path="/help"
+          element={
+            <div className="p-8">
+              <h1 className="text-3xl font-bold">Help Center</h1>
+              <div className="mt-4 space-y-4 text-gray-700">
+                <div>
+                  <h2 className="text-lg font-semibold">Getting Started</h2>
+                  <p>Create an account, verify email/phone, and set your first financial goal.</p>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Allocations & Goals</h2>
+                  <p>Income is auto-split; adjust percentages and targets in Settings.</p>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Lending & Loans</h2>
+                  <p>Apply rules, track repayments, and view ledgers in the Lending/Loans modules.</p>
+                </div>
+              </div>
+            </div>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <div className="p-8">
+              <h1 className="text-3xl font-bold">Contact Us</h1>
+              <p className="mt-4 text-gray-700">We respond within 24–48 hours on business days.</p>
+              <ul className="mt-4 list-disc pl-6 text-gray-700">
+                <li>Email: support@vault5.com</li>
+                <li>Twitter/X: @vault5</li>
+                <li>Address: [Insert Registered Address]</li>
+              </ul>
+            </div>
+          }
+        />
+        <Route
+          path="/fees"
+          element={
+            <div className="p-8">
+              <h1 className="text-3xl font-bold">Fees & Pricing</h1>
+              <ul className="mt-4 list-disc pl-6 text-gray-700">
+                <li>Transfers: Transparent fees shown before confirmation</li>
+                <li>Subscriptions: Free tier + optional premium add-ons</li>
+                <li>Loan interest/penalties: Shown upfront per application</li>
+              </ul>
+              <p className="mt-4 text-gray-700">No hidden fees. You always see costs before you approve.</p>
+            </div>
+          }
+        />
+        <Route
+          path="/security"
+          element={
+            <div className="p-8">
+              <h1 className="text-3xl font-bold">Security</h1>
+              <ul className="mt-4 list-disc pl-6 text-gray-700">
+                <li>Encryption in transit and at rest</li>
+                <li>2FA/MFA and device trust scoring</li>
+                <li>Audit logs and RBAC for admins</li>
+                <li>Continuous monitoring and vulnerability scans</li>
+              </ul>
+            </div>
+          }
+        />
+        <Route path="/legal" element={<Legal />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
