@@ -1,45 +1,45 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastProvider } from './contexts/ToastContext';
 import './index.css';
 
 import NavBar from './components/NavBar';
 
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import SignupChoice from './pages/SignupChoice';
-import SignupEmail from './pages/SignupEmail';
-import SignupPhone from './pages/SignupPhone';
-import SignupPersonal from './pages/SignupPersonal';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+const Landing = lazy(() => import('./pages/Landing'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const SignupChoice = lazy(() => import('./pages/SignupChoice'));
+const SignupEmail = lazy(() => import('./pages/SignupEmail'));
+const SignupPhone = lazy(() => import('./pages/SignupPhone'));
+const SignupPersonal = lazy(() => import('./pages/SignupPersonal'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
-import Dashboard from './pages/Dashboard';
-import Reports from './pages/Reports';
-import Lending from './pages/Lending';
-import Loans from './pages/Loans';
-import Investments from './pages/Investments';
-import Transactions from './pages/Transactions';
-import Blog from './pages/Blog';
-import Settings from './pages/Settings';
-import Profile from './pages/Profile';
-import AboutUs from './pages/AboutUs';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminUsers from './pages/AdminUsers';
-import AdminLogin from './pages/AdminLogin';
-import Banking from './pages/Banking';
-import AdminIndex from './pages/AdminIndex';
-import AdminSuper from './pages/AdminSuper';
-import AdminFinance from './pages/AdminFinance';
-import AdminCompliance from './pages/AdminCompliance';
-import AdminSupport from './pages/AdminSupport';
-import AdminContent from './pages/AdminContent';
-import AdminSystem from './pages/AdminSystem';
-import AdminUserAccounts from './pages/AdminUserAccounts';
-import Terms from './pages/Terms';
-import Privacy from './pages/Privacy';
-import Legal from './pages/Legal';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Lending = lazy(() => import('./pages/Lending'));
+const Loans = lazy(() => import('./pages/Loans'));
+const Investments = lazy(() => import('./pages/Investments'));
+const Transactions = lazy(() => import('./pages/Transactions'));
+const Blog = lazy(() => import('./pages/Blog'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Profile = lazy(() => import('./pages/Profile'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const Banking = lazy(() => import('./pages/Banking'));
+const AdminIndex = lazy(() => import('./pages/AdminIndex'));
+const AdminSuper = lazy(() => import('./pages/AdminSuper'));
+const AdminFinance = lazy(() => import('./pages/AdminFinance'));
+const AdminCompliance = lazy(() => import('./pages/AdminCompliance'));
+const AdminSupport = lazy(() => import('./pages/AdminSupport'));
+const AdminContent = lazy(() => import('./pages/AdminContent'));
+const AdminSystem = lazy(() => import('./pages/AdminSystem'));
+const AdminUserAccounts = lazy(() => import('./pages/AdminUserAccounts'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Legal = lazy(() => import('./pages/Legal'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -85,7 +85,8 @@ function App() {
     <ToastProvider>
       <div className="min-h-screen bg-gray-100">
         {!isLandingPage && <NavBar />}
-        <Routes>
+        <Suspense fallback={<div className="p-8">Loading...</div>}>
+          <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/login" element={<Login />} />
@@ -257,7 +258,8 @@ function App() {
         <Route path="/chamas" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Chamas</h1><p className="mt-4">Join or create pooled savings groups.</p></div></ProtectedRoute>} />
         <Route path="/insurance" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Insurance</h1><p className="mt-4">Coming soon...</p></div></ProtectedRoute>} />
         <Route path="/send-request" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Send & Request Money</h1><p className="mt-4">Send money via Email, Phone, or VaultTag.</p></div></ProtectedRoute>} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </div>
     </ToastProvider>
   );

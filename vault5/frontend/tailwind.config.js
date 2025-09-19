@@ -3,6 +3,10 @@ module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
+  safelist: [
+    // Safelist dynamic admin sidebar colors used via template strings
+    { pattern: /(bg|text)-(indigo|purple|emerald|rose|amber|sky|gray)-(50|100|800)/ }
+  ],
   theme: {
     extend: {
       colors: {

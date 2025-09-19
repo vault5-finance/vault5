@@ -4,6 +4,8 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const compression = require('compression');
 const { loadSecrets } = require('./utils/secretsLoader');
 const User = require('./models/User');
 const Account = require('./models/Account');
@@ -20,14 +22,36 @@ loadSecrets().then(secretsLoaded => {
     console.warn('Secrets not loaded from AWS - using local environment variables');
   }
 
-  // Middleware
-  app.use(cors());
-  app.use(express.json());
-  // Serve uploaded files statically
-  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+  // Middleware (security, compression, CORS)
+  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '*')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
 
-  // Serve static files for uploads
-  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+  const corsOptions = {
+    origin: function (origin, callback) {
+      // Allow non-browser clients (no origin) and wildcard
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true
+  };
+
+  app.use(helmet());
+  app.use(compression());
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
+
+  app.use(express.json());
+
+  // Serve uploaded files statically (with cache hints)
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+    maxAge: '7d',
+    etag: true,
+    immutable: false
+  }));
 
   // MongoDB Connection
   mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/vault5', {
