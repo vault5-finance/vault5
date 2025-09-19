@@ -1,8 +1,14 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
+
 const User = require('./models/User');
 const Account = require('./models/Account');
-require('dotenv').config();
+const {
+  LimitTier,
+  GeoPolicy,
+  DeviceRule,
+} = require('./models/Compliance');
 
 const updateExistingAdmins = async () => {
   try {
@@ -24,6 +30,73 @@ const updateExistingAdmins = async () => {
   }
 };
 
+const seedComplianceDefaults = async () => {
+  console.log('Seeding compliance defaults (tiers, geo policy, device rules)...');
+
+  // Limit Tiers per approved caps
+  const tiers = [
+    { name: 'Tier0', dailyLimit: 10000, monthlyLimit: 25000, maxHoldBalance: 0, minAccountAgeDays: 0 },
+    { name: 'Tier1', dailyLimit: 50000, monthlyLimit: 200000, maxHoldBalance: 0, minAccountAgeDays: 0 },
+    { name: 'Tier2', dailyLimit: 200000, monthlyLimit: 1000000, maxHoldBalance: 0, minAccountAgeDays: 0 },
+  ];
+
+  for (const t of tiers) {
+    await LimitTier.updateOne(
+      { name: t.name },
+      { $set: t },
+      { upsert: true }
+    );
+  }
+  console.log('Limit tiers upserted');
+
+  // Geo allowlist: KE initially
+  await GeoPolicy.updateOne(
+    {},
+    { $set: { mode: 'allowlist', countries: ['KE'], updatedAt: new Date() } },
+    { upsert: true }
+  );
+  console.log('Geo allowlist set to ["KE"]');
+
+  // Device rules defaults: require cookies, forbid headless
+  await DeviceRule.updateOne(
+    {},
+    { $set: { requireCookies: true, forbidHeadless: true, minSignals: 1, updatedAt: new Date() } },
+    { upsert: true }
+  );
+  console.log('Device rules seeded');
+};
+
+const backfillUsers = async () => {
+  console.log('Backfilling users with compliance defaults...');
+
+  // Ensure kycLevel, limitationStatus, etc. are set for existing users
+  const res1 = await User.updateMany(
+    { kycLevel: { $exists: false } },
+    { $set: { kycLevel: 'Tier0' } }
+  );
+  if (res1.modifiedCount) console.log(`Set kycLevel Tier0 on ${res1.modifiedCount} users`);
+
+  const res2 = await User.updateMany(
+    { limitationStatus: { $exists: false } },
+    { $set: { limitationStatus: 'none' } }
+  );
+  if (res2.modifiedCount) console.log(`Set limitationStatus none on ${res2.modifiedCount} users`);
+
+  // Ensure each user has a wallet account designated (fallback to Daily, else first)
+  const cursor = User.find({}, { _id: 1 }).cursor();
+  for await (const u of cursor) {
+    const accounts = await Account.find({ user: u._id }).sort({ createdAt: 1 });
+    if (!accounts.length) continue;
+
+    const anyWallet = accounts.some(a => a.isWallet === true);
+    if (!anyWallet) {
+      let walletAcc = accounts.find(a => a.type === 'Daily') || accounts[0];
+      await Account.updateOne({ _id: walletAcc._id }, { $set: { isWallet: true } });
+    }
+  }
+  console.log('Wallet designation backfill complete');
+};
+
 const seedAdminUsers = async () => {
   try {
     const uri = process.env.MONGO_URI;
@@ -35,6 +108,12 @@ const seedAdminUsers = async () => {
 
     // First update any existing admin users
     await updateExistingAdmins();
+
+    // Seed compliance defaults (tiers, geo, device)
+    await seedComplianceDefaults();
+
+    // Backfill user compliance fields and wallet designation
+    await backfillUsers();
 
     const adminUsers = [
       {
@@ -88,7 +167,8 @@ const seedAdminUsers = async () => {
         role: adminData.role,
         isActive: true,
         isVerified: true,
-        termsAccepted: true
+        termsAccepted: true,
+        kycLevel: 'Tier2' // elevate admins to highest KYC for testing admin consoles
       });
       await user.save();
 
@@ -102,6 +182,7 @@ const seedAdminUsers = async () => {
         { type: 'Charity', percentage: 5 },
       ];
 
+      let createdAccounts = [];
       for (const d of defaults) {
         const acc = new Account({
           user: user._id,
@@ -110,16 +191,19 @@ const seedAdminUsers = async () => {
           balance: 0,
           target: 0,
           status: 'green',
+          isWallet: d.type === 'Daily', // set Daily as wallet by default
+          isAutoDistribute: true
         });
         await acc.save();
-        user.accounts.push(acc._id);
+        createdAccounts.push(acc._id);
       }
+      user.accounts.push(...createdAccounts);
       await user.save();
 
       console.log(`Admin user ${adminData.email} created successfully`);
     }
 
-    console.log('Admin users seeding completed');
+    console.log('Seeding completed');
     process.exit(0);
   } catch (err) {
     console.error('Seed error:', err);

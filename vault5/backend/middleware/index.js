@@ -1,5 +1,25 @@
 // Backend Middleware for Vault5
-// Import and export all middleware here for easy access
-// e.g., module.exports = { auth: require('./auth'), errorHandler: require('./errorHandler'), ... };
+// Central export hub for middleware
 
-console.log('Middleware directory initialized');
+const { protect, authorize } = require('./auth');
+const {
+  geoGate,
+  ipDenyGate,
+  deviceGate,
+  limitationGate,
+  capsGate,
+  velocityGate,
+  loanEligibilityGate,
+} = require('./compliance');
+
+module.exports = {
+  protect,
+  authorize,
+  geoGate,
+  ipDenyGate,
+  deviceGate,
+  limitationGate,
+  capsGate,
+  velocityGate,
+  loanEligibilityGate,
+};

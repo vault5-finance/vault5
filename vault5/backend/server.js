@@ -125,6 +125,8 @@ app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/receipts', receiptsRoutes);
 app.use('/api/plaid', plaidRoutes);
+// Compliance & KYC routes
+app.use('/api/compliance', require('./routes').complianceRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

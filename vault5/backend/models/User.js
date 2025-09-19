@@ -131,6 +131,34 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+
+  // Compliance & limitations fields
+  kycLevel: {
+    type: String,
+    enum: ['Tier0', 'Tier1', 'Tier2'],
+    default: 'Tier0'
+  },
+  limitationStatus: {
+    type: String,
+    enum: ['none', 'temporary_30', 'temporary_180', 'permanent'],
+    default: 'none'
+  },
+  limitationReason: {
+    type: String,
+    default: ''
+  },
+  limitationExpiresAt: {
+    type: Date
+  },
+  // Reserve release eligibility (e.g., 180-day wait)
+  reserveReleaseAt: {
+    type: Date
+  },
+  riskFlags: [{
+    type: String
+  }],
+
+  // Legacy app-tier (kept for compatibility)
   limitsTier: {
     type: String,
     enum: ['basic', 'premium', 'enterprise'],
@@ -311,7 +339,12 @@ userSchema.methods.getDepartmentFromRole = function(role) {
     user: 'none'
   };
 
-  return departmentMap[role] || 'none';
+ return departmentMap[role] || 'none';
 };
+
+// Indexes for compliance queries
+userSchema.index({ limitationStatus: 1 });
+userSchema.index({ reserveReleaseAt: 1 });
+userSchema.index({ kycLevel: 1 });
 
 module.exports = mongoose.model('User', userSchema);
