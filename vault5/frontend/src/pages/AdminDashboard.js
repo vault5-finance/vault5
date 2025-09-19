@@ -6,32 +6,44 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
+  const [overview, setOverview] = useState(null);
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/admin/login');
+      navigate('/admin-login');
       return;
     }
-
-    // Decode token to get user info
+ 
+    // Use persisted user object (includes role) instead of JWT payload
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      setUser(payload);
-
-      // Fetch admin stats if super admin
-      if (payload.role === 'super_admin') {
-        fetchAdminStats();
-        fetchAdmins();
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+      if (!storedUser?.role || !adminRoles.includes(storedUser.role)) {
+        // Not an admin; redirect to standard dashboard and keep loading to prevent flicker
+        navigate('/dashboard');
+        return;
       }
+      setUser(storedUser);
+ 
+      // Fetch admin stats if super admin
+      const run = async () => {
+        try {
+          if (storedUser.role === 'super_admin') {
+            await Promise.all([fetchAdminStats(), fetchSystemOverview(), fetchAdmins()]);
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+      run();
     } catch (error) {
-      console.error('Error decoding token:', error);
-      navigate('/admin/login');
+      console.error('Error loading admin user:', error);
+      navigate('/admin-login');
+      return;
     }
-
-    setLoading(false);
   }, [navigate]);
 
   const fetchAdminStats = async () => {
@@ -40,6 +52,14 @@ const AdminDashboard = () => {
       setStats(response.data.data);
     } catch (error) {
       console.error('Error fetching admin stats:', error);
+    }
+  };
+  const fetchSystemOverview = async () => {
+    try {
+      const response = await api.get('/api/admin/overview');
+      setOverview(response.data.data);
+    } catch (error) {
+      console.error('Error fetching system overview:', error);
     }
   };
 
@@ -83,28 +103,53 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Stats Cards */}
-            {stats && (
+            {/* System Overview Cards */}
+            {overview && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h3 className="text-lg font-semibold text-gray-900">Total Admins</h3>
-                  <p className="text-3xl font-bold text-blue-600">{stats.totalAdmins}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Users</h3>
+                  <p className="text-3xl font-bold text-blue-600">{overview.users.totalUsers}</p>
+                  <p className="text-sm text-gray-600">Active {overview.users.activeUsers} • Dormant {overview.users.dormantUsers}</p>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h3 className="text-lg font-semibold text-gray-900">Active Admins</h3>
-                  <p className="text-3xl font-bold text-green-600">{stats.activeAdmins}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">KYC</h3>
+                  <p className="text-3xl font-bold text-green-600">{overview.kyc.kycApproved}</p>
+                  <p className="text-sm text-gray-600">Pending {overview.kyc.kycPending} • Rejected {overview.kyc.kycRejected}</p>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h3 className="text-lg font-semibold text-gray-900">Inactive Admins</h3>
-                  <p className="text-3xl font-bold text-red-600">{stats.inactiveAdmins}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Risk</h3>
+                  <p className="text-3xl font-bold text-red-600">{overview.risk.flaggedTx}</p>
+                  <p className="text-sm text-gray-600">Flagged Transactions</p>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h3 className="text-lg font-semibold text-gray-900">Departments</h3>
-                  <p className="text-3xl font-bold text-purple-600">{stats.breakdown?.length || 0}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Activity Today</h3>
+                  <p className="text-3xl font-bold text-purple-600">{overview.activity.todaysTransactions}</p>
+                  <p className="text-sm text-gray-600">Transactions</p>
                 </div>
               </div>
             )}
-
+ 
+            {/* Admin Stats (breakdown) */}
+            {stats && (
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-xl font-semibold mb-4">Admin Team</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Total Admins</div>
+                    <div className="text-2xl font-bold">{stats.totalAdmins}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Active Admins</div>
+                    <div className="text-2xl font-bold text-green-600">{stats.activeAdmins}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600 mb-1">Inactive Admins</div>
+                    <div className="text-2xl font-bold text-red-600">{stats.inactiveAdmins}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+ 
             {/* Recent Admins */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-4">Recent Admins</h3>

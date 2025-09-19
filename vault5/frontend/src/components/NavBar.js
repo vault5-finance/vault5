@@ -6,6 +6,8 @@ const NavBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -44,6 +46,7 @@ const NavBar = () => {
 
   // Check if we're on the landing page
   const isLandingPage = location.pathname === '/';
+  const isAdminArea = location.pathname.startsWith('/admin');
 
   // Public navigation for landing page
   if (isLandingPage && !token) {
@@ -99,17 +102,28 @@ const NavBar = () => {
             <div className="hidden md:flex items-center space-x-4">
               {token ? (
                 <>
-                  {/* Desktop menu items */}
-                  <div className="flex space-x-6 mr-4">
-                    <Link to="/dashboard" className="nav-link">Dashboard</Link>
-                    <Link to="/transactions" className="nav-link">Transactions</Link>
-                    <Link to="/banking" className="nav-link">Banking</Link>
-                    <Link to="/reports" className="nav-link">Reports</Link>
-                    <Link to="/lending" className="nav-link">Lending</Link>
-                    <Link to="/loans" className="nav-link">Loans</Link>
-                    <Link to="/investments" className="nav-link">Investments</Link>
-                    <Link to="/settings" className="nav-link">Settings</Link>
-                  </div>
+                  {/* Desktop menu items (admin vs user) */}
+                  {isAdminArea ? (
+                    <div className="flex space-x-6 mr-4">
+                      <Link to="/admin" className="nav-link">Admin Dashboard</Link>
+                      <Link to="/admin/users" className="nav-link">Users</Link>
+                    </div>
+                  ) : (
+                    <div className="flex space-x-6 mr-4">
+                      <Link to="/dashboard" className="nav-link">Dashboard</Link>
+                      <Link to="/transactions" className="nav-link">Transactions</Link>
+                      <Link to="/banking" className="nav-link">Banking</Link>
+                      <Link to="/reports" className="nav-link">Reports</Link>
+                      <Link to="/lending" className="nav-link">Lending</Link>
+                      <Link to="/loans" className="nav-link">Loans</Link>
+                      <Link to="/investments" className="nav-link">Investments</Link>
+                      <Link to="/settings" className="nav-link">Settings</Link>
+                      <Link to="/profile" className="nav-link">Profile</Link>
+                      {adminRoles.includes(user.role) && (
+                        <Link to="/admin" className="nav-link">Admin</Link>
+                      )}
+                    </div>
+                  )}
                   <div className="relative dropdown-container">
                     <button
                       onClick={toggleNotifications}
@@ -190,17 +204,29 @@ const NavBar = () => {
             </div>
             <nav className="p-4">
               <div className="space-y-2">
-                <Link to="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Dashboard</Link>
-                <Link to="/transactions" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Transactions</Link>
-                <Link to="/banking" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Banking</Link>
-                <Link to="/reports" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Reports</Link>
-                <Link to="/lending" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Lending</Link>
-                <Link to="/loans" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Loans</Link>
-                <Link to="/investments" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Investments</Link>
-                <Link to="/blog" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Blog</Link>
-                <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>About</Link>
-                <Link to="/settings" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Settings</Link>
-                <Link to="/profile" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Profile</Link>
+                {isAdminArea ? (
+                  <>
+                    <Link to="/admin" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Admin Dashboard</Link>
+                    <Link to="/admin/users" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Users</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Dashboard</Link>
+                    <Link to="/transactions" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Transactions</Link>
+                    <Link to="/banking" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Banking</Link>
+                    <Link to="/reports" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Reports</Link>
+                    <Link to="/lending" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Lending</Link>
+                    <Link to="/loans" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Loans</Link>
+                    <Link to="/investments" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Investments</Link>
+                    <Link to="/blog" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Blog</Link>
+                    <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>About</Link>
+                    <Link to="/settings" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Settings</Link>
+                    <Link to="/profile" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Profile</Link>
+                    {adminRoles.includes(user.role) && (
+                      <Link to="/admin" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Admin</Link>
+                    )}
+                  </>
+                )}
                 <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded">Logout</button>
               </div>
             </nav>

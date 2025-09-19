@@ -208,31 +208,42 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { name, email, password, dob, phone, city } = req.body;
-
+ 
     const user = await User.findById(req.user._id).select('+password');
     if (!user) return res.status(404).json({ message: 'User not found' });
-
+ 
+    // Enforce immutability of core PII after step 2
+    if ((name !== undefined || dob !== undefined) && user.registrationStep >= 2) {
+      return res.status(400).json({ message: 'Personal information (name, date of birth) cannot be changed after verification' });
+    }
+ 
+    // Emails and phones must be managed via dedicated endpoints
+    if (email !== undefined) {
+      return res.status(400).json({ message: 'Use add-email/verify-email and set-primary-email endpoints to manage emails' });
+    }
+    if (phone !== undefined) {
+      return res.status(400).json({ message: 'Use add-phone/verify-phone and set-primary-phone endpoints to manage phone numbers' });
+    }
+ 
     if (name !== undefined) user.name = name;
-    if (email !== undefined) user.email = email;
     if (dob !== undefined) user.dob = new Date(dob);
-    if (phone !== undefined) user.phone = phone;
     if (city !== undefined) user.city = city;
     if (req.file) user.avatar = `/uploads/${req.file.filename}`;
-
+ 
     if (password) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
     }
-
+ 
     await user.save();
-
+ 
     // Resolve primary email for response
     let primaryEmail = user.email;
     if (user.emails && user.emails.length > 0) {
       const primaryEmailEntry = user.emails.find(e => e.isPrimary) || user.emails[0];
       primaryEmail = primaryEmailEntry?.email;
     }
-
+ 
     res.json({
       id: user._id,
       name: user.name,
@@ -259,10 +270,12 @@ const registerStep1 = async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 8 characters long' });
     }
 
-    // Check if email already exists in any user's emails array
-    const existingUser = await User.findOne({
-      'emails.email': email.toLowerCase()
-    });
+    // Check if email already exists (arrays or legacy field)
+    const emailLower = email.toLowerCase();
+    let existingUser = await User.findOne({ 'emails.email': emailLower });
+    if (!existingUser) {
+      existingUser = await User.findOne({ email: emailLower });
+    }
     if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
     }
@@ -461,17 +474,21 @@ const checkEmail = async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
-
-    const user = await User.findOne({
-      'emails.email': email.toLowerCase()
-    });
+ 
+    const emailLower = email.toLowerCase();
+    let user = await User.findOne({ 'emails.email': emailLower });
+    if (!user) {
+      user = await User.findOne({ email: emailLower });
+    }
+ 
     if (user) {
       return res.json({
         exists: true,
-        method: user.password ? 'password' : 'oauth'
+        method: user.password ? 'password' : 'oauth',
+        status: user.accountStatus || (user.isActive ? 'active' : 'inactive')
       });
     }
-
+ 
     res.json({ exists: false });
   } catch (error) {
     console.error('Check email error:', error);
@@ -486,15 +503,33 @@ const sendOTP = async (req, res) => {
     if (!phone) {
       return res.status(400).json({ message: 'Phone number is required' });
     }
-
-    // In production, integrate with SMS service (Twilio, Africa's Talking, etc.)
-    // For now, simulate OTP sending
+ 
+    // Validate E.164-ish format
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+ 
+    // Gate by existing linkage and account status (except deleted)
+    const existing = await User.findOne({ 'phones.phone': phone });
+    if (existing) {
+      const status = existing.accountStatus || (existing.isActive ? 'active' : 'inactive');
+      if (status !== 'deleted') {
+        const statusMessages = {
+          active: 'This number is linked to an existing account. Please sign in.',
+          dormant: 'This number is linked to a dormant account. Please sign in to reactivate.',
+          suspended: 'This number is linked to a suspended account. Contact support.',
+          banned: 'This number is linked to a banned account. Contact support.',
+          deleted: ''
+        };
+        return res.status(400).json({ message: statusMessages[status] || 'This number is linked to an existing account', status });
+      }
+    }
+ 
+    // In production, integrate with SMS service
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store OTP temporarily (in production, use Redis or similar)
-    // For demo, we'll just log it
     console.log(`OTP for ${phone}: ${otp}`);
-
+ 
     res.json({ message: 'OTP sent successfully', otp }); // Remove otp in production
   } catch (error) {
     console.error('Send OTP error:', error);

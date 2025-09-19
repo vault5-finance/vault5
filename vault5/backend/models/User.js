@@ -117,6 +117,17 @@ const userSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected', 'not_required'],
     default: 'not_required'
   },
+  // Overall account lifecycle/status
+  accountStatus: {
+    type: String,
+    enum: ['active', 'dormant', 'suspended', 'banned', 'deleted'],
+    default: 'active'
+  },
+  // Whether account is currently active/usable
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   limitsTier: {
     type: String,
     enum: ['basic', 'premium', 'enterprise'],

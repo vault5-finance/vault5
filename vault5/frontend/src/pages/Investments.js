@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const Investments = () => {
+  const { showError, showSuccess, showInfo } = useToast();
   const [investments, setInvestments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -41,11 +43,11 @@ const Investments = () => {
       setInvestments([response.data, ...investments]);
       setShowForm(false);
       setForm({ name: '', type: 'Custom', amount: '', expectedReturn: 0, maturityDate: '', accountSource: '' });
-      alert('Investment created successfully');
+      showSuccess('Investment created successfully');
     })
     .catch(error => {
       console.error('Create investment error:', error);
-      alert(error.response?.data?.message || 'Error creating investment');
+      showError(error.response?.data?.message || 'Error creating investment');
     });
   };
 
@@ -57,11 +59,11 @@ const Investments = () => {
     api.put(`/api/investments/${id}`, { currentValue: parseFloat(currentValue) })
     .then(response => {
       setInvestments(investments.map(i => i._id === id ? response.data : i));
-      alert('Investment updated');
+      showSuccess('Investment updated');
     })
     .catch(error => {
       console.error('Update investment error:', error);
-      alert(error.response?.data?.message || 'Error updating investment');
+      showError(error.response?.data?.message || 'Error updating investment');
     });
   };
 
@@ -72,11 +74,11 @@ const Investments = () => {
     api.delete(`/api/investments/${id}`)
     .then(() => {
       setInvestments(investments.filter(i => i._id !== id));
-      alert('Investment deleted');
+      showSuccess('Investment deleted');
     })
     .catch(error => {
       console.error('Delete investment error:', error);
-      alert(error.response?.data?.message || 'Error deleting investment');
+      showError(error.response?.data?.message || 'Error deleting investment');
     });
   };
 

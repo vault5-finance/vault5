@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement } from 'chart.js';
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement);
 
@@ -211,6 +212,7 @@ const generateInsights = (dashboardData, accounts, transactions) => {
 };
 
 const Dashboard = () => {
+  const { showInfo } = useToast();
   const [data, setData] = useState({ netWorth: 0, allocationData: [], healthScore: 0, totalBalance: 0 });
   const [accounts, setAccounts] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
@@ -533,13 +535,13 @@ const Dashboard = () => {
               Add Income
             </button>
             <button
-              onClick={() => alert('Send Money feature coming soon!')}
+              onClick={() => showInfo('Send Money feature coming soon!')}
               className="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium text-sm"
             >
               Send Money
             </button>
             <button
-              onClick={() => alert('Pay Bills feature coming soon!')}
+              onClick={() => showInfo('Pay Bills feature coming soon!')}
               className="p-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition duration-200 font-medium text-sm"
             >
               Pay Bills

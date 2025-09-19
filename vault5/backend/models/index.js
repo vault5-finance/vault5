@@ -10,6 +10,7 @@ const Lending = require('./Lending');
 const Milestone = require('./Milestone');
 const Badge = require('./Badge');
 const FinancialScore = require('./FinancialScore');
+const AuditLog = require('./AuditLog');
 
 module.exports = {
   User,
@@ -21,5 +22,6 @@ module.exports = {
   Lending,
   Milestone,
   Badge,
-  FinancialScore
+  FinancialScore,
+  AuditLog
 };

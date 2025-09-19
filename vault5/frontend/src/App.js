@@ -29,6 +29,13 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminLogin from './pages/AdminLogin';
 import Banking from './pages/Banking';
+import AdminIndex from './pages/AdminIndex';
+import AdminSuper from './pages/AdminSuper';
+import AdminFinance from './pages/AdminFinance';
+import AdminCompliance from './pages/AdminCompliance';
+import AdminSupport from './pages/AdminSupport';
+import AdminContent from './pages/AdminContent';
+import AdminSystem from './pages/AdminSystem';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -110,7 +117,13 @@ function App() {
         <Route path="/banking" element={<ProtectedRoute><Banking /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+        <Route path="/admin" element={<AdminProtectedRoute><AdminIndex /></AdminProtectedRoute>} />
+        <Route path="/admin/super" element={<AdminProtectedRoute><AdminSuper /></AdminProtectedRoute>} />
+        <Route path="/admin/finance" element={<AdminProtectedRoute><AdminFinance /></AdminProtectedRoute>} />
+        <Route path="/admin/compliance" element={<AdminProtectedRoute><AdminCompliance /></AdminProtectedRoute>} />
+        <Route path="/admin/support" element={<AdminProtectedRoute><AdminSupport /></AdminProtectedRoute>} />
+        <Route path="/admin/content" element={<AdminProtectedRoute><AdminContent /></AdminProtectedRoute>} />
+        <Route path="/admin/system" element={<AdminProtectedRoute><AdminSystem /></AdminProtectedRoute>} />
         <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
 
         {/* Placeholder Pages for Future Features */}

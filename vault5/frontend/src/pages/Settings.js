@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const Settings = () => {
   const [settings, setSettings] = useState({
@@ -11,6 +12,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const navigate = useNavigate();
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -58,12 +60,12 @@ const Settings = () => {
     api.put('/api/settings', settings)
     .then(response => {
       setSettings(response.data.preferences);
-      alert('Settings updated successfully');
+      showSuccess('Settings updated successfully');
       setUpdating(false);
     })
     .catch(error => {
       console.error('Update settings error:', error);
-      alert(error.response?.data?.message || 'Error updating settings');
+      showError(error.response?.data?.message || 'Error updating settings');
       setUpdating(false);
     });
   };

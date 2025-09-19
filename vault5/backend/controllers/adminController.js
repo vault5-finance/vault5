@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, Transaction, AuditLog } = require('../models');
 
 // Get all admins (super admin only)
 const getAllAdmins = async (req, res) => {
@@ -101,9 +101,12 @@ const updateAdmin = async (req, res) => {
       return res.status(404).json({ message: 'Admin not found' });
     }
 
-    // Prevent updating super admin role
+    // Prevent demoting last remaining super admin
     if (admin.role === 'super_admin' && role && role !== 'super_admin') {
-      return res.status(400).json({ message: 'Cannot change super admin role' });
+      const superCount = await User.countDocuments({ role: 'super_admin' });
+      if (superCount <= 1) {
+        return res.status(400).json({ message: 'Cannot demote the last remaining super admin' });
+      }
     }
 
     // Update fields
@@ -173,9 +176,12 @@ const deleteAdmin = async (req, res) => {
       return res.status(404).json({ message: 'Admin not found' });
     }
 
-    // Prevent deleting super admin
+    // Prevent deleting the last remaining super admin
     if (admin.role === 'super_admin') {
-      return res.status(400).json({ message: 'Cannot delete super admin' });
+      const superCount = await User.countDocuments({ role: 'super_admin' });
+      if (superCount <= 1) {
+        return res.status(400).json({ message: 'Cannot delete the last remaining super admin' });
+      }
     }
 
     // Prevent deleting yourself
@@ -233,10 +239,73 @@ const getAdminStats = async (req, res) => {
   }
 };
 
+/**
+ * System overview for super admin: users, KYC, risk, activity
+ */
+const getSystemOverview = async (req, res) => {
+  try {
+    // Users overview
+    const totalUsers = await User.countDocuments({ role: 'user' });
+    const activeUsers = await User.countDocuments({ role: 'user', isActive: true });
+    const dormantUsers = await User.countDocuments({ role: 'user', accountStatus: 'dormant' });
+    const suspendedUsers = await User.countDocuments({ role: 'user', accountStatus: 'suspended' });
+    const bannedUsers = await User.countDocuments({ role: 'user', accountStatus: 'banned' });
+ 
+    // KYC overview
+    const kycPending = await User.countDocuments({ role: 'user', kycStatus: { $in: ['pending', 'not_required'] } });
+    const kycApproved = await User.countDocuments({ role: 'user', kycStatus: 'approved' });
+    const kycRejected = await User.countDocuments({ role: 'user', kycStatus: 'rejected' });
+ 
+    // Risk overview (transactions flagged)
+    const flaggedTx = await Transaction.countDocuments({ 'fraudRisk.isHighRisk': true });
+ 
+    // Recent activity (today's transactions)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const todaysTransactions = await Transaction.countDocuments({ createdAt: { $gte: startOfDay } });
+ 
+    res.json({
+      success: true,
+      data: {
+        users: { totalUsers, activeUsers, dormantUsers, suspendedUsers, bannedUsers },
+        kyc: { kycPending, kycApproved, kycRejected },
+        risk: { flaggedTx },
+        activity: { todaysTransactions }
+      }
+    });
+  } catch (error) {
+    console.error('Get system overview error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+ 
+const getAuditLogs = async (req, res) => {
+  try {
+    const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(500);
+    res.json({ success: true, data: logs });
+  } catch (error) {
+    console.error('Get audit logs error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const purgeAuditLogs = async (req, res) => {
+  try {
+    await AuditLog.deleteMany({});
+    res.json({ success: true, message: 'Audit logs purged' });
+  } catch (error) {
+    console.error('Purge audit logs error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getAllAdmins,
   createAdmin,
   updateAdmin,
   deleteAdmin,
-  getAdminStats
+  getAdminStats,
+  getSystemOverview,
+  getAuditLogs,
+  purgeAuditLogs
 };

@@ -49,60 +49,8 @@ loadSecrets().then(secretsLoaded => {
     console.warn('Index check/drop skipped:', e.message);
   }
 
-  // Seed default user if not exists
-  const email = 'bnyaliti@gmail.com';
-  const exists = await User.findOne({ email });
-  if (!exists) {
-    const password = 'Admin';
-    const name = 'Bryson Nyaliti Omullo';
-    const dob = new Date('2001-07-31');
-    const phone = '+254745959794';
-    const city = 'Nairobi';
-    const avatar = '';
-
-    const salt = await bcrypt.genSalt(10);
-    const hashed = await bcrypt.hash(password, salt);
-
-    const user = new User({
-      name,
-      email,
-      password: hashed,
-      dob,
-      phone,
-      city,
-      avatar,
-      role: 'super_admin'
-    });
-    await user.save();
-
-    // Create default accounts
-    const defaults = [
-      { type: 'Daily', percentage: 50 },
-      { type: 'Emergency', percentage: 10 },
-      { type: 'Investment', percentage: 20 },
-      { type: 'LongTerm', percentage: 10 },
-      { type: 'Fun', percentage: 5 },
-      { type: 'Charity', percentage: 5 },
-    ];
-
-    for (const d of defaults) {
-      const acc = new Account({
-        user: user._id,
-        type: d.type,
-        percentage: d.percentage,
-        balance: 0,
-        target: 0,
-        status: 'green',
-      });
-      await acc.save();
-      user.accounts.push(acc._id);
-    }
-    await user.save();
-
-    console.log('Default user created successfully');
-  } else {
-    console.log('Default user already exists');
-  }
+  // Default user seeding moved to backend/seed.js (run separately)
+  // This inline seeding was removed to avoid schema drift and duplication.
 })
 .catch(err => console.error('MongoDB connection error:', err));
 
@@ -110,6 +58,11 @@ loadSecrets().then(secretsLoaded => {
 const {
   authRoutes,
   adminRoutes,
+  adminComplianceRoutes,
+  adminFinanceRoutes,
+  adminSupportRoutes,
+  adminContentRoutes,
+  adminSystemRoutes,
   accountsRoutes,
   goalsRoutes,
   lendingRoutes,
@@ -126,6 +79,11 @@ const {
 const plaidRoutes = require('./routes/plaid');
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/compliance', adminComplianceRoutes);
+app.use('/api/admin/finance', adminFinanceRoutes);
+app.use('/api/admin/support', adminSupportRoutes);
+app.use('/api/admin/content', adminContentRoutes);
+app.use('/api/admin/system', adminSystemRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/lending', lendingRoutes);

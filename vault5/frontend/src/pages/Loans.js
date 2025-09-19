@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 const Loans = () => {
+  const { showError, showSuccess } = useToast();
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -41,11 +43,11 @@ const Loans = () => {
       setLoans([response.data, ...loans]);
       setShowForm(false);
       setForm({ name: '', principal: '', interestRate: 0, repaymentAmount: '', frequency: 'monthly', nextDueDate: '', accountDeduction: '' });
-      alert('Loan created successfully');
+      showSuccess('Loan created successfully');
     })
     .catch(error => {
       console.error('Create loan error:', error);
-      alert(error.response?.data?.message || 'Error creating loan');
+      showError(error.response?.data?.message || 'Error creating loan');
     });
   };
 
@@ -57,11 +59,11 @@ const Loans = () => {
     api.post(`/api/loans/${id}/repay`, { amount: parseFloat(amount) })
     .then(response => {
       setLoans(loans.map(l => l._id === id ? response.data : l));
-      alert('Repayment made successfully');
+      showSuccess('Repayment made successfully');
     })
     .catch(error => {
       console.error('Repayment error:', error);
-      alert(error.response?.data?.message || 'Error making repayment');
+      showError(error.response?.data?.message || 'Error making repayment');
     });
   };
 

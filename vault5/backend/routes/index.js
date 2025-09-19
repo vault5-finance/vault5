@@ -1,5 +1,10 @@
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
+const adminComplianceRoutes = require('./adminCompliance');
+const adminFinanceRoutes = require('./adminFinance');
+const adminSupportRoutes = require('./adminSupport');
+const adminContentRoutes = require('./adminContent');
+const adminSystemRoutes = require('./adminSystem');
 const accountsRoutes = require('./accounts');
 const goalsRoutes = require('./goals');
 const lendingRoutes = require('./lending');
@@ -17,6 +22,11 @@ const receiptsRoutes = require('./receipts');
 module.exports = {
   authRoutes,
   adminRoutes,
+  adminComplianceRoutes,
+  adminFinanceRoutes,
+  adminSupportRoutes,
+  adminContentRoutes,
+  adminSystemRoutes,
   accountsRoutes,
   goalsRoutes,
   lendingRoutes,

@@ -22,10 +22,12 @@ const Login = () => {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
 
-        // Check for admin redirect
+        // Check for admin redirect with client-side guard
         const redirectPath = res.data.redirect || '/dashboard';
-        console.log('Redirecting to:', redirectPath, 'User role:', res.data.user.role);
-        navigate(redirectPath);
+        const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+        const safeRedirect = redirectPath === '/admin' && !adminRoles.includes(res.data.user.role) ? '/dashboard' : redirectPath;
+        console.log('Redirecting to:', safeRedirect, 'User role:', res.data.user.role);
+        navigate(safeRedirect);
       } else {
         showError('Login failed: Invalid response');
       }
@@ -70,6 +72,12 @@ const Login = () => {
           >
             {submitting ? 'Signing in...' : 'Login'}
           </button>
+
+          <div className="mt-3 text-center">
+            <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+              Forgot your password?
+            </Link>
+          </div>
         </form>
         <p className="mt-4 text-center text-sm">
           Don't have an account?{' '}
