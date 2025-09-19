@@ -485,9 +485,43 @@ const deleteUserByAdmin = async (req, res) => {
   }
 };
  
+/**
+ * Build MongoDB filter for audit logs based on query params
+ */
+function buildAuditFilter(query) {
+  const { q, actor, action, resource, start, end, actionName } = query || {};
+  const filter = {};
+  if (actor) filter.user = actor;
+  if (action) filter.action = action;
+  if (resource) filter.resource = resource;
+  if (start || end) {
+    filter.timestamp = {};
+    if (start) filter.timestamp.$gte = new Date(start);
+    if (end) filter.timestamp.$lte = new Date(end);
+  }
+  if (actionName) {
+    filter['details.actionName'] = new RegExp(actionName, 'i');
+  }
+  if (q) {
+    const like = new RegExp(String(q), 'i');
+    filter.$or = [
+      { action: like },
+      { resource: like },
+      { errorMessage: like },
+      { ipAddress: like },
+      { userAgent: like },
+      { 'details.actionName': like },
+      { 'details.reason': like }
+    ];
+  }
+  return filter;
+}
+
 const getAuditLogs = async (req, res) => {
   try {
-    const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(500);
+    const filter = buildAuditFilter(req.query);
+    const limit = Math.min(parseInt(req.query.limit || '500', 10), 5000);
+    const logs = await AuditLog.find(filter).sort({ createdAt: -1 }).limit(limit);
     res.json({ success: true, data: logs });
   } catch (error) {
     console.error('Get audit logs error:', error);
@@ -518,6 +552,58 @@ const purgeAuditLogs = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/admin/compliance/audit-logs.csv
+ * CSV export of audit logs with same filtering as JSON endpoint.
+ */
+const getAuditLogsCsv = async (req, res) => {
+  try {
+    const filter = buildAuditFilter(req.query);
+    const limit = Math.min(parseInt(req.query.limit || '5000', 10), 20000);
+    const logs = await AuditLog.find(filter).sort({ createdAt: -1 }).limit(limit);
+
+    const headers = [
+      'timestamp',
+      'user',
+      'action',
+      'resource',
+      'resourceId',
+      'actionName',
+      'reason',
+      'ipAddress',
+      'userAgent',
+      'success',
+      'errorMessage'
+    ];
+    const escape = (v) => {
+      if (v === null || v === undefined) return '';
+      const s = String(v).replace(/"/g, '""');
+      return `"${s}"`;
+    };
+    const rows = logs.map(l => [
+      l.timestamp ? new Date(l.timestamp).toISOString() : '',
+      l.user || '',
+      l.action || '',
+      l.resource || '',
+      l.resourceId || '',
+      (l.details && l.details.actionName) || '',
+      (l.details && l.details.reason) || '',
+      l.ipAddress || '',
+      l.userAgent || '',
+      l.success ? 'true' : 'false',
+      l.errorMessage || ''
+    ]);
+
+    const csv = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="audit-logs.csv"');
+    return res.status(200).send(csv);
+  } catch (error) {
+    console.error('Get audit logs CSV error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getAllAdmins,
   createAdmin,
@@ -527,6 +613,7 @@ module.exports = {
   getSystemOverview,
   getAuditLogs,
   purgeAuditLogs,
+  getAuditLogsCsv,
   // User management (support_admin+ or super_admin)
   listUsers,
   createUserByAdmin,

@@ -39,7 +39,8 @@ const AdminSystem = lazy(() => import('./pages/AdminSystem'));
 const AdminUserAccounts = lazy(() => import('./pages/AdminUserAccounts'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
-const Legal = lazy(() => import('./pages/Legal'));
+const LegalCenter = lazy(() => import('./pages/LegalCenter'));
+const PolicyUpdates = lazy(() => import('./pages/PolicyUpdates'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -226,9 +227,11 @@ function App() {
             </div>
           }
         />
-        <Route path="/legal" element={<Legal />} />
+        <Route path="/legal" element={<Navigate to="/legal/user-agreement" replace />} />
+        <Route path="/legal/:doc" element={<LegalCenter />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/legal/policy-updates" element={<PolicyUpdates />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

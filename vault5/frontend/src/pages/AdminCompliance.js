@@ -59,6 +59,17 @@ const AdminCompliance = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const exportCsv = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (q) params.append('q', q);
+      const url = `/api/admin/compliance/audit-logs.csv?${params.toString()}`;
+      window.open(url, '_blank');
+    } catch (e) {
+      console.error('Export CSV error:', e);
+    }
+  };
+
   const filtered = logs.filter((l) => {
     if (!q) return true;
     const term = q.toLowerCase();
@@ -121,6 +132,13 @@ const AdminCompliance = () => {
                     className="px-4 py-2 rounded-lg border hover:bg-gray-50"
                   >
                     Refresh
+                  </button>
+                  <button
+                    onClick={exportCsv}
+                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    title="Download CSV export"
+                  >
+                    Export CSV
                   </button>
                 </div>
               </div>
