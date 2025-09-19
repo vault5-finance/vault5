@@ -13,9 +13,14 @@ const NavBar = () => {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
+  // Compliance banner state
+  const [compliance, setCompliance] = useState(null);
+  const [loadingCompliance, setLoadingCompliance] = useState(false);
+
   useEffect(() => {
     if (token) {
       fetchNotifications();
+      fetchCompliance();
     }
   }, [token]);
 
@@ -35,6 +40,19 @@ const NavBar = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const fetchCompliance = async () => {
+    try {
+      setLoadingCompliance(true);
+      const res = await api.get('/api/compliance/status');
+      setCompliance(res.data?.data || null);
+    } catch (e) {
+      // do not spam UI; banner is optional
+      setCompliance(null);
+    } finally {
+      setLoadingCompliance(false);
+    }
   };
 
   const toggleNotifications = () => {
@@ -120,6 +138,7 @@ const NavBar = () => {
                       <Link to="/lending" className="nav-link">Lending</Link>
                       <Link to="/loans" className="nav-link">Loans</Link>
                       <Link to="/investments" className="nav-link">Investments</Link>
+                      <Link to="/compliance" className="nav-link">Compliance</Link>
                       <Link to="/settings" className="nav-link">Settings</Link>
                       <Link to="/profile" className="nav-link">Profile</Link>
                       <Link to="/legal" className="nav-link">Legal</Link>
@@ -190,6 +209,58 @@ const NavBar = () => {
         </div>
       </nav>
 
+      {/* Compliance Banner */}
+      {token && compliance && !loadingCompliance && (
+        <>
+          {(() => {
+            const st = compliance?.limitation?.status || 'none';
+            const payoutEligible = compliance?.payoutEligible;
+            if (st === 'none' && !payoutEligible) return null;
+            const base = 'text-sm';
+            const style =
+              st === 'temporary_30' ? 'bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800' :
+              st === 'temporary_180' ? 'bg-red-50 border-l-4 border-red-500 text-red-800' :
+              st === 'permanent' ? 'bg-red-50 border-l-4 border-red-600 text-red-900' :
+              payoutEligible ? 'bg-green-50 border-l-4 border-green-500 text-green-800' :
+              'bg-blue-50 border-l-4 border-blue-500 text-blue-800';
+            const countdownMs = compliance?.limitation?.countdownMs || 0;
+            const reserveReleaseAt = compliance?.limitation?.reserveReleaseAt;
+            return (
+              <div className={`${style} ${base}`}>
+                <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+                  <div className="flex-1">
+                    {st !== 'none' ? (
+                      <>
+                        <span className="font-semibold mr-2">Account Limited:</span>
+                        <span className="mr-2 capitalize">{st.replace('_', ' ')}</span>
+                        {countdownMs > 0 && (
+                          <span className="mr-2">
+                            • Countdown: {Math.floor(countdownMs / (1000 * 60 * 60 * 24))}d
+                          </span>
+                        )}
+                        {reserveReleaseAt && (
+                          <span className="mr-2">
+                            • Reserve release: {new Date(reserveReleaseAt).toLocaleString()}
+                          </span>
+                        )}
+                      </>
+                    ) : payoutEligible ? (
+                      <>
+                        <span className="font-semibold mr-2">Payout Eligible:</span>
+                        You can request payout of reserved funds to a verified bank.
+                      </>
+                    ) : null}
+                  </div>
+                  <div>
+                    <Link to="/compliance" className="underline font-medium">Open Compliance Center →</Link>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </>
+      )}
+
       {/* Mobile Side Drawer */}
       {showMobileMenu && token && (
         <div className="fixed inset-0 z-50 md:hidden">
@@ -222,6 +293,7 @@ const NavBar = () => {
                     <Link to="/lending" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Lending</Link>
                     <Link to="/loans" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Loans</Link>
                     <Link to="/investments" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Investments</Link>
+                    <Link to="/compliance" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Compliance</Link>
                     <Link to="/blog" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Blog</Link>
                     <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>About</Link>
                     <Link to="/legal" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Legal</Link>

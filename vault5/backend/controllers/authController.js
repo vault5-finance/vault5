@@ -133,8 +133,9 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // For new email array structure, check if email is verified
-    if (user.emails && user.emails.length > 0) {
+    const requireEmailVerification = (process.env.AUTH_REQUIRE_EMAIL_VERIFICATION || 'false').toLowerCase() === 'true';
+    // For new email array structure, check if email is verified (configurable)
+    if (requireEmailVerification && user.emails && user.emails.length > 0) {
       const emailEntry = user.emails.find(e => e.email === email.toLowerCase());
       if (emailEntry && !emailEntry.isVerified) {
         return res.status(401).json({ message: 'Email not verified. Please check your email for verification link.' });

@@ -44,13 +44,25 @@ async function logAudit(req, res, action, resource, responseData) {
       errorMessage: res.statusCode >= 400 ? responseData?.message : null
     };
 
-    // For login/register, we might not have user ID yet
-    if (!auditEntry.user && req.body.email) {
-      // Try to find user by email for post-audit logging
-      const User = require('../models/User');
-      const user = await User.findOne({ email: req.body.email });
-      if (user) auditEntry.user = user._id;
-    }
+     // For login/register, we might not have user ID yet
+     if (!auditEntry.user) {
+       const User = require('../models/User');
+       let user = null;
+    
+       if (req.body.email) {
+         // Support new emails[] schema and legacy email field
+         const emailLower = String(req.body.email).toLowerCase();
+         user = await User.findOne({ 'emails.email': emailLower });
+         if (!user) {
+           user = await User.findOne({ email: emailLower });
+         }
+       } else if (req.body.phone) {
+         // Also support phone-based lookups for OTP flows
+         user = await User.findOne({ 'phones.phone': req.body.phone });
+       }
+    
+       if (user) auditEntry.user = user._id;
+     }
 
     if (auditEntry.user) {
       await AuditLog.create(auditEntry);

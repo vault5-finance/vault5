@@ -25,7 +25,7 @@ const Blog = lazy(() => import('./pages/Blog'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Profile = lazy(() => import('./pages/Profile'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const Banking = lazy(() => import('./pages/Banking'));
@@ -41,6 +41,7 @@ const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const LegalCenter = lazy(() => import('./pages/LegalCenter'));
 const PolicyUpdates = lazy(() => import('./pages/PolicyUpdates'));
+const ComplianceCenter = lazy(() => import('./pages/ComplianceCenter'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -245,6 +246,7 @@ function App() {
         <Route path="/banking" element={<ProtectedRoute><Banking /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/compliance" element={<ProtectedRoute><ComplianceCenter /></ProtectedRoute>} />
         <Route path="/admin" element={<AdminProtectedRoute><AdminIndex /></AdminProtectedRoute>} />
         <Route path="/admin/super" element={<AdminProtectedRoute><AdminSuper /></AdminProtectedRoute>} />
         <Route path="/admin/finance" element={<AdminProtectedRoute><AdminFinance /></AdminProtectedRoute>} />
