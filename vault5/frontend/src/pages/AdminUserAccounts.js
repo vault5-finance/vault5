@@ -532,22 +532,18 @@ const AdminUserAccounts = () => {
           </div>
         </div>
       )}
+      {/* ConfirmGate for critical actions */}
+      <ConfirmGate
+        open={confirmState.open}
+        title={confirmState.title}
+        cautions={confirmState.cautions}
+        onCancel={() => closeConfirm()}
+        onConfirm={(reason) => confirmState.onConfirm?.(reason)}
+        confirmWord="CONFIRM"
+        actionLabel="Proceed"
+      />
     </div>
   );
-};
-
-{/* ConfirmGate for critical actions */}
-<ConfirmGate
-  open={confirmState.open}
-  title={confirmState.title}
-  cautions={confirmState.cautions}
-  onCancel={() => closeConfirm()}
-  onConfirm={(reason) => confirmState.onConfirm?.(reason)}
-  confirmWord="CONFIRM"
-  actionLabel="Proceed"
-/>
-</div>
-);
 };
 
 export default AdminUserAccounts;
