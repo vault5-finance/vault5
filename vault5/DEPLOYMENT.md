@@ -25,10 +25,30 @@ a. Create service
 - Start Command: npm start
 
 b. Environment variables (Render Settings -> Environment)
-- MONGO_URI = your MongoDB Atlas URI
-- JWT_SECRET = long random string
+Use the following values for this project. Replace placeholders in angle brackets with your real credentials (do not include the brackets).
+
+Required (Backend)
+- MONGO_URI = mongodb+srv://<username>:<password>@<cluster>.mongodb.net/vault5?retryWrites=true&w=majority&appName=<appName>
+  Example: mongodb+srv://vault5_admin:S3cureP@ss!@cluster0.abcde.mongodb.net/vault5?retryWrites=true&w=majority&appName=vault5-prod
+
+- JWT_SECRET = <any-long-random-secret>
+  Generate one (Mac/Linux): openssl rand -base64 48
+  Generate one (Node REPL): require('crypto').randomBytes(48).toString('base64')
+
 - NODE_ENV = production
-- CORS_ALLOWED_ORIGINS = https://your-vercel-domain.vercel.app (set actual Vercel URL after frontend deploy; you can start with * for initial testing, then restrict)
+
+CORS (Backend)
+- CORS_ALLOWED_ORIGINS = https://<your-vercel-domain>.vercel.app
+  Example after deploying frontend: https://vault5-frontend.vercel.app
+  Note: You may temporarily use * during first-time testing, but restrict it to your Vercel domain for production.
+
+Optional (Local dev fallback)
+- If you want to use local MongoDB during development: MONGO_URI = mongodb://localhost:27017/vault5
+- PORT = 5000 (only if you need to override default)
+
+Frontend (Vercel Project Settings -> Environment Variables)
+- REACT_APP_API_URL = https://<your-render-backend>.onrender.com
+  Example: https://vault5-backend.onrender.com
 
 c. Disk/Networking
 - No persistent disk needed.

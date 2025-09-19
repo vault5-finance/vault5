@@ -205,19 +205,19 @@ const AdminCompliance = () => {
           </div>
         </div>
       </div>
+
+      {/* ConfirmGate for purging logs */}
+      <ConfirmGate
+        open={confirmState.open}
+        title={confirmState.title}
+        cautions={confirmState.cautions}
+        onCancel={closeConfirm}
+        onConfirm={(reason) => confirmState.onConfirm?.(reason)}
+        confirmWord="CONFIRM"
+        actionLabel="Purge"
+      />
     </div>
   );
 };
-
-{/* ConfirmGate for purging logs */}
-<ConfirmGate
-  open={confirmState.open}
-  title={confirmState.title}
-  cautions={confirmState.cautions}
-  onCancel={closeConfirm}
-  onConfirm={(reason) => confirmState.onConfirm?.(reason)}
-  confirmWord="CONFIRM"
-  actionLabel="Purge"
-/>
 
 export default AdminCompliance;
