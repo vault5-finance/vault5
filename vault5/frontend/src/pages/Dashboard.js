@@ -9,7 +9,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 
 // Add Income Modal Component
 const AddIncomeModal = ({ isOpen, onClose, onSuccess }) => {
-  const [form, setForm] = useState({ amount: '', description: '', tag: '' });
+  const [form, setForm] = useState({ amount: '', description: '', tag: '', target: 'auto' });
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -38,7 +38,8 @@ const AddIncomeModal = ({ isOpen, onClose, onSuccess }) => {
       await api.post('/api/accounts/income', {
         amount: parseFloat(form.amount),
         description: form.description.trim(),
-        tag: form.tag.trim() || undefined
+        tag: form.tag.trim() || undefined,
+        target: form.target
       });
 
       setForm({ amount: '', description: '', tag: '' });
@@ -116,6 +117,35 @@ const AddIncomeModal = ({ isOpen, onClose, onSuccess }) => {
                 placeholder="Business, Freelance, etc."
               />
               <p className="text-xs text-gray-500 mt-1">Tagged income bypasses automatic allocation</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+              <div className="flex items-center space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="target"
+                    value="auto"
+                    checked={form.target === 'auto'}
+                    onChange={handleChange}
+                    className="text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Auto-distribute by allocations</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="target"
+                    value="wallet"
+                    checked={form.target === 'wallet'}
+                    onChange={handleChange}
+                    className="text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Deposit to Wallet</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">If a Tag is provided, it will bypass allocation/destination and be logged only.</p>
             </div>
 
             <div className="flex space-x-3 pt-4">
@@ -326,7 +356,7 @@ const Dashboard = () => {
       <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Net Worth</h2>
           <p className="text-2xl text-green-600">KES {data.netWorth?.toFixed(2) || '0.00'}</p>
@@ -334,6 +364,10 @@ const Dashboard = () => {
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Total Balance</h2>
           <p className="text-2xl text-blue-600">KES {data.totalBalance?.toFixed(2) || '0.00'}</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-2">Vault Wallet</h2>
+          <p className="text-2xl text-indigo-600">KES {data.walletBalance?.toFixed(2) || '0.00'}</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Health Score</h2>

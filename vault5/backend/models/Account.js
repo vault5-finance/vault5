@@ -30,6 +30,14 @@ const accountSchema = new mongoose.Schema({
     enum: ['red', 'green', 'blue'],
     default: 'green'
   },
+  isWallet: {
+    type: Boolean,
+    default: false
+  },
+  isAutoDistribute: {
+    type: Boolean,
+    default: true
+  },
   transactions: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Transaction'

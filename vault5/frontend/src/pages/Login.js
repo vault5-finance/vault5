@@ -22,11 +22,11 @@ const Login = () => {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
 
-        // Check for admin redirect with client-side guard
-        const redirectPath = res.data.redirect || '/dashboard';
-        const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
-        const safeRedirect = redirectPath === '/admin' && !adminRoles.includes(res.data.user.role) ? '/dashboard' : redirectPath;
-        console.log('Redirecting to:', safeRedirect, 'User role:', res.data.user.role);
+        // Client-side redirect: admins -> /admin (AdminIndex will route by role), users -> /dashboard
+        const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'];
+        const isAdmin = adminRoles.includes(res.data.user?.role);
+        const safeRedirect = isAdmin ? '/admin' : '/dashboard';
+        console.log('Redirecting to:', safeRedirect, 'User role:', res.data.user?.role);
         navigate(safeRedirect);
       } else {
         showError('Login failed: Invalid response');

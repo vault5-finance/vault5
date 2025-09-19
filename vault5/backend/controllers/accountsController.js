@@ -2,17 +2,18 @@ const { Account, Transaction, User } = require('../models');
 const bcrypt = require('bcryptjs'); // Not used here, but for consistency if needed
 
 // Allocation engine function
-const allocateIncome = async (userId, amount, description, tag = '') => {
+// options: { target?: 'auto' | 'wallet', accountId?: string }
+const allocateIncome = async (userId, amount, description, tag = '', options = {}) => {
   try {
     const user = await User.findById(userId).populate('accounts');
     if (!user) {
       throw new Error('User not found');
     }
 
-    const accounts = user.accounts;
+    const accounts = user.accounts || [];
 
+    // Tagged income bypasses allocation (logged-only)
     if (tag) {
-      // Tagged income bypasses allocation
       const transaction = new Transaction({
         user: userId,
         amount,
@@ -21,36 +22,88 @@ const allocateIncome = async (userId, amount, description, tag = '') => {
         tag
       });
       await transaction.save();
-
-      // Add transaction to user's profile if needed
       return { message: 'Tagged income logged without allocation', transaction };
     }
 
-    // Check if total percentage is 100
-    const totalPercentage = accounts.reduce((sum, acc) => sum + acc.percentage, 0);
-    if (totalPercentage !== 100) {
-      throw new Error('Account percentages do not sum to 100%');
+    const target = options.target || 'auto';
+    const accountId = options.accountId;
+
+    // Direct deposit to wallet or a specific account
+    if (target === 'wallet' || accountId) {
+      let targetAccount = null;
+      if (accountId) {
+        targetAccount = accounts.find(a => String(a._id) === String(accountId));
+      } else {
+        targetAccount = accounts.find(a => a.isWallet === true) || null;
+      }
+      if (!targetAccount) {
+        throw new Error('No wallet account configured for deposits');
+      }
+
+      const amt = parseFloat(parseFloat(amount).toFixed(2));
+      targetAccount.balance += amt;
+
+      // Determine status based on target threshold
+      let status = 'green';
+      if (targetAccount.target > 0) {
+        if (targetAccount.balance < targetAccount.target) status = 'red';
+        else if (targetAccount.balance > targetAccount.target) status = 'blue';
+      }
+      targetAccount.status = status;
+      await targetAccount.save();
+
+      const walletTx = new Transaction({
+        user: userId,
+        amount: amt,
+        type: 'income',
+        description: `${description} - deposited to ${targetAccount.type}`,
+        allocations: [{
+          account: targetAccount._id,
+          amount: amt
+        }]
+      });
+      await walletTx.save();
+
+      // Link to account
+      targetAccount.transactions.push(walletTx._id);
+      await targetAccount.save();
+
+      return {
+        message: 'Income deposited to wallet',
+        allocations: [{ account: targetAccount._id, amount: amt }],
+        mainTransaction: walletTx
+      };
+    }
+
+    // Auto-distribution across accounts where isAutoDistribute !== false
+    const includedAccounts = accounts.filter(a => a.isAutoDistribute !== false);
+    if (includedAccounts.length === 0) {
+      throw new Error('No accounts available for auto-distribution');
+    }
+    const includedTotalPercent = includedAccounts.reduce((sum, acc) => sum + (acc.percentage || 0), 0);
+    if (includedTotalPercent <= 0) {
+      throw new Error('Auto-distribution accounts have zero total percentage');
     }
 
     const allocations = [];
-    const newTransactions = [];
 
-    for (const account of accounts) {
-      const splitAmount = (amount * (account.percentage / 100)).toFixed(2);
+    for (const account of includedAccounts) {
+      const normalizedShare = (account.percentage || 0) / includedTotalPercent;
+      const splitAmount = parseFloat((amount * normalizedShare).toFixed(2));
 
       // Update account balance
-      account.balance += parseFloat(splitAmount);
+      account.balance += splitAmount;
       await account.save();
 
       // Create allocation transaction
       const allocationTransaction = new Transaction({
         user: userId,
-        amount: parseFloat(splitAmount),
+        amount: splitAmount,
         type: 'income',
         description: `${description} - allocated to ${account.type}`,
         allocations: [{
           account: account._id,
-          amount: parseFloat(splitAmount)
+          amount: splitAmount
         }]
       });
       await allocationTransaction.save();
@@ -59,22 +112,19 @@ const allocateIncome = async (userId, amount, description, tag = '') => {
       account.transactions.push(allocationTransaction._id);
       await account.save();
 
-      allocations.push({ account: account.type, amount: parseFloat(splitAmount) });
-
       // Determine status based on target
       let status = 'green';
       if (account.target > 0) {
-        if (account.balance < account.target) {
-          status = 'red'; // Shortfall
-        } else if (account.balance > account.target) {
-          status = 'blue'; // Surplus
-        } // else green
+        if (account.balance < account.target) status = 'red';
+        else if (account.balance > account.target) status = 'blue';
       }
       account.status = status;
       await account.save();
+
+      allocations.push({ account: account._id, amount: splitAmount });
     }
 
-    // Main income transaction
+    // Main income transaction (summary)
     const mainTransaction = new Transaction({
       user: userId,
       amount,
@@ -93,13 +143,17 @@ const allocateIncome = async (userId, amount, description, tag = '') => {
 // Add income endpoint handler
 const addIncome = async (req, res) => {
   try {
-    const { amount, description, tag } = req.body;
+    const { amount, description, tag, target, accountId } = req.body;
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Valid amount is required' });
     }
+    if (!description || !description.trim()) {
+      return res.status(400).json({ message: 'Description is required' });
+    }
 
-    const result = await allocateIncome(req.user._id, amount, description, tag);
+    const options = { target, accountId };
+    const result = await allocateIncome(req.user._id, amount, description.trim(), tag, options);
 
     res.status(201).json(result);
   } catch (error) {

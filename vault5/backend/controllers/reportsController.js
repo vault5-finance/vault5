@@ -10,6 +10,7 @@ const getDashboard = async (req, res) => {
     // Net worth: accounts balance + investments - loans
     const accounts = await Account.find({ user: userId });
     const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const walletBalance = accounts.filter(acc => acc.isWallet === true).reduce((sum, acc) => sum + acc.balance, 0);
 
     const investments = await Investment.find({ user: userId });
     const totalInvestments = investments.reduce((sum, inv) => sum + inv.currentValue, 0);
@@ -49,6 +50,7 @@ const getDashboard = async (req, res) => {
       allocationData,
       healthScore,
       totalBalance,
+      walletBalance,
       totalInvestments,
       totalLoans
     });
