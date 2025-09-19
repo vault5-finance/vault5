@@ -61,12 +61,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'],
+    enum: ['user', 'super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'],
     default: 'user'
   },
   department: {
     type: String,
-    enum: ['none', 'system', 'finance', 'compliance', 'support', 'content'],
+    enum: ['none', 'system', 'finance', 'compliance', 'support', 'content', 'accounts'],
     default: 'none'
   },
   permissions: [{
@@ -88,7 +88,10 @@ const userSchema = new mongoose.Schema({
       'support.view', 'support.resolve', 'support.reset', 'support.compensate',
 
       // Content Admin permissions
-      'content.view', 'content.update', 'content.publish', 'content.notify'
+      'content.view', 'content.update', 'content.publish', 'content.notify',
+
+      // Accounts Admin permissions
+      'accounts.view', 'accounts.create', 'accounts.update', 'accounts.status', 'accounts.delete'
     ]
   }],
   createdBy: {
@@ -280,13 +283,15 @@ userSchema.methods.getDefaultPermissions = function(role) {
       'finance.view', 'finance.approve', 'finance.disburse', 'finance.reconcile',
       'compliance.view', 'compliance.approve', 'compliance.audit', 'compliance.report',
       'support.view', 'support.resolve', 'support.reset', 'support.compensate',
-      'content.view', 'content.update', 'content.publish', 'content.notify'
+      'content.view', 'content.update', 'content.publish', 'content.notify',
+      'accounts.view', 'accounts.create', 'accounts.update', 'accounts.status', 'accounts.delete'
     ],
     system_admin: ['system.view', 'system.update', 'system.monitor', 'system.deploy'],
     finance_admin: ['finance.view', 'finance.approve', 'finance.disburse', 'finance.reconcile'],
     compliance_admin: ['compliance.view', 'compliance.approve', 'compliance.audit', 'compliance.report'],
     support_admin: ['support.view', 'support.resolve', 'support.reset', 'support.compensate'],
     content_admin: ['content.view', 'content.update', 'content.publish', 'content.notify'],
+    account_admin: ['accounts.view', 'accounts.create', 'accounts.update', 'accounts.status', 'accounts.delete'],
     user: []
   };
 
@@ -302,6 +307,7 @@ userSchema.methods.getDepartmentFromRole = function(role) {
     compliance_admin: 'compliance',
     support_admin: 'support',
     content_admin: 'content',
+    account_admin: 'accounts',
     user: 'none'
   };
 

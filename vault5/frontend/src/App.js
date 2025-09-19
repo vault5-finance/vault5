@@ -55,7 +55,7 @@ const AdminProtectedRoute = ({ children }) => {
   if (!token) return <Navigate to="/admin-login" replace />;
 
   // Check if user has any admin role
-  const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+  const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'];
   if (!adminRoles.includes(user.role)) return <Navigate to="/dashboard" replace />;
 
   return children;
@@ -69,7 +69,7 @@ const PublicRoute = ({ children }) => {
   if (!token) return children;
 
   // Redirect admins (any admin role) to admin panel, users to dashboard
-  const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+  const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'];
   if (adminRoles.includes(user.role)) {
     return <Navigate to="/admin" replace />;
   }
@@ -247,7 +247,8 @@ function App() {
         <Route path="/admin/finance" element={<AdminProtectedRoute><AdminFinance /></AdminProtectedRoute>} />
         <Route path="/admin/compliance" element={<AdminProtectedRoute><AdminCompliance /></AdminProtectedRoute>} />
         <Route path="/admin/support" element={<AdminProtectedRoute><AdminSupport /></AdminProtectedRoute>} />
-        <Route path="/admin/support/users" element={<AdminProtectedRoute><AdminUserAccounts /></AdminProtectedRoute>} />
+        <Route path="/admin/accounts/users" element={<AdminProtectedRoute><AdminUserAccounts /></AdminProtectedRoute>} />
+        <Route path="/admin/support/users" element={<AdminProtectedRoute><Navigate to="/admin/accounts/users" replace /></AdminProtectedRoute>} />
         <Route path="/admin/content" element={<AdminProtectedRoute><AdminContent /></AdminProtectedRoute>} />
         <Route path="/admin/system" element={<AdminProtectedRoute><AdminSystem /></AdminProtectedRoute>} />
         <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />

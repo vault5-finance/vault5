@@ -87,6 +87,7 @@ const {
   adminSupportRoutes,
   adminContentRoutes,
   adminSystemRoutes,
+  adminAccountsRoutes,
   accountsRoutes,
   goalsRoutes,
   lendingRoutes,
@@ -108,6 +109,7 @@ app.use('/api/admin/finance', adminFinanceRoutes);
 app.use('/api/admin/support', adminSupportRoutes);
 app.use('/api/admin/content', adminContentRoutes);
 app.use('/api/admin/system', adminSystemRoutes);
+app.use('/api/admin/accounts', adminAccountsRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/lending', lendingRoutes);

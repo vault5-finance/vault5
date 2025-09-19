@@ -12,6 +12,7 @@ const AdminIndex = () => {
     compliance_admin: '/admin/compliance',
     support_admin: '/admin/support',
     content_admin: '/admin/content',
+    account_admin: '/admin/accounts/users',
   };
 
   const target = map[role] || '/dashboard';

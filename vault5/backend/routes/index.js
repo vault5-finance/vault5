@@ -5,6 +5,7 @@ const adminFinanceRoutes = require('./adminFinance');
 const adminSupportRoutes = require('./adminSupport');
 const adminContentRoutes = require('./adminContent');
 const adminSystemRoutes = require('./adminSystem');
+const adminAccountsRoutes = require('./adminAccounts');
 const accountsRoutes = require('./accounts');
 const goalsRoutes = require('./goals');
 const lendingRoutes = require('./lending');
@@ -27,6 +28,7 @@ module.exports = {
   adminSupportRoutes,
   adminContentRoutes,
   adminSystemRoutes,
+  adminAccountsRoutes,
   accountsRoutes,
   goalsRoutes,
   lendingRoutes,

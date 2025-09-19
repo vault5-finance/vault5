@@ -1,12 +1,13 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Transaction, AuditLog, Account } = require('../models');
+const { logAudit, buildDelta } = require('../utils/audit');
 
 // Get all admins (super admin only)
 const getAllAdmins = async (req, res) => {
   try {
     const admins = await User.find({
-      role: { $in: ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'] }
+      role: { $in: ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'] }
     }).select('-password').sort({ createdAt: -1 });
 
     res.json({
@@ -32,7 +33,7 @@ const createAdmin = async (req, res) => {
     }
 
     // Validate role
-    const validRoles = ['system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+    const validRoles = ['system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({
         message: 'Invalid role. Must be one of: ' + validRoles.join(', ')
@@ -65,7 +66,7 @@ const createAdmin = async (req, res) => {
       }],
       password: hashedPassword,
       role,
-      department: department || role.replace('_admin', ''),
+      department: department || new User().getDepartmentFromRole(role),
       isVerified: true,
       isActive: true,
       registrationStep: 4, // Mark as fully registered
@@ -74,10 +75,18 @@ const createAdmin = async (req, res) => {
 
     await admin.save();
 
+    await logAudit(req, {
+      actionName: 'admin_create_admin',
+      resource: 'user',
+      resourceId: admin._id,
+      details: { role, email: email.toLowerCase(), name },
+      success: true
+    });
+ 
     // Return admin data without password
     const adminData = admin.toObject();
     delete adminData.password;
-
+ 
     res.status(201).json({
       success: true,
       message: `${role.replace('_', ' ').toUpperCase()} created successfully`,
@@ -110,14 +119,15 @@ const updateAdmin = async (req, res) => {
     }
 
     // Update fields
+    const before = admin.toObject();
     if (name) admin.name = name;
     if (role) {
-      const validRoles = ['system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+      const validRoles = ['system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({ message: 'Invalid role' });
       }
       admin.role = role;
-      admin.department = department || role.replace('_admin', '');
+      admin.department = department || new User().getDepartmentFromRole(role);
     }
     if (typeof isActive === 'boolean') admin.isActive = isActive;
 
@@ -150,10 +160,21 @@ const updateAdmin = async (req, res) => {
 
     await admin.save();
 
+    const after = admin.toObject();
+    const delta = buildDelta(before, after);
+ 
     // Return updated admin data
     const adminData = admin.toObject();
     delete adminData.password;
 
+    await logAudit(req, {
+      actionName: 'admin_update_admin',
+      resource: 'user',
+      resourceId: admin._id,
+      details: { delta },
+      success: true
+    });
+ 
     res.json({
       success: true,
       message: 'Admin updated successfully',
@@ -191,6 +212,14 @@ const deleteAdmin = async (req, res) => {
 
     await User.findByIdAndDelete(id);
 
+    await logAudit(req, {
+      actionName: 'admin_delete_admin',
+      resource: 'user',
+      resourceId: admin._id,
+      details: { role: admin.role, email: admin.emails?.[0]?.email },
+      success: true
+    });
+ 
     res.json({
       success: true,
       message: 'Admin deleted successfully'
@@ -207,7 +236,7 @@ const getAdminStats = async (req, res) => {
     const stats = await User.aggregate([
       {
         $match: {
-          role: { $in: ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'] }
+          role: { $in: ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'] }
         }
       },
       {
@@ -468,10 +497,23 @@ const getAuditLogs = async (req, res) => {
 
 const purgeAuditLogs = async (req, res) => {
   try {
-    await AuditLog.deleteMany({});
-    res.json({ success: true, message: 'Audit logs purged' });
+    const result = await AuditLog.deleteMany({});
+    await logAudit(req, {
+      actionName: 'admin_purge_audit_logs',
+      resource: 'auth',
+      details: { deletedCount: result?.deletedCount ?? undefined },
+      success: true
+    });
+    res.json({ success: true, message: 'Audit logs purged', deletedCount: result?.deletedCount ?? 0 });
   } catch (error) {
     console.error('Purge audit logs error:', error);
+    await logAudit(req, {
+      actionName: 'admin_purge_audit_logs',
+      resource: 'auth',
+      details: { error: error.message },
+      success: false,
+      errorMessage: error.message
+    });
     res.status(500).json({ message: 'Server error' });
   }
 };

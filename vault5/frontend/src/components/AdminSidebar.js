@@ -7,11 +7,18 @@ const roleConfig = {
     items: [
       { to: '/admin/super', label: 'Overview', icon: '🏠' },
       { to: '/admin/users', label: 'Admin Users', icon: '👥' },
+      { to: '/admin/accounts/users', label: 'Accounts', icon: '📇' },
       { to: '/admin/system', label: 'System', icon: '🖥️' },
       { to: '/admin/finance', label: 'Finance', icon: '💰' },
       { to: '/admin/compliance', label: 'Compliance', icon: '🛡️' },
       { to: '/admin/support', label: 'Support', icon: '🎧' },
       { to: '/admin/content', label: 'Content', icon: '📰' },
+    ],
+  },
+  account_admin: {
+    color: 'cyan',
+    items: [
+      { to: '/admin/accounts/users', label: 'Accounts', icon: '📇' },
     ],
   },
   system_admin: {

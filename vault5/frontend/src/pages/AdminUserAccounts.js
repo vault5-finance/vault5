@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import ConfirmGate from '../components/ConfirmGate';
 
 const statusOptions = [
   { value: '', label: 'All statuses' },
@@ -79,7 +80,7 @@ const AdminUserAccounts = () => {
       params.append('page', String(page));
       params.append('limit', String(limit));
 
-      const res = await api.get(`/api/admin/support/users?${params.toString()}`);
+      const res = await api.get(`/api/admin/accounts/users?${params.toString()}`);
       const { items, total: t } = res.data.data || { items: [], total: 0 };
       setUsers(items);
       setTotal(t);
@@ -114,30 +115,51 @@ const AdminUserAccounts = () => {
     setPage(1);
   };
 
-  // Create a user
+  // ConfirmGate controller for critical actions
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    title: '',
+    cautions: [],
+    onConfirm: null,
+  });
+ 
+  const openConfirm = ({ title, cautions, onConfirm }) => {
+    setConfirmState({ open: true, title, cautions, onConfirm });
+  };
+  const closeConfirm = () => setConfirmState((s) => ({ ...s, open: false }));
+ 
+  // Create a user (requires ConfirmGate)
   const submitCreate = async (e) => {
     e.preventDefault();
-    setCreating(true);
-    try {
-      // Basic validation
-      if (!createForm.name || !createForm.email || !createForm.password || !createForm.dob || !createForm.phone || !createForm.city) {
-        showError('All fields are required');
-        setCreating(false);
-        return;
-      }
-      await api.post('/api/admin/support/users', {
-        ...createForm,
-      });
-      showSuccess('User created successfully');
-      setShowCreate(false);
-      setCreateForm({ name: '', email: '', password: '', dob: '', phone: '', city: '' });
-      fetchUsers();
-    } catch (e) {
-      console.error('Create user error', e);
-      showError(e.response?.data?.message || 'Failed to create user');
-    } finally {
-      setCreating(false);
+    // Basic validation
+    if (!createForm.name || !createForm.email || !createForm.password || !createForm.dob || !createForm.phone || !createForm.city) {
+      showError('All fields are required');
+      return;
     }
+    openConfirm({
+      title: 'Create new user account',
+      cautions: [
+        'I understand a real user account will be created and can access the system',
+        'I have verified the provided email and phone belong to the intended user',
+        'I accept responsibility for this action',
+      ],
+      onConfirm: async (reason) => {
+        setCreating(true);
+        try {
+          await api.post('/api/admin/accounts/users', { ...createForm }, { headers: { 'x-reason': reason } });
+          showSuccess('User created successfully');
+          setShowCreate(false);
+          setCreateForm({ name: '', email: '', password: '', dob: '', phone: '', city: '' });
+          fetchUsers();
+        } catch (e) {
+          console.error('Create user error', e);
+          showError(e.response?.data?.message || 'Failed to create user');
+        } finally {
+          setCreating(false);
+        }
+        closeConfirm();
+      },
+    });
   };
 
   const openStatusModal = (user) => {
@@ -151,34 +173,54 @@ const AdminUserAccounts = () => {
 
   const submitStatusUpdate = async () => {
     if (!statusModal.user) return;
-    setUpdatingStatus(true);
-    try {
-      const payload = {};
-      if (typeof statusModal.isActive === 'boolean') payload.isActive = statusModal.isActive;
-      if (statusModal.accountStatus) payload.accountStatus = statusModal.accountStatus;
-
-      await api.patch(`/api/admin/support/users/${statusModal.user._id}/status`, payload);
-      showSuccess('User status updated');
-      setStatusModal({ open: false, user: null, isActive: undefined, accountStatus: '' });
-      fetchUsers();
-    } catch (e) {
-      console.error('Update status error', e);
-      showError(e.response?.data?.message || 'Failed to update user status');
-    } finally {
-      setUpdatingStatus(false);
-    }
+    openConfirm({
+      title: 'Update user account status',
+      cautions: [
+        'I understand this changes the user’s ability to log in or their account state',
+        'I have verified this action complies with policy',
+      ],
+      onConfirm: async (reason) => {
+        setUpdatingStatus(true);
+        try {
+          const payload = {};
+          if (typeof statusModal.isActive === 'boolean') payload.isActive = statusModal.isActive;
+          if (statusModal.accountStatus) payload.accountStatus = statusModal.accountStatus;
+          await api.patch(`/api/admin/accounts/users/${statusModal.user._id}/status`, payload, { headers: { 'x-reason': reason } });
+          showSuccess('User status updated');
+          setStatusModal({ open: false, user: null, isActive: undefined, accountStatus: '' });
+          fetchUsers();
+        } catch (e) {
+          console.error('Update status error', e);
+          showError(e.response?.data?.message || 'Failed to update user status');
+        } finally {
+          setUpdatingStatus(false);
+        }
+        closeConfirm();
+      },
+    });
   };
 
   const deleteUser = async (user) => {
-    if (!window.confirm(`Delete user "${user.name}"? This performs a soft delete and disables login.`)) return;
-    try {
-      await api.delete(`/api/admin/support/users/${user._id}`);
-      showSuccess('User deleted (soft)');
-      fetchUsers();
-    } catch (e) {
-      console.error('Delete user error', e);
-      showError(e.response?.data?.message || 'Failed to delete user');
-    }
+    openConfirm({
+      title: `Soft-delete user "${user.name}"`,
+      cautions: [
+        'This action marks the account as deleted and disables login',
+        'This action can impact access to services and notifications',
+        'I accept responsibility for performing this action',
+      ],
+      onConfirm: async (reason) => {
+        try {
+          await api.delete(`/api/admin/accounts/users/${user._id}`, { headers: { 'x-reason': reason } });
+          showSuccess('User deleted (soft)');
+          fetchUsers();
+        } catch (e) {
+          console.error('Delete user error', e);
+          showError(e.response?.data?.message || 'Failed to delete user');
+        } finally {
+          closeConfirm();
+        }
+      },
+    });
   };
 
   if (loading) {
@@ -492,6 +534,20 @@ const AdminUserAccounts = () => {
       )}
     </div>
   );
+};
+
+{/* ConfirmGate for critical actions */}
+<ConfirmGate
+  open={confirmState.open}
+  title={confirmState.title}
+  cautions={confirmState.cautions}
+  onCancel={() => closeConfirm()}
+  onConfirm={(reason) => confirmState.onConfirm?.(reason)}
+  confirmWord="CONFIRM"
+  actionLabel="Proceed"
+/>
+</div>
+);
 };
 
 export default AdminUserAccounts;

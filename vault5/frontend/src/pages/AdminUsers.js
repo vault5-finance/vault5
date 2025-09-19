@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import ConfirmGate from '../components/ConfirmGate';
 
 const AdminUsers = () => {
   const navigate = useNavigate();
@@ -18,9 +19,29 @@ const AdminUsers = () => {
     department: 'support'
   });
 
+  // Role manual/help text
+  const roleManual = {
+    system_admin: 'System Admin can manage infrastructure stubs (deploy/logs/integrations). No user lifecycle authority. All actions are audited.',
+    finance_admin: 'Finance Admin can view finance stubs (approvals/disbursements). No user lifecycle authority. All actions are audited.',
+    compliance_admin: 'Compliance Admin can view audit logs and compliance stubs (KYC/alerts). No user lifecycle authority. All actions are audited.',
+    support_admin: 'Support Admin handles tickets/helpdesk. No user lifecycle authority. All actions are audited.',
+    content_admin: 'Content Admin manages articles/notifications stubs. No user lifecycle authority. All actions are audited.',
+    account_admin: 'Accounts Admin can create/activate/suspend/ban/soft-delete regular users only. Cannot modify any admin account. All actions require reason and are audited.',
+  };
+
   useEffect(() => {
     fetchAdmins();
   }, []);
+
+  // ConfirmGate state
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    title: '',
+    cautions: [],
+    onConfirm: null,
+  });
+  const openConfirm = ({ title, cautions, onConfirm }) => setConfirmState({ open: true, title, cautions, onConfirm });
+  const closeConfirm = () => setConfirmState((s) => ({ ...s, open: false }));
 
   const fetchAdmins = async () => {
     try {
@@ -39,63 +60,94 @@ const AdminUsers = () => {
 
   const handleCreateAdmin = async (e) => {
     e.preventDefault();
-    try {
-      await api.post('/api/admin', formData);
-      showSuccess('Admin created successfully!');
-      setShowCreateForm(false);
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        role: 'support_admin',
-        department: 'support'
-      });
-      fetchAdmins();
-    } catch (error) {
-      console.error('Error creating admin:', error);
-      showError(error.response?.data?.message || 'Failed to create admin');
-    }
+    openConfirm({
+      title: 'Create new admin account',
+      cautions: [
+        'I understand this grants elevated privileges to the selected role',
+        'I confirm the email and identity have been verified',
+        'I accept responsibility for this critical action',
+      ],
+      onConfirm: async (reason) => {
+        try {
+          await api.post('/api/admin', formData, { headers: { 'x-reason': reason } });
+          showSuccess('Admin created successfully!');
+          setShowCreateForm(false);
+          setFormData({
+            name: '',
+            email: '',
+            password: '',
+            role: 'support_admin',
+            department: 'support'
+          });
+          fetchAdmins();
+        } catch (error) {
+          console.error('Error creating admin:', error);
+          showError(error.response?.data?.message || 'Failed to create admin');
+        } finally {
+          closeConfirm();
+        }
+      },
+    });
   };
 
   const handleUpdateAdmin = async (e) => {
     e.preventDefault();
-    try {
-      await api.put(`/api/admin/${editingAdmin._id}`, {
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        department: formData.department,
-        isActive: formData.isActive
-      });
-      showSuccess('Admin updated successfully!');
-      setEditingAdmin(null);
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        role: 'support_admin',
-        department: 'support'
-      });
-      fetchAdmins();
-    } catch (error) {
-      console.error('Error updating admin:', error);
-      showError(error.response?.data?.message || 'Failed to update admin');
-    }
+    openConfirm({
+      title: 'Update admin account',
+      cautions: [
+        'I understand this changes an admin’s privileges or status',
+        'I confirm the changes are policy-compliant',
+      ],
+      onConfirm: async (reason) => {
+        try {
+          await api.put(`/api/admin/${editingAdmin._id}`, {
+            name: formData.name,
+            email: formData.email,
+            role: formData.role,
+            department: formData.department,
+            isActive: formData.isActive
+          }, { headers: { 'x-reason': reason } });
+          showSuccess('Admin updated successfully!');
+          setEditingAdmin(null);
+          setFormData({
+            name: '',
+            email: '',
+            password: '',
+            role: 'support_admin',
+            department: 'support'
+          });
+          fetchAdmins();
+        } catch (error) {
+          console.error('Error updating admin:', error);
+          showError(error.response?.data?.message || 'Failed to update admin');
+        } finally {
+          closeConfirm();
+        }
+      },
+    });
   };
 
   const handleDeleteAdmin = async (adminId) => {
-    if (!window.confirm('Are you sure you want to delete this admin? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/api/admin/${adminId}`);
-      showSuccess('Admin deleted successfully!');
-      fetchAdmins();
-    } catch (error) {
-      console.error('Error deleting admin:', error);
-      showError(error.response?.data?.message || 'Failed to delete admin');
-    }
+    openConfirm({
+      title: 'Delete admin account',
+      cautions: [
+        'This will permanently remove the admin user',
+        'This action is irreversible',
+        'I accept responsibility for this critical action',
+      ],
+      onConfirm: async (reason) => {
+        try {
+          await api.delete(`/api/admin/${adminId}`, { headers: { 'x-reason': reason } });
+          showSuccess('Admin deleted successfully!');
+          fetchAdmins();
+        } catch (error) {
+          console.error('Error deleting admin:', error);
+          showError(error.response?.data?.message || 'Failed to delete admin');
+        } finally {
+          closeConfirm();
+        }
+      },
+    });
   };
 
   const handleEdit = (admin) => {
@@ -116,7 +168,8 @@ const AdminUsers = () => {
       finance_admin: 'finance',
       compliance_admin: 'compliance',
       support_admin: 'support',
-      content_admin: 'content'
+      content_admin: 'content',
+      account_admin: 'accounts',
     };
     setFormData({
       ...formData,
@@ -132,7 +185,8 @@ const AdminUsers = () => {
       finance_admin: 'bg-green-100 text-green-800',
       compliance_admin: 'bg-yellow-100 text-yellow-800',
       support_admin: 'bg-purple-100 text-purple-800',
-      content_admin: 'bg-indigo-100 text-indigo-800'
+      content_admin: 'bg-indigo-100 text-indigo-800',
+      account_admin: 'bg-cyan-100 text-cyan-800',
     };
     return colors[role] || 'bg-gray-100 text-gray-800';
   };
@@ -219,6 +273,7 @@ const AdminUsers = () => {
                       <option value="compliance_admin">Compliance Admin</option>
                       <option value="support_admin">Support Admin</option>
                       <option value="content_admin">Content Admin</option>
+                      <option value="account_admin">Accounts Admin</option>
                     </select>
                   </div>
                   {editingAdmin && (
@@ -334,6 +389,16 @@ const AdminUsers = () => {
           </table>
         </div>
       </div>
+    {/* ConfirmGate for critical admin actions */}
+    <ConfirmGate
+      open={confirmState.open}
+      title={confirmState.title}
+      cautions={confirmState.cautions}
+      onCancel={closeConfirm}
+      onConfirm={(reason) => confirmState.onConfirm?.(reason)}
+      confirmWord="CONFIRM"
+      actionLabel="Proceed"
+    />
     </div>
   );
 };

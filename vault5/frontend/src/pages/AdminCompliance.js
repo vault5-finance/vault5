@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import api from '../services/api';
+import ConfirmGate from '../components/ConfirmGate';
 
 const AdminCompliance = () => {
   const [logs, setLogs] = useState([]);
@@ -20,15 +21,37 @@ const AdminCompliance = () => {
       setLoading(false);
     }
   };
+ 
+  // ConfirmGate state
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    title: '',
+    cautions: [],
+    onConfirm: null,
+  });
+  const openConfirm = ({ title, cautions, onConfirm }) => setConfirmState({ open: true, title, cautions, onConfirm });
+  const closeConfirm = () => setConfirmState((s) => ({ ...s, open: false }));
 
   const purgeLogs = async () => {
     if (!isSuper) return;
-    try {
-      await api.delete('/api/admin/overview/audit-logs');
-      await loadLogs();
-    } catch (e) {
-      console.error('Purge logs error:', e);
-    }
+    openConfirm({
+      title: 'Purge all audit logs',
+      cautions: [
+        'This permanently deletes all audit log records (cannot be undone)',
+        'Regulatory retention requirements have been considered',
+        'I accept responsibility for this critical action',
+      ],
+      onConfirm: async (reason) => {
+        try {
+          await api.delete('/api/admin/overview/audit-logs', { headers: { 'x-reason': reason } });
+          await loadLogs();
+        } catch (e) {
+          console.error('Purge logs error:', e);
+        } finally {
+          closeConfirm();
+        }
+      },
+    });
   };
 
   useEffect(() => {
@@ -167,5 +190,16 @@ const AdminCompliance = () => {
     </div>
   );
 };
+
+{/* ConfirmGate for purging logs */}
+<ConfirmGate
+  open={confirmState.open}
+  title={confirmState.title}
+  cautions={confirmState.cautions}
+  onCancel={closeConfirm}
+  onConfirm={(reason) => confirmState.onConfirm?.(reason)}
+  confirmWord="CONFIRM"
+  actionLabel="Purge"
+/>
 
 export default AdminCompliance;
