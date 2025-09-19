@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import api from '../services/api';
@@ -34,6 +34,7 @@ const badgeForStatus = (status) => {
 const AdminUserAccounts = () => {
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
+  const hasShownForbiddenRef = useRef(false);
 
   // Filters / pagination
   const [q, setQ] = useState('');
@@ -87,7 +88,10 @@ const AdminUserAccounts = () => {
     } catch (e) {
       console.error('Fetch users error', e);
       if (e.response?.status === 403) {
-        showError('You do not have permission to manage users');
+        if (!hasShownForbiddenRef.current) {
+          hasShownForbiddenRef.current = true;
+          showError('You do not have permission to manage users');
+        }
         navigate('/admin');
       } else {
         showError(e.response?.data?.message || 'Failed to fetch users');

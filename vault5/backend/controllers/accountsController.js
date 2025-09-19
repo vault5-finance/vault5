@@ -37,7 +37,11 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
         targetAccount = accounts.find(a => a.isWallet === true) || null;
       }
       if (!targetAccount) {
-        throw new Error('No wallet account configured for deposits');
+        // Fallback to Daily account, then any first available account
+        targetAccount = accounts.find(a => a.type === 'Daily') || accounts[0] || null;
+      }
+      if (!targetAccount) {
+        throw new Error('No accounts available for deposits');
       }
 
       const amt = parseFloat(parseFloat(amount).toFixed(2));
@@ -190,9 +194,46 @@ const updateAccountPercentage = async (req, res) => {
   }
 };
 
+// Update account flags (isWallet, isAutoDistribute)
+const updateAccountFlags = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isWallet, isAutoDistribute } = req.body || {};
+
+    const account = await Account.findOne({ _id: id, user: req.user._id });
+    if (!account) {
+      return res.status(404).json({ message: 'Account not found' });
+    }
+
+    // Enforce single wallet per user
+    if (typeof isWallet === 'boolean') {
+      if (isWallet === true) {
+        await Account.updateMany(
+          { user: req.user._id, _id: { $ne: id } },
+          { $set: { isWallet: false } }
+        );
+        account.isWallet = true;
+      } else {
+        account.isWallet = false;
+      }
+    }
+
+    if (typeof isAutoDistribute === 'boolean') {
+      account.isAutoDistribute = isAutoDistribute;
+    }
+
+    await account.save();
+
+    res.json({ message: 'Account preferences updated', account });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   addIncome,
   getAccounts,
   updateAccountPercentage,
+  updateAccountFlags,
   allocateIncome // Export for use in other modules
 };

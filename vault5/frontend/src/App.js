@@ -228,10 +228,10 @@ function App() {
           }
         />
         <Route path="/legal" element={<Navigate to="/legal/user-agreement" replace />} />
-        <Route path="/legal/:doc" element={<LegalCenter />} />
+        <Route path="/legal/policy-updates" element={<PolicyUpdates />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
-        <Route path="/legal/policy-updates" element={<PolicyUpdates />} />
+        <Route path="/legal/:doc" element={<LegalCenter />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

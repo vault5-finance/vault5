@@ -11,6 +11,9 @@ const Settings = () => {
   });
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [accounts, setAccounts] = useState([]);
+  const [accLoading, setAccLoading] = useState(true);
+  const [updatingAccountId, setUpdatingAccountId] = useState(null);
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
 
@@ -33,6 +36,60 @@ const Settings = () => {
       setLoading(false);
     });
   }, [navigate]);
+ 
+  // Load accounts for account preferences
+  useEffect(() => {
+    let mounted = true;
+    setAccLoading(true);
+    api.get('/api/accounts')
+      .then(res => { if (mounted) setAccounts(res.data || []); })
+      .catch(error => {
+        console.error('Accounts load error:', error);
+        if (error.response && error.response.status === 401) navigate('/login');
+      })
+      .finally(() => { if (mounted) setAccLoading(false); });
+    return () => { mounted = false; };
+  }, [navigate]);
+ 
+  const refreshAccounts = async () => {
+    setAccLoading(true);
+    try {
+      const res = await api.get('/api/accounts');
+      setAccounts(res.data || []);
+    } catch (error) {
+      console.error('Accounts refresh error:', error);
+    } finally {
+      setAccLoading(false);
+    }
+  };
+ 
+  const setWallet = async (accountId) => {
+    setUpdatingAccountId(accountId);
+    try {
+      await api.patch(`/api/accounts/${accountId}/flags`, { isWallet: true });
+      showSuccess('Wallet updated');
+      await refreshAccounts();
+    } catch (error) {
+      console.error('Set wallet error:', error);
+      showError(error.response?.data?.message || 'Failed to set wallet');
+    } finally {
+      setUpdatingAccountId(null);
+    }
+  };
+ 
+  const toggleAutoDistribute = async (account, value) => {
+    setUpdatingAccountId(account._id);
+    try {
+      await api.patch(`/api/accounts/${account._id}/flags`, { isAutoDistribute: value });
+      showSuccess('Auto-distribute preference updated');
+      await refreshAccounts();
+    } catch (error) {
+      console.error('Toggle auto-distribute error:', error);
+      showError(error.response?.data?.message || 'Failed to update preference');
+    } finally {
+      setUpdatingAccountId(null);
+    }
+  };
 
   const handleChange = (section, field, value) => {
     setSettings(prev => ({
@@ -86,6 +143,66 @@ const Settings = () => {
             onChange={handleLinkedAccountsChange}
             className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-4">Account Preferences</h2>
+          {accLoading ? (
+            <div className="text-sm text-gray-600">Loading accounts...</div>
+          ) : accounts.length === 0 ? (
+            <div className="text-sm text-gray-600">No accounts found.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Account</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Percent</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Balance</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Wallet</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Auto-Distribute</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {accounts.map(acc => (
+                    <tr key={acc._id}>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{acc.type}</td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{acc.percentage}%</td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">KES {Number(acc.balance || 0).toFixed(2)}</td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm">
+                        <label className="inline-flex items-center">
+                          <input
+                            type="radio"
+                            name="walletAccount"
+                            checked={!!acc.isWallet}
+                            onChange={() => setWallet(acc._id)}
+                            disabled={updatingAccountId === acc._id}
+                            className="text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="ml-2">{acc.isWallet ? 'Current Wallet' : 'Set as Wallet'}</span>
+                        </label>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm">
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={acc.isAutoDistribute !== false}
+                            onChange={(e) => toggleAutoDistribute(acc, e.target.checked)}
+                            disabled={updatingAccountId === acc._id}
+                            className="text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="ml-2">Include in auto-split</span>
+                        </label>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-xs text-gray-500 mt-2">
+                Only one Wallet can be active at a time. Auto-Distribute determines which accounts receive splits.
+              </p>
+            </div>
+          )}
         </section>
 
         <section>
