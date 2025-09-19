@@ -36,6 +36,7 @@ import AdminCompliance from './pages/AdminCompliance';
 import AdminSupport from './pages/AdminSupport';
 import AdminContent from './pages/AdminContent';
 import AdminSystem from './pages/AdminSystem';
+import AdminUserAccounts from './pages/AdminUserAccounts';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Legal from './pages/Legal';
@@ -245,6 +246,7 @@ function App() {
         <Route path="/admin/finance" element={<AdminProtectedRoute><AdminFinance /></AdminProtectedRoute>} />
         <Route path="/admin/compliance" element={<AdminProtectedRoute><AdminCompliance /></AdminProtectedRoute>} />
         <Route path="/admin/support" element={<AdminProtectedRoute><AdminSupport /></AdminProtectedRoute>} />
+        <Route path="/admin/support/users" element={<AdminProtectedRoute><AdminUserAccounts /></AdminProtectedRoute>} />
         <Route path="/admin/content" element={<AdminProtectedRoute><AdminContent /></AdminProtectedRoute>} />
         <Route path="/admin/system" element={<AdminProtectedRoute><AdminSystem /></AdminProtectedRoute>} />
         <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />

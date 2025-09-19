@@ -141,6 +141,20 @@ const login = async (req, res) => {
       }
     }
 
+    // Account status gates (activation/deactivation/suspension/banned/deleted)
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'Account is inactive. Please contact support.' });
+    }
+    const blockedStatuses = ['suspended', 'banned', 'deleted'];
+    if (blockedStatuses.includes(user.accountStatus)) {
+      const statusMsg = {
+        suspended: 'Your account is suspended. Please contact support.',
+        banned: 'Your account is banned. Access is restricted.',
+        deleted: 'This account has been deleted.'
+      };
+      return res.status(403).json({ message: statusMsg[user.accountStatus] || 'Account access restricted' });
+    }
+
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(401).json({ message: 'Invalid credentials' });
