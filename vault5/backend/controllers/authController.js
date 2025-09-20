@@ -62,23 +62,35 @@ const register = async (req, res) => {
 
     const avatar = req.file ? `/uploads/${req.file.filename}` : '';
 
+    // Create user with all required fields for single-step registration
     const user = new User({
       name,
       emails: [{
         email: email.toLowerCase(),
         isPrimary: true,
-        isVerified: false
+        isVerified: true  // Mark as verified for legacy registration
       }],
       phones: [{
         phone,
         isPrimary: true,
-        isVerified: false
+        isVerified: true  // Mark as verified for legacy registration
       }],
       password: hashed,
       dob: new Date(dob),
       city,
       avatar,
+      // Set registration step to 4 (completed) and mark as active
+      registrationStep: 4,
+      isActive: true,
+      isVerified: true,
+      termsAccepted: true,
+      kycCompleted: false,
+      // Initialize compliance fields
+      kycLevel: 'Tier0',
+      limitationStatus: 'none',
+      accountStatus: 'active'
     });
+
     await user.save();
 
     // Initialize default accounts and link to user
@@ -94,7 +106,7 @@ const register = async (req, res) => {
       const primaryEmailEntry = user.emails.find(e => e.isPrimary) || user.emails[0];
       primaryEmail = primaryEmailEntry?.email;
     }
- 
+
     res.status(201).json({
       token,
       user: {
@@ -110,6 +122,11 @@ const register = async (req, res) => {
     });
   } catch (err) {
     console.error('Register error:', err);
+    // Provide more specific error messages
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ message: `Validation failed: ${messages.join(', ')}` });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 };

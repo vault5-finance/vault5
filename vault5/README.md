@@ -1,13 +1,42 @@
 # Vault5 — Financial Freedom Platform
 
 [![Status](https://img.shields.io/badge/status-active-brightgreen.svg)](https://vault5.example.com)
+[![Version](https://img.shields.io/badge/version-2.0.0--compliance-blue.svg)](#)
 [![Stack](https://img.shields.io/badge/stack-Node%20%7C%20Express%20%7C%20MongoDB%20%7C%20React%20%7C%20Tailwind-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-black)](#)
 [![Security](https://img.shields.io/badge/security-helmet%20%7C%20rate--limit%20%7C%20audit%20logs-orange)](#)
+[![Node](https://img.shields.io/badge/node-18+-green.svg)](#)
+[![MongoDB](https://img.shields.io/badge/mongodb-6+-green.svg)](#)
 
-Vault5 is a full‑stack system that acts as a personal bank + financial coach + discipline enforcer. It automates allocations into 6 accounts, tracks goals & loans, enforces lending rules, implements PayPal‑style account limitations with reserves and payouts, and prepares for SaaS rollout.
+> **Personal Bank + Financial Coach + Discipline Enforcer**
 
-Mission: help users get to financial freedom with a rules‑driven, accountable, and transparent experience.
+Vault5 is a comprehensive full-stack financial freedom platform that automates income allocation into 6 strategic accounts, enforces financial discipline through smart rules, implements PayPal-style account limitations with reserve holds and payout workflows, and prepares for SaaS rollout with multi-tenant capabilities.
+
+**Mission**: Help users achieve financial freedom through rules-driven, accountable, and transparent money management.
+
+## 🚀 Quick Start
+
+```bash
+# Clone and setup
+git clone <repository-url>
+cd vault5
+
+# Backend setup
+cd backend
+npm install
+cp .env.example .env  # Configure MONGO_URI, JWT_SECRET
+npm run seed          # Seed admins and default policies
+npm run dev          # Start on http://localhost:5000
+
+# Frontend setup (new terminal)
+cd ../frontend
+npm install
+npm start            # Start on http://localhost:3000
+```
+
+**Login Credentials** (from seed):
+- Admin: `admin@vault5.com` / `Adminvault5`
+- Super Admin: `bnyaliti@gmail.com` / `Admin`
 
 ---
 
@@ -242,41 +271,222 @@ npm start
 
 ---
 
-## API Map (Selected)
+## 📋 API Reference
 
-- Accounts: GET /api/accounts, POST /api/accounts/income
-- Transactions: GET/POST/PUT/DELETE /api/transactions
-- Reports: GET /api/reports/dashboard, GET /api/reports/cashflow
-- Loans: GET/POST /api/loans, POST /api/loans/:id/repay
-- Lending: GET/POST /api/lending (extensible)
-- Compliance (user): see above
-- Compliance (admin): see above
+### Core Endpoints
 
-Source indices:
-- Routes index: [routes/index.js](backend/routes/index.js)
-- Server mount: [server.js](backend/server.js)
+| Module | Method | Endpoint | Description |
+|--------|--------|----------|-------------|
+| **Auth** | POST | `/api/auth/login` | User login with JWT |
+| | POST | `/api/auth/register/step1-4` | Multi-step registration |
+| | GET | `/api/auth/profile` | Get user profile |
+| **Accounts** | GET | `/api/accounts` | List user accounts |
+| | POST | `/api/accounts/income` | Add income (wallet/auto-distribute) |
+| | PATCH | `/api/accounts/:id/flags` | Set wallet/auto-distribute flags |
+| **Transactions** | GET | `/api/transactions` | List transactions |
+| | POST | `/api/transactions` | Create transaction (with gates) |
+| | GET | `/api/transactions/summary` | Transaction summary |
+| **Reports** | GET | `/api/reports/dashboard` | Dashboard data |
+| | GET | `/api/reports/cashflow` | Cashflow reports |
+| **Loans** | GET | `/api/loans` | List loans |
+| | POST | `/api/loans` | Create loan (eligibility gated) |
+| | POST | `/api/loans/:id/repay` | Make repayment |
+| **Lending** | GET | `/api/lending` | Lending history |
+| | POST | `/api/lending` | Record lending transaction |
+
+### Compliance Endpoints
+
+#### User-Facing
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/compliance/status` | Get limitation status, reserves, payout eligibility |
+| POST | `/api/compliance/kyc` | Submit KYC request with documents |
+| GET | `/api/compliance/kyc` | List user's KYC requests |
+| POST | `/api/compliance/payouts` | Request payout (after 180 days) |
+
+#### Admin (Compliance Role Required)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/compliance/audit-logs` | Audit logs (JSON) |
+| GET | `/api/admin/compliance/audit-logs.csv` | Audit logs (CSV export) |
+| GET | `/api/admin/compliance/kyc` | KYC review queue |
+| PATCH | `/api/admin/compliance/kyc/:id` | Approve/reject/more_info KYC |
+| GET | `/api/admin/compliance/limitations` | List limitations |
+| POST | `/api/admin/compliance/limitations` | Impose limitation + reserve |
+| PATCH | `/api/admin/compliance/limitations/:id/lift` | Lift limitation |
+| GET | `/api/admin/compliance/payouts` | Pending payouts |
+| PATCH | `/api/admin/compliance/payouts/:id` | Approve/reject/pay payout |
+
+#### Policy Management (Compliance Admin)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/compliance/policies/geo` | Get geo allowlist |
+| PATCH | `/api/admin/compliance/policies/geo` | Update geo policy |
+| GET | `/api/admin/compliance/policies/ip` | Get IP denylist |
+| PATCH | `/api/admin/compliance/policies/ip` | Update IP denylist |
+| GET | `/api/admin/compliance/policies/device` | Get device rules |
+| PATCH | `/api/admin/compliance/policies/device` | Update device rules |
+| GET | `/api/admin/compliance/policies/tiers` | Get limit tiers |
+| PATCH | `/api/admin/compliance/policies/tiers/:name` | Update tier limits |
+
+### Request/Response Examples
+
+**Add Income with Destination:**
+```json
+POST /api/accounts/income
+{
+  "amount": 50000,
+  "description": "Salary",
+  "tag": "salary",
+  "destination": "auto"  // or "wallet"
+}
+```
+
+**Impose Limitation:**
+```json
+POST /api/admin/compliance/limitations
+{
+  "userId": "64f...",
+  "type": "temporary_180",
+  "reason": "Suspicious activity"
+}
+```
+
+**Update Geo Policy:**
+```json
+PATCH /api/admin/compliance/policies/geo
+{
+  "mode": "allowlist",
+  "countries": ["KE", "US", "GB"]
+}
+```
+
+### Authentication
+- **Bearer Token**: `Authorization: Bearer <jwt_token>`
+- **Admin Roles**: `super_admin`, `compliance_admin`, `finance_admin`, etc.
+- **Rate Limits**: Auth endpoints: 20/15min, General: 100/15min
+
+Source files:
+- Routes index: [`routes/index.js`](backend/routes/index.js)
+- Server mount: [`server.js`](backend/server.js)
 
 ---
 
-## Security & Compliance
+## 🔧 Configuration
 
-- JWT auth, role‑based admin access
-- Helmet, CORS, compression
-- Audit logs for admin actions
-- Geo/IP/Device gates, tiered caps & velocity (extensible)
-- Reserve & payout flows designed for regulatory hold windows
+### Environment Variables
+
+#### Backend (.env)
+```bash
+# Database
+MONGO_URI=mongodb://localhost:27017/vault5
+# or for Atlas: mongodb+srv://user:pass@cluster.mongodb.net/vault5
+
+# Authentication
+JWT_SECRET=your_super_secure_jwt_secret_key_here
+AUTH_REQUIRE_EMAIL_VERIFICATION=false  # Set to true in production
+
+# Server
+PORT=5000
+NODE_ENV=development
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000,https://vault5.com
+
+# AWS (optional for secrets)
+AWS_REGION=us-east-1
+AWS_SECRETS_NAME=vault5/dev
+
+# Email (optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+```
+
+#### Frontend (.env)
+```bash
+REACT_APP_API_URL=http://localhost:5000
+REACT_APP_ENV=development
+```
+
+### Database Setup
+
+1. **Local MongoDB**:
+   ```bash
+   brew install mongodb-community  # macOS
+   # or download from mongodb.com for Windows/Linux
+   mongod --dbpath /path/to/data
+   ```
+
+2. **MongoDB Atlas** (recommended for production):
+   - Create cluster at [mongodb.com/atlas](https://mongodb.com/atlas)
+   - Get connection string and update `MONGO_URI`
+
+3. **Seed Data**:
+   ```bash
+   cd backend
+   node seed.js  # Creates admin users and default policies
+   ```
+
+## 🔒 Security & Compliance
+
+### Security Features
+- **Authentication**: JWT with bcrypt password hashing
+- **Authorization**: Role-based access control (8 admin roles)
+- **Rate Limiting**: Auth (20/15min), General (100/15min)
+- **Security Headers**: Helmet, CORS, compression
+- **Audit Logging**: All admin actions logged with IP/user-agent
+
+### Compliance Gates
+- **Geo Filtering**: Allowlist countries (default: KE)
+- **IP Denylist**: CIDR-based blocking
+- **Device Checks**: Cookie requirements, headless browser detection
+- **Tiered Limits**: Daily/monthly caps by KYC level
+- **Velocity Controls**: Transaction frequency monitoring
+- **Loan Eligibility**: Tier2 + 90-day tenure + cooldown requirements
+
+### Account Limitations (PayPal-style)
+- **Types**: temporary_30, temporary_180, permanent
+- **Reserve Logic**: 180-day holds on temp_180/permanent
+- **Payout Flow**: Verified bank accounts only after hold period
+- **Audit Trail**: Full history of limitation actions
+
+### Data Protection
+- **PII Handling**: Encrypted storage, minimal retention
+- **Export Controls**: User data export/deletion capabilities
+- **Regulatory Ready**: Designed for financial compliance frameworks
 
 ---
 
-## Roadmap (High-level)
+## 🗺️ Development Roadmap
 
-- Phase B: Admin consoles (KYC queue, limitations console, policies editors), payout console
-- Phase C: User UX polish (limitation banner, wizards), mobile touch-ups
-- Phase D: Analytics dashboards (KYC SLAs, caps/velocity hits, eligibility rates)
-- Phase E: Documentation set (Policies, Limits, KYC, Risk, Admin Handbook, API)
-- Phase F: Tests (unit/integration/e2e), performance profiling, feature flags
+### ✅ Completed (v2.0-compliance)
+- **Phase A**: Data models and migrations (all compliance models implemented)
+- **Phase B**: Backend middleware and enforcement (all gates working)
+- **Core Features**: 6-vault allocation, wallet/auto-distribute, goals, loans, lending rules
+- **Compliance System**: PayPal-style limitations, reserves, payouts, KYC workflow
+- **Admin Consoles**: KYC queue, limitations management, audit logs, payout approvals
+- **Policy Management**: Geo/IP/device rules, tier limits, all admin endpoints
 
-See: [ROADMAP.md](ROADMAP.md)
+### 🚧 In Progress
+- **Phase C**: Frontend UX polish (limitation banners, wizards, mobile optimization)
+- **Phase F**: Documentation (this README, API docs, policies handbook)
+
+### 📋 Upcoming Phases
+- **Phase D**: Analytics dashboards (KYC turnaround, caps/velocity metrics, eligibility rates)
+- **Phase E**: Testing suite (unit, integration, e2e scenarios)
+- **Phase F**: Performance profiling, feature flags for rollout
+- **Phase G**: Multi-tenant SaaS features, API integrations
+- **Phase H**: Mobile app development, advanced AI insights
+
+### 🎯 Key Milestones
+- **v2.1**: Complete user UX flows and mobile optimization
+- **v2.2**: Analytics dashboards and reporting enhancements
+- **v2.5**: Production deployment with feature flags
+- **v3.0**: Multi-tenant SaaS with subscription management
+
+See detailed roadmap: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 

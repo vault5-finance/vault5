@@ -20,6 +20,7 @@ module.exports = {
   ipDenyGate,
   deviceGate,
   limitationGate,
+  limitationGateOutgoing,
   capsGate,
   velocityGate,
   loanEligibilityGate,

@@ -253,4 +253,174 @@ router.patch('/payouts/:id', async (req, res) => {
   }
 });
 
+// ============= POLICY MANAGEMENT =============
+
+const { GeoPolicy, IpDenylist, DeviceRule, LimitTier } = require('../models');
+
+// GET /api/admin/compliance/policies/geo
+router.get('/policies/geo', async (req, res) => {
+  try {
+    const policy = await GeoPolicy.findOne({});
+    res.json({ success: true, data: policy || { mode: 'allowlist', countries: ['KE'] } });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// PATCH /api/admin/compliance/policies/geo
+// Body: { mode: 'allowlist', countries: ['KE', 'US'] }
+router.patch('/policies/geo', async (req, res) => {
+  try {
+    const { mode, countries } = req.body || {};
+    if (mode !== 'allowlist' || !Array.isArray(countries)) {
+      return res.status(400).json({ message: 'Invalid geo policy data' });
+    }
+
+    const policy = await GeoPolicy.findOneAndUpdate(
+      {},
+      { mode, countries, updatedBy: req.user._id, updatedAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    await logAudit(req, {
+      actionName: 'compliance_policy_update',
+      resource: 'geo_policy',
+      resourceId: policy._id,
+      details: { mode, countries },
+      success: true
+    });
+
+    res.json({ success: true, message: 'Geo policy updated', data: policy });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// GET /api/admin/compliance/policies/ip
+router.get('/policies/ip', async (req, res) => {
+  try {
+    const policy = await IpDenylist.findOne({});
+    res.json({ success: true, data: policy || { cidrs: [] } });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// PATCH /api/admin/compliance/policies/ip
+// Body: { cidrs: ['1.2.3.0/24'], reason: 'Suspicious activity' }
+router.patch('/policies/ip', async (req, res) => {
+  try {
+    const { cidrs, reason } = req.body || {};
+    if (!Array.isArray(cidrs)) {
+      return res.status(400).json({ message: 'CIDRs must be an array' });
+    }
+
+    const policy = await IpDenylist.findOneAndUpdate(
+      {},
+      { cidrs, reason: reason || '', updatedBy: req.user._id, updatedAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    await logAudit(req, {
+      actionName: 'compliance_policy_update',
+      resource: 'ip_denylist',
+      resourceId: policy._id,
+      details: { cidrs, reason },
+      success: true
+    });
+
+    res.json({ success: true, message: 'IP denylist updated', data: policy });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// GET /api/admin/compliance/policies/device
+router.get('/policies/device', async (req, res) => {
+  try {
+    const policy = await DeviceRule.findOne({});
+    res.json({ success: true, data: policy || { requireCookies: true, forbidHeadless: true, minSignals: 1 } });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// PATCH /api/admin/compliance/policies/device
+// Body: { requireCookies: true, forbidHeadless: true, minSignals: 1 }
+router.patch('/policies/device', async (req, res) => {
+  try {
+    const { requireCookies, forbidHeadless, minSignals } = req.body || {};
+    if (typeof requireCookies !== 'boolean' || typeof forbidHeadless !== 'boolean' || typeof minSignals !== 'number') {
+      return res.status(400).json({ message: 'Invalid device rule data' });
+    }
+
+    const policy = await DeviceRule.findOneAndUpdate(
+      {},
+      { requireCookies, forbidHeadless, minSignals, updatedBy: req.user._id, updatedAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    await logAudit(req, {
+      actionName: 'compliance_policy_update',
+      resource: 'device_rules',
+      resourceId: policy._id,
+      details: { requireCookies, forbidHeadless, minSignals },
+      success: true
+    });
+
+    res.json({ success: true, message: 'Device rules updated', data: policy });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// GET /api/admin/compliance/policies/tiers
+router.get('/policies/tiers', async (req, res) => {
+  try {
+    const tiers = await LimitTier.find({}).sort({ name: 1 });
+    res.json({ success: true, data: tiers });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// PATCH /api/admin/compliance/policies/tiers/:name
+// Body: { dailyLimit: 10000, monthlyLimit: 25000, maxHoldBalance: 0, minAccountAgeDays: 0 }
+router.patch('/policies/tiers/:name', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { dailyLimit, monthlyLimit, maxHoldBalance, minAccountAgeDays } = req.body || {};
+
+    if (!['Tier0', 'Tier1', 'Tier2'].includes(name)) {
+      return res.status(400).json({ message: 'Invalid tier name' });
+    }
+    if (typeof dailyLimit !== 'number' || typeof monthlyLimit !== 'number') {
+      return res.status(400).json({ message: 'Limits must be numbers' });
+    }
+
+    const tier = await LimitTier.findOneAndUpdate(
+      { name },
+      {
+        dailyLimit,
+        monthlyLimit,
+        maxHoldBalance: maxHoldBalance || 0,
+        minAccountAgeDays: minAccountAgeDays || 0
+      },
+      { new: true, upsert: true }
+    );
+
+    await logAudit(req, {
+      actionName: 'compliance_policy_update',
+      resource: 'limit_tier',
+      resourceId: tier._id,
+      details: { name, dailyLimit, monthlyLimit, maxHoldBalance, minAccountAgeDays },
+      success: true
+    });
+
+    res.json({ success: true, message: 'Tier updated', data: tier });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 module.exports = router;

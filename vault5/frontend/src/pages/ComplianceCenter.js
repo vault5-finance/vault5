@@ -2,15 +2,28 @@ import React, { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 
-const Section = ({ title, children, right }) => (
-  <div className="bg-white rounded-lg shadow p-5">
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-xl font-semibold">{title}</h2>
-      {right}
+const Section = ({ title, children, right, icon, color = 'blue' }) => {
+  const colorClasses = {
+    blue: 'border-blue-200 bg-blue-50',
+    green: 'border-green-200 bg-green-50',
+    yellow: 'border-yellow-200 bg-yellow-50',
+    red: 'border-red-200 bg-red-50',
+    gray: 'border-gray-200 bg-gray-50'
+  };
+
+  return (
+    <div className={`bg-white rounded-lg shadow-sm border-l-4 ${colorClasses[color]} p-6`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          {icon && <div className="text-2xl">{icon}</div>}
+          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+        </div>
+        {right}
+      </div>
+      {children}
     </div>
-    {children}
-  </div>
-);
+  );
+};
 
 const Pill = ({ children, color = 'blue' }) => {
   const map = {
@@ -179,37 +192,74 @@ const ComplianceCenter = () => {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold mb-2">Compliance Center</h1>
-      <p className="text-gray-600">View your limitation status, upload KYC, and request payouts when eligible.</p>
-
-      <Section
-        title="Account Limitation Status"
-        right={<div>{limitationPill}</div>}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <div className="text-sm text-gray-600">Reason</div>
-            <div className="text-gray-900">{status?.limitation?.reason || '—'}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600">Countdown</div>
-            <div className="text-gray-900">
-              {['temporary_30', 'temporary_180'].includes(status?.limitation?.status)
-                ? <Countdown ms={status?.limitation?.countdownMs} />
-                : <span className="text-gray-700">N/A</span>}
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Compliance Center</h1>
+              <p className="text-gray-600 mt-1">Manage your account limitations, KYC verification, and payout requests</p>
             </div>
           </div>
-          <div>
-            <div className="text-sm text-gray-600">Reserve Release</div>
-            <div className="text-gray-900">
-              {status?.limitation?.reserveReleaseAt
-                ? new Date(status.limitation.reserveReleaseAt).toLocaleString()
-                : '—'}
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900">{status?.kycLevel || 'Tier0'}</div>
+              <div className="text-sm text-gray-600">KYC Level</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900">{status?.reserves?.count || 0}</div>
+              <div className="text-sm text-gray-600">Active Reserves</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900">{formatKes(status?.reserves?.totalAmount || 0)}</div>
+              <div className="text-sm text-gray-600">Reserved Amount</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900">
+                {status?.payoutEligible ? '✅' : '⏳'}
+              </div>
+              <div className="text-sm text-gray-600">Payout Status</div>
             </div>
           </div>
         </div>
-      </Section>
+
+        <Section
+          title="Account Limitation Status"
+          icon="🚫"
+          color={status?.limitation?.status === 'none' ? 'green' : 'red'}
+          right={<div className="flex items-center gap-2">{limitationPill}</div>}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <div className="text-sm text-gray-600">Reason</div>
+              <div className="text-gray-900">{status?.limitation?.reason || '—'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">Countdown</div>
+              <div className="text-gray-900">
+                {['temporary_30', 'temporary_180'].includes(status?.limitation?.status)
+                  ? <Countdown ms={status?.limitation?.countdownMs} />
+                  : <span className="text-gray-700">N/A</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">Reserve Release</div>
+              <div className="text-gray-900">
+                {status?.limitation?.reserveReleaseAt
+                  ? new Date(status.limitation.reserveReleaseAt).toLocaleString()
+                  : '—'}
+              </div>
+            </div>
+          </div>
+        </Section>
 
       <Section title="Reserves">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
@@ -405,6 +455,7 @@ const ComplianceCenter = () => {
             )}
           </form>
         </Section>
+        </div>
       </div>
     </div>
   );

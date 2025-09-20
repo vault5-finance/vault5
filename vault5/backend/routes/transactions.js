@@ -12,6 +12,7 @@ const {
   ipDenyGate,
   deviceGate,
   limitationGate,
+  limitationGateOutgoing,
   capsGate,
   velocityGate,
 } = require('../middleware');
