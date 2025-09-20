@@ -58,8 +58,8 @@ const AddIncomeModal = ({ isOpen, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose}></div>
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose}></div>
+      <div className="relative z-50 bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Add Income</h3>
@@ -590,7 +590,7 @@ const Dashboard = () => {
               onClick={handleAddIncome}
               className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm"
             >
-              Add Income
+              Record Income (Manual)
             </button>
             <button
               onClick={() => showInfo('Send Money feature coming soon!')}

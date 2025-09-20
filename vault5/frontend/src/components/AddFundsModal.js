@@ -182,8 +182,8 @@ export default function AddFundsModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={closeAll}></div>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={closeAll}></div>
+      <div className="relative z-50 bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Add Funds</h3>

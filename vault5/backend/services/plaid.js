@@ -16,36 +16,31 @@ const getPlaidEnvironment = (env) => {
 };
 
 // Only initialize client if credentials are available
+// Plaid v10+ style with Configuration and PlaidApi. Falls back gracefully on missing creds.
 let client = null;
 if (PLAID_CLIENT_ID && PLAID_SECRET && PLAID_ENV) {
   try {
-    // Try the new Plaid SDK v38+ syntax
-    client = new plaid.PlaidApi({
-      clientId: PLAID_CLIENT_ID,
-      secret: PLAID_SECRET,
-      env: getPlaidEnvironment(PLAID_ENV),
-      options: {
-        version: '2020-09-14'
-      }
+    const { Configuration, PlaidApi, PlaidEnvironments } = plaid;
+    const envName = getPlaidEnvironment(PLAID_ENV); // 'sandbox' | 'development' | 'production'
+    const basePath =
+      (PlaidEnvironments && PlaidEnvironments[envName]) ||
+      (plaid.environments && plaid.environments[envName]); // older SDKs
+
+    const config = new Configuration({
+      basePath,
+      baseOptions: {
+        headers: {
+          'PLAID-CLIENT-ID': PLAID_CLIENT_ID,
+          'PLAID-SECRET': PLAID_SECRET,
+        },
+      },
     });
+
+    client = new PlaidApi(config);
     console.log('Plaid client initialized successfully');
   } catch (error) {
-    console.warn('Failed to initialize Plaid client with new API:', error.message);
-    try {
-      // Fallback to old syntax
-      client = new plaid.Client({
-        clientID: PLAID_CLIENT_ID,
-        secret: PLAID_SECRET,
-        env: getPlaidEnvironment(PLAID_ENV),
-        options: {
-          version: '2020-09-14'
-        }
-      });
-      console.log('Plaid client initialized with fallback syntax');
-    } catch (fallbackError) {
-      console.warn('Failed to initialize Plaid client with fallback:', fallbackError.message);
-      client = null;
-    }
+    console.warn('Plaid client initialization failed:', error.message);
+    client = null;
   }
 } else {
   console.warn('Plaid credentials not configured - Plaid features will be disabled');
@@ -53,32 +48,50 @@ if (PLAID_CLIENT_ID && PLAID_SECRET && PLAID_ENV) {
 
 // Create link token for client-side Plaid Link
 const createLinkToken = async (userId) => {
-  const response = await client.createLinkToken({
-    user: { client_user_id: userId },
+  if (!client) {
+    throw new Error('Plaid client not configured');
+  }
+  const response = await client.linkTokenCreate({
+    user: { client_user_id: String(userId) },
     client_name: 'Vault5',
     products: ['transactions'],
     country_codes: ['US'],
-    language: 'en'
+    language: 'en',
   });
-  return response.link_token;
+  return response.data.link_token;
 };
 
 // Exchange public token for access token
 const exchangePublicToken = async (publicToken) => {
-  const response = await client.exchangePublicToken(publicToken);
-  return response.access_token;
+  if (!client) {
+    throw new Error('Plaid client not configured');
+  }
+  const response = await client.itemPublicTokenExchange({
+    public_token: publicToken,
+  });
+  return response.data.access_token;
 };
 
 // Sync transactions
 const syncTransactions = async (accessToken) => {
+  if (!client) {
+    throw new Error('Plaid client not configured');
+  }
   // Get initial transactions
-  const response = await client.getTransactions(accessToken, '2020-01-01', new Date().toISOString().split('T')[0], {
-    count: 100,
-    offset: 0
+  const start_date = '2020-01-01';
+  const end_date = new Date().toISOString().split('T')[0];
+  const response = await client.transactionsGet({
+    access_token: accessToken,
+    start_date,
+    end_date,
+    options: {
+      count: 100,
+      offset: 0,
+    },
   });
-  
+
   // Process transactions and save to database
-  return response.transactions;
+  return (response.data && response.data.transactions) ? response.data.transactions : [];
 };
 
 // Handle webhook events
