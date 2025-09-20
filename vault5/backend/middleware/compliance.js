@@ -144,8 +144,12 @@ async function limitationGateOutgoing(req, res, next) {
     const status = u.limitationStatus || 'none';
     if (status === 'none') return next();
 
-    const type = String(req.body?.type || '').toLowerCase();
-    if (type === 'income') return next();
+    // Treat deposits as income even if no explicit type is passed
+    const reqType = String(req.body?.type || '').toLowerCase();
+    const url = String(req.originalUrl || '');
+    const isDepositFlow = /\/api\/payments\/deposits/.test(url);
+    const isIncomeOp = reqType === 'income' || isDepositFlow;
+    if (isIncomeOp) return next();
 
     // Same response shape as limitationGate
     let countdown = null;

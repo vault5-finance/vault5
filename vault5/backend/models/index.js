@@ -11,6 +11,7 @@ const Milestone = require('./Milestone');
 const Badge = require('./Badge');
 const FinancialScore = require('./FinancialScore');
 const AuditLog = require('./AuditLog');
+const PaymentIntent = require('./PaymentIntent');
 const { Limitation, ReserveHold, PayoutRequest, KycRequest, GeoPolicy, IpDenylist, DeviceRule, LimitTier, VelocityCounter, RiskEvent } = require('./Compliance');
 
 module.exports = {
@@ -25,6 +26,7 @@ module.exports = {
   Badge,
   FinancialScore,
   AuditLog,
+  PaymentIntent,
   // Compliance & Risk models
   Limitation,
   ReserveHold,

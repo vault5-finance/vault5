@@ -312,6 +312,178 @@ Get transaction summary for period.
 }
 ```
 
+## Payments
+
+Payments enable users to Add Funds (deposits) and Send Money (payouts) via provider-agnostic endpoints. In development, providers are simulated; in production, M-Pesa Daraja and Airtel Money are used. See [PAYMENTS.md](vault5/docs/PAYMENTS.md) and [MpesaDaraja.md](vault5/docs/MpesaDaraja.md).
+
+Security and Compliance
+- Deposits allow income even under limitations via [limitationGateOutgoing](vault5/backend/middleware/compliance.js:140).
+- Amount and frequency checks enforced via [capsGate](vault5/backend/middleware/compliance.js:178) and [velocityGate](vault5/backend/middleware/compliance.js:229).
+- Provider credentials are environment variables. Never commit secrets.
+
+Data Model
+- On success, deposit triggers allocation via [transactionsController.createTransaction()](vault5/backend/controllers/transactionsController.js:1) with type: income and source: deposit. The PaymentIntent model (to be introduced) tracks status, provider, and references.
+
+### POST /api/payments/deposits/initiate
+Start a deposit (Add Funds) via provider (mpesa, airtel, bank). Returns a PaymentIntent and an initial state (pending or awaiting_user).
+
+Request:
+```json
+{
+  "provider": "mpesa",           // "mpesa" | "airtel" | "bank"
+  "amount": 2500,                 // > 0
+  "currency": "KES",              // default KES
+  "targetAccount": "Daily",       // one of user's configured accounts or "wallet"
+  "phone": "2547XXXXXXXX"         // required for mpesa/airtel
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pi_64f...",
+    "status": "awaiting_user",    // or "pending" depending on provider
+    "provider": "mpesa",
+    "providerRef": "CheckoutRequestID-or-sim-ref",
+    "amount": 2500,
+    "currency": "KES",
+    "targetAccount": "Daily"
+  },
+  "message": "Deposit initiated. Follow on-screen instructions."
+}
+```
+
+Notes:
+- Simulated providers return awaiting_user and auto-complete after a delay unless manually confirmed.
+
+### POST /api/payments/deposits/confirm
+Development-only endpoint to force-confirm a simulated deposit when no public callback is available (e.g., local testing without ngrok).
+
+Request:
+```json
+{
+  "id": "pi_64f..."               // or { "providerRef": "..." }
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pi_64f...",
+    "status": "success"
+  },
+  "message": "Deposit confirmed"
+}
+```
+
+### POST /api/payments/providers/mpesa/callback
+Provider callback for M-Pesa STK Push result. In sandbox/production, Safaricom calls this URL to deliver the final status.
+
+Request (example shape, actual fields depend on Daraja):
+```json
+{
+  "Body": {
+    "stkCallback": {
+      "MerchantRequestID": "29115-34620561-1",
+      "CheckoutRequestID": "ws_CO_191220191020363925",
+      "ResultCode": 0,
+      "ResultDesc": "The service request is processed successfully.",
+      "CallbackMetadata": {
+        "Item": [
+          { "Name": "Amount", "Value": 2500 },
+          { "Name": "MpesaReceiptNumber", "Value": "NLJ7RT61SV" },
+          { "Name": "TransactionDate", "Value": 20191219102115 },
+          { "Name": "PhoneNumber", "Value": 2547XXXXXXXX }
+        ]
+      }
+    }
+  }
+}
+```
+
+Response:
+```json
+{ "success": true }
+```
+
+### POST /api/payments/providers/airtel/callback
+Provider callback for Airtel Money. Shape varies by Airtel API; stored in providerMeta for auditing.
+
+Response:
+```json
+{ "success": true }
+```
+
+### GET /api/payments/transactions/:id/status
+Get current status of a PaymentIntent.
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pi_64f...",
+    "status": "awaiting_user",  // "pending" | "success" | "failed" | "canceled" | "expired"
+    "provider": "mpesa",
+    "providerRef": "CheckoutRequestID",
+    "amount": 2500,
+    "currency": "KES"
+  }
+}
+```
+
+### GET /api/payments/recent
+List the most recent payment intents for the authenticated user.
+
+Query Parameters:
+- page: number (default: 1)
+- limit: number (default: 20)
+- type: "deposit" | "payout" (optional)
+- provider: "mpesa" | "airtel" | "bank" (optional)
+- status: "pending" | "awaiting_user" | "success" | "failed" | "canceled" | "expired" (optional)
+
+Response:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "pi_64f...",
+      "type": "deposit",
+      "provider": "mpesa",
+      "status": "success",
+      "amount": 2500,
+      "currency": "KES",
+      "targetAccount": "Daily",
+      "createdAt": "2025-01-01T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "pages": 1
+  }
+}
+```
+
+Frontend Integration Notes
+- UI exposes two primary actions on Dashboard: Add Funds and Send Money.
+- Add Funds opens a modal that:
+  1) Selects target account
+  2) Selects provider (mpesa, airtel, bank)
+  3) Captures phone and amount
+  4) Confirms summary
+  5) Waits for status (awaiting_user → success/failed)
+- On success, the UI refreshes allocations and shows a breakdown.
+
+See also:
+- [PAYMENTS.md](vault5/docs/PAYMENTS.md)
+- [MpesaDaraja.md](vault5/docs/MpesaDaraja.md)
 ## Reports & Analytics
 
 ### GET /api/reports/dashboard

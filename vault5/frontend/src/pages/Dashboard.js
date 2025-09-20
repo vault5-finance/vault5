@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement } from 'chart.js';
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import api from '../services/api';
+import AddFundsModal from '../components/AddFundsModal';
 import { useToast } from '../contexts/ToastContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement);
@@ -249,6 +250,7 @@ const Dashboard = () => {
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [showAddFundsModal, setShowAddFundsModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -326,6 +328,10 @@ const Dashboard = () => {
     setShowIncomeModal(true);
   };
 
+  const handleAddFunds = () => {
+    setShowAddFundsModal(true);
+  };
+
   const handleIncomeSuccess = () => {
     // Refresh dashboard data
     const fetchData = async () => {
@@ -354,6 +360,24 @@ const Dashboard = () => {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+
+      {/* Primary Actions */}
+      <div className="mb-8">
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={handleAddFunds}
+            className="p-4 md:p-5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow hover:from-green-600 hover:to-emerald-700 transition font-semibold text-base md:text-lg"
+          >
+            + Add Funds
+          </button>
+          <button
+            onClick={() => showInfo('Send Money feature coming soon!')}
+            className="p-4 md:p-5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-lg shadow hover:from-indigo-600 hover:to-blue-700 transition font-semibold text-base md:text-lg"
+          >
+            ⇄ Send Money
+          </button>
+        </div>
+      </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -663,6 +687,12 @@ const Dashboard = () => {
       <AddIncomeModal
         isOpen={showIncomeModal}
         onClose={() => setShowIncomeModal(false)}
+        onSuccess={handleIncomeSuccess}
+      />
+
+      <AddFundsModal
+        isOpen={showAddFundsModal}
+        onClose={() => setShowAddFundsModal(false)}
         onSuccess={handleIncomeSuccess}
       />
     </div>
