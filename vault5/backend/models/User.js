@@ -216,8 +216,51 @@ const userSchema = new mongoose.Schema({
       default: 'KES'
     },
     linkedAccounts: [{
-      type: String,
-      default: [] // e.g., ['M-Pesa', 'Equity', 'KCB', 'Airtel', 'Co-op', 'DTB']
+      accountType: {
+        type: String,
+        required: true,
+        enum: ['M-Pesa', 'Airtel Money', 'Equity Bank', 'KCB', 'Co-op Bank', 'DTB', 'ABSA', 'Standard Chartered', 'Other']
+      },
+      accountNumber: {
+        type: String,
+        required: true
+      },
+      accountName: {
+        type: String,
+        required: true
+      },
+      isVerified: {
+        type: Boolean,
+        default: false
+      },
+      verificationToken: String,
+      verificationExpires: Date,
+      isPrimary: {
+        type: Boolean,
+        default: false
+      },
+      addedAt: {
+        type: Date,
+        default: Date.now
+      },
+      lastUsed: {
+        type: Date
+      },
+      status: {
+        type: String,
+        enum: ['active', 'inactive', 'suspended', 'blocked'],
+        default: 'active'
+      },
+      limits: {
+        dailyLimit: {
+          type: Number,
+          default: 50000 // KES 50,000 daily limit
+        },
+        monthlyLimit: {
+          type: Number,
+          default: 500000 // KES 500,000 monthly limit
+        }
+      }
     }],
     notificationThresholds: {
       shortfall: {
@@ -289,6 +332,15 @@ userSchema.pre('save', function(next) {
     this.phones[0].isPrimary = true;
   }
 
+  // Ensure at most one primary linked account
+  const primaryLinkedAccounts = this.preferences.linkedAccounts.filter(acc => acc.isPrimary);
+  if (primaryLinkedAccounts.length > 1) {
+    // If multiple primaries, keep only the first one as primary
+    this.preferences.linkedAccounts.forEach((acc, index) => {
+      acc.isPrimary = index === 0 && primaryLinkedAccounts.length > 0;
+    });
+  }
+
   // Auto-assign permissions based on role
   if (this.isModified('role') || this.isNew) {
     this.permissions = this.getDefaultPermissions(this.role);
@@ -340,6 +392,36 @@ userSchema.methods.getDepartmentFromRole = function(role) {
   };
 
  return departmentMap[role] || 'none';
+};
+
+// Helper methods for linked accounts management
+userSchema.methods.canAddLinkedAccount = function() {
+ return this.preferences.linkedAccounts.length < 3;
+};
+
+userSchema.methods.getPrimaryLinkedAccount = function() {
+ return this.preferences.linkedAccounts.find(acc => acc.isPrimary) || this.preferences.linkedAccounts[0] || null;
+};
+
+userSchema.methods.getVerifiedLinkedAccounts = function() {
+ return this.preferences.linkedAccounts.filter(acc => acc.isVerified && acc.status === 'active');
+};
+
+userSchema.methods.getActiveLinkedAccounts = function() {
+ return this.preferences.linkedAccounts.filter(acc => acc.status === 'active');
+};
+
+userSchema.methods.hasLinkedAccount = function(accountType, accountNumber) {
+ return this.preferences.linkedAccounts.some(acc =>
+   acc.accountType === accountType && acc.accountNumber === accountNumber
+ );
+};
+
+userSchema.methods.updateLinkedAccountLastUsed = function(accountId) {
+ const account = this.preferences.linkedAccounts.id(accountId);
+ if (account) {
+   account.lastUsed = new Date();
+ }
 };
 
 // Indexes for compliance queries
