@@ -5,7 +5,8 @@ const {
   createTransaction,
   updateTransaction,
   deleteTransaction,
-  getTransactionSummary
+  getTransactionSummary,
+  transferToUser
 } = require('../controllers/transactionsController');
 const {
   geoGate,
@@ -33,5 +34,8 @@ router.post('/', limitationGateOutgoing, capsGate, velocityGate, createTransacti
 router.put('/:id', updateTransaction);
 router.delete('/:id', deleteTransaction);
 router.get('/summary', getTransactionSummary);
+
+// P2P transfer route - must pass all security gates
+router.post('/transfer', limitationGateOutgoing, capsGate, velocityGate, transferToUser);
 
 module.exports = router;

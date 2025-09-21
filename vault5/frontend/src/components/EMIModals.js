@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../contexts/ToastContext';
+import api from '../services/api';
 
 export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
   const { showSuccess, showError } = useToast();
@@ -16,6 +17,84 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
   const [recipientVerified, setRecipientVerified] = useState(false);
 
   if (!isOpen) return null;
+
+  // Mock recipient search - in real app, this would call an API
+  const searchRecipients = async (query) => {
+    setSearchLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Mock search results with real accounts
+      const mockResults = [
+        {
+          id: 1,
+          name: 'Bryson Nyatiti',
+          phone: '+254745959794',
+          email: 'bnyaliti@gmail.com',
+          vaultUser: true,
+          vaultUsername: '@bnyaliti',
+          avatar: '👨‍💼',
+          accountNumber: '12345678901',
+          bankName: 'KCB Bank'
+        },
+        {
+          id: 2,
+          name: 'Collins Oduya',
+          phone: '+254712345678',
+          email: 'collins@gmail.com',
+          vaultUser: true,
+          vaultUsername: '@collins',
+          avatar: '👨‍🔬',
+          accountNumber: '23456789012',
+          bankName: 'Equity Bank'
+        },
+        {
+          id: 3,
+          name: 'Sarah Wilson',
+          phone: '+254723456789',
+          email: 'sarah.wilson@email.com',
+          vaultUser: true,
+          vaultUsername: '@sarahw',
+          avatar: '👩‍💻',
+          accountNumber: '34567890123',
+          bankName: 'Co-operative Bank'
+        },
+        {
+          id: 4,
+          name: 'Mike Johnson',
+          phone: '+254734567890',
+          email: 'mike.j@email.com',
+          vaultUser: false,
+          avatar: '👨‍🔬',
+          accountNumber: '45678901234',
+          bankName: 'DTB Bank'
+        }
+      ];
+
+      const filtered = mockResults.filter(result =>
+        result.name.toLowerCase().includes(query.toLowerCase()) ||
+        result.phone.includes(query) ||
+        result.email.toLowerCase().includes(query.toLowerCase())
+      );
+
+      setSearchResults(filtered);
+    } catch (error) {
+      showError('Failed to search recipients');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleRecipientSearch = (query) => {
+    setRecipient(query);
+    if (query.length >= 3) {
+      searchRecipients(query);
+      setShowRecipientSearch(true);
+    } else {
+      setShowRecipientSearch(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -59,39 +138,70 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
         verified: recipientVerified || recipientDetails?.vaultUser
       };
 
-      // Simulate API call to process transaction
+      // Real API call to process transaction
       showInfo('Processing transaction...');
 
-      // Simulate different processing times based on transaction type
-      const processingTime = {
-        'Internal Transfer': 500,
-        'Send to Vault User': 1000,
-        'Bank Transfer': 2000,
-        'M-Pesa': 1500,
-        'Airtel Money': 1500
-      };
+      let apiEndpoint = '';
+      let requestData = {};
 
-      await new Promise(resolve => setTimeout(resolve, processingTime[type] || 1000));
+      if (type === 'Send to Vault User' && recipientDetails?.email) {
+        // P2P transfer to another Vault5 user
+        apiEndpoint = '/api/transactions/transfer';
+        requestData = {
+          recipientEmail: recipientDetails.email,
+          amount: parseFloat(amount),
+          fromAccountId: account._id,
+          description: description || 'P2P Transfer'
+        };
+      } else {
+        // Other types of transfers (mock for now)
+        const processingTime = {
+          'Internal Transfer': 500,
+          'Bank Transfer': 2000,
+          'M-Pesa': 1500,
+          'Airtel Money': 1500
+        };
 
-      // Simulate success/failure (95% success rate for demo)
-      const isSuccess = Math.random() > 0.05;
+        await new Promise(resolve => setTimeout(resolve, processingTime[type] || 1000));
+        const isSuccess = Math.random() > 0.05;
 
-      if (isSuccess) {
+        if (isSuccess) {
+          showSuccess(`✅ ${type} of KES ${amount} completed successfully!`, {
+            title: 'Transaction Successful',
+            duration: 5000
+          });
+
+          const recipientName = recipientDetails?.name || 'recipient';
+          showInfo(`💰 KES ${amount} sent to ${recipientName}`, {
+            title: 'Transaction Details',
+            duration: 3000
+          });
+
+          onClose();
+          return;
+        } else {
+          showError('❌ Transaction failed. Please try again or contact support.');
+          return;
+        }
+      }
+
+      // Make real API call for P2P transfers
+      const response = await api.post(apiEndpoint, requestData);
+
+      if (response.data) {
         showSuccess(`✅ ${type} of KES ${amount} completed successfully!`, {
           title: 'Transaction Successful',
           duration: 5000
         });
 
         // Show transaction details
-        const recipientName = recipientDetails?.name || 'recipient';
+        const recipientName = response.data.transfer?.recipient?.name || recipientDetails?.name || 'recipient';
         showInfo(`💰 KES ${amount} sent to ${recipientName}`, {
           title: 'Transaction Details',
           duration: 3000
         });
 
         onClose();
-      } else {
-        showError('❌ Transaction failed. Please try again or contact support.');
       }
     } catch (error) {
       console.error('Transaction error:', error);
@@ -232,6 +342,11 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
                         </div>
                         <p className="text-sm text-gray-600">
                           {recipientType === 'phone' ? result.phone : result.email}
+                          {result.vaultUser && (
+                            <span className="ml-2 text-xs text-green-600 font-medium">
+                              (Vault5 User)
+                            </span>
+                          )}
                         </p>
                         {result.vaultUsername && (
                           <p className="text-xs text-blue-600">{result.vaultUsername}</p>
@@ -489,7 +604,16 @@ export const EMIAddMoneyModal = ({ isOpen, onClose, account, type }) => {
         result.email.toLowerCase().includes(query.toLowerCase())
       );
 
-      setSearchResults(filtered);
+      // Apply security masking to results
+      const maskedResults = filtered.map(result => ({
+        ...result,
+        // Mask email for security - show only first 2 and last 2 characters
+        email: result.email.replace(/^(.{2}).*(@.*)$/, '$1***$2'),
+        // Mask phone for security - show only last 4 digits
+        phone: result.phone.replace(/^.*(\d{4})$/, '***$1')
+      }));
+
+      setSearchResults(maskedResults);
     } catch (error) {
       showError('Failed to search recipients');
     } finally {
@@ -507,13 +631,28 @@ export const EMIAddMoneyModal = ({ isOpen, onClose, account, type }) => {
     }
   };
 
+
   const selectRecipient = (recipientData) => {
-    setRecipient(recipientType === 'phone' ? recipientData.phone : recipientData.email);
-    setRecipientDetails(recipientData);
+    // Unmask the data for the selected recipient
+    const unmaskedData = {
+      ...recipientData,
+      email: recipientData.email.replace(/^\*{2}\*\*(.*)$/, (match, domain) => {
+        // This is a simplified unmask - in real app, you'd fetch full data from backend
+        const originalEmail = mockResults.find(r => r.id === recipientData.id)?.email;
+        return originalEmail || recipientData.email;
+      }),
+      phone: recipientData.phone.replace(/^\*{3}(\d{4})$/, (match, digits) => {
+        const originalPhone = mockResults.find(r => r.id === recipientData.id)?.phone;
+        return originalPhone || recipientData.phone;
+      })
+    };
+
+    setRecipient(recipientType === 'phone' ? unmaskedData.phone : unmaskedData.email);
+    setRecipientDetails(unmaskedData);
     setShowRecipientSearch(false);
 
     // For non-Vault5 users, show verification step
-    if (!recipientData.vaultUser) {
+    if (!unmaskedData.vaultUser) {
       setShowVerification(true);
     } else {
       setRecipientVerified(true);

@@ -1,4 +1,4 @@
-const { Transaction, User } = require('../models');
+const { Transaction, User, Account } = require('../models');
 const { analyzeTransaction } = require('../services/fraudDetection');
 
 // Get all transactions for a user
@@ -182,10 +182,126 @@ const getTransactionSummary = async (req, res) => {
   }
 };
 
+// P2P Money Transfer between Vault5 users
+const transferToUser = async (req, res) => {
+  try {
+    const { recipientEmail, amount, fromAccountId, description } = req.body;
+    const senderId = req.user._id;
+
+    if (!recipientEmail || !amount || !fromAccountId) {
+      return res.status(400).json({
+        message: 'Recipient email, amount, and from account are required'
+      });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ message: 'Amount must be greater than 0' });
+    }
+
+    // Find recipient user
+    const recipient = await User.findOne({ email: recipientEmail });
+    if (!recipient) {
+      return res.status(404).json({ message: 'Recipient not found' });
+    }
+
+    // Don't allow self-transfer
+    if (recipient._id.toString() === senderId.toString()) {
+      return res.status(400).json({ message: 'Cannot transfer to yourself' });
+    }
+
+    // Find sender's account
+    const senderAccount = await Account.findOne({
+      _id: fromAccountId,
+      user: senderId
+    });
+
+    if (!senderAccount) {
+      return res.status(404).json({ message: 'Sender account not found' });
+    }
+
+    if (senderAccount.balance < amount) {
+      return res.status(400).json({ message: 'Insufficient funds' });
+    }
+
+    // Find recipient's Daily account (default receiving account)
+    const recipientDailyAccount = await Account.findOne({
+      user: recipient._id,
+      type: 'Daily'
+    });
+
+    if (!recipientDailyAccount) {
+      return res.status(404).json({ message: 'Recipient Daily account not found' });
+    }
+
+    // Start transaction
+    const session = await Account.startSession();
+    session.startTransaction();
+
+    try {
+      // Deduct from sender's account
+      senderAccount.balance -= amount;
+      await senderAccount.save({ session });
+
+      // Add to recipient's account
+      recipientDailyAccount.balance += amount;
+      await recipientDailyAccount.save({ session });
+
+      // Create transaction records for both users
+      const senderTransaction = new Transaction({
+        user: senderId,
+        type: 'expense',
+        amount: amount,
+        description: `Transfer to ${recipient.name} - ${description || 'P2P Transfer'}`,
+        category: 'Transfer',
+        date: new Date()
+      });
+
+      const recipientTransaction = new Transaction({
+        user: recipient._id,
+        type: 'income',
+        amount: amount,
+        description: `Transfer from ${req.user.name} - ${description || 'P2P Transfer'}`,
+        category: 'Transfer',
+        date: new Date()
+      });
+
+      await senderTransaction.save({ session });
+      await recipientTransaction.save({ session });
+
+      // Commit transaction
+      await session.commitTransaction();
+
+      res.status(200).json({
+        message: 'Transfer completed successfully',
+        transfer: {
+          amount,
+          recipient: {
+            name: recipient.name,
+            email: recipientEmail
+          },
+          senderAccount: senderAccount.type,
+          recipientAccount: recipientDailyAccount.type
+        }
+      });
+
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+  } catch (error) {
+    console.error('P2P Transfer error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getTransactions,
   createTransaction,
   updateTransaction,
   deleteTransaction,
-  getTransactionSummary
+  getTransactionSummary,
+  transferToUser
 };
