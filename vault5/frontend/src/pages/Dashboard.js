@@ -152,7 +152,8 @@ const Dashboard = () => {
 
   const getProgressPercentage = (account) => {
     // Show allocation compliance % toward target allocation
-    const targetAmount = data.totalBalance * (account.percentage / 100);
+    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const targetAmount = totalBalance * (account.percentage / 100);
     if (targetAmount > 0) {
       return Math.min((account.balance / targetAmount) * 100, 100);
     }
@@ -218,11 +219,7 @@ const Dashboard = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Total Balance</h2>
-          <p className="text-2xl text-blue-600">KES {data.totalBalance?.toFixed(2) || '0.00'}</p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Vault Wallet</h2>
           <p className="text-2xl text-indigo-600">KES {data.walletBalance?.toFixed(2) || '0.00'}</p>
@@ -230,6 +227,10 @@ const Dashboard = () => {
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Health Score</h2>
           <p className="text-2xl text-purple-600">{data.healthScore || 0}%</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-2">Active Accounts</h2>
+          <p className="text-2xl text-green-600">{accounts.length}</p>
         </div>
       </div>
 

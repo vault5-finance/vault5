@@ -792,6 +792,7 @@ export const EMIAddMoneyModal = ({ isOpen, onClose, account, type }) => {
   };
 
 
+
   const selectAddMoneyRecipient = (recipientData) => {
     // Unmask the data for the selected recipient
     const unmaskedData = {
