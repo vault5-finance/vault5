@@ -1,133 +1,383 @@
-# Vault5 Deployment Guide (Free Tier Friendly)
+# 🚀 Vault5 Deployment Guide (Free Tier Friendly)
 
-This guide sets up:
-- Backend API on Render (free Web Service).
-- Frontend React app on Vercel (free).
+**Vault5 v2.0** - Personal Bank + Financial Coach + Discipline Enforcer
 
-Why this split?
-- Vercel free tier is excellent for static/frontend hosting and serverless APIs, but long-running Express backends are simpler to host on Render (free dyno) without major code changes.
+This guide covers deployment of the complete Vault5 platform with:
+- **Transactional wallet** (PayPal/M-Pesa style)
+- **5-account allocation system** (Daily, Emergency, Investment, Long-Term, Fun)
+- **Account rules engine** (transfers, payouts, penalties, locks)
+- **Adaptive spend control** (throttle/emergency modes)
+- **P2P transfers** and **external payouts**
+- **Statements & exports** (PDF/Excel)
 
-Prerequisites
-- GitHub repository connected (push triggers deploys).
-- MongoDB Atlas free cluster (or a reachable MongoDB URI).
-- Basic secrets (JWT secret).
+---
 
-Repo layout
-- Frontend: vault5/frontend (Create React App)
-- Backend: vault5/backend (Express + Mongoose)
+## 🏗️ Architecture Overview
 
-1) Backend (Render) — Free Web Service
-a. Create service
-- Go to https://render.com -> New -> Web Service -> Connect your GitHub repo.
-- Root directory: vault5/backend
-- Runtime: Node
-- Build Command: npm install
-- Start Command: npm start
+**Frontend:** React SPA (Vercel/Netlify)
+**Backend:** Express.js API (Render/Railway/Heroku)
+**Database:** MongoDB Atlas (free tier)
+**File Storage:** Cloudinary (free tier) or AWS S3
 
-b. Environment variables (Render Settings -> Environment)
-Use the following values for this project. Replace placeholders in angle brackets with your real credentials (do not include the brackets).
+**Why this split?**
+- Vercel/Netlify: Perfect for static React apps, fast global CDN
+- Render/Railway: Better for long-running Express backends with WebSockets
+- MongoDB Atlas: Global, scalable, free tier with 512MB storage
 
-Required (Backend)
-- MONGO_URI = mongodb+srv://<username>:<password>@<cluster>.mongodb.net/vault5?retryWrites=true&w=majority&appName=<appName>
-  Example: mongodb+srv://vault5_admin:S3cureP@ss!@cluster0.abcde.mongodb.net/vault5?retryWrites=true&w=majority&appName=vault5-prod
+---
 
-- JWT_SECRET = <any-long-random-secret>
-  Generate one (Mac/Linux): openssl rand -base64 48
-  Generate one (Node REPL): require('crypto').randomBytes(48).toString('base64')
+## 📋 Prerequisites
 
-- NODE_ENV = production
+- **GitHub repository** connected (auto-deploys on push)
+- **MongoDB Atlas** free cluster (512MB storage)
+- **Email service** (Gmail/SMTP or SendGrid free tier)
+- **Payment providers** (M-Pesa/Airtel/Bank simulation in dev)
 
-CORS (Backend)
-- CORS_ALLOWED_ORIGINS = https://<your-vercel-domain>.vercel.app
-  Example after deploying frontend: https://vault5-frontend.vercel.app
-  Note: You may temporarily use * during first-time testing, but restrict it to your Vercel domain for production.
+---
 
-Optional (Local dev fallback)
-- If you want to use local MongoDB during development: MONGO_URI = mongodb://localhost:27017/vault5
-- PORT = 5000 (only if you need to override default)
+## 🚀 Option 1: Vercel + Render (Recommended)
 
-Frontend (Vercel Project Settings -> Environment Variables)
-- REACT_APP_API_URL = https://<your-render-backend>.onrender.com
-  Example: https://vault5-backend.onrender.com
+### Backend (Render) - Free Web Service
 
-c. Disk/Networking
-- No persistent disk needed.
-- Keep free plan.
+1. **Create Render Service**
+   - Go to [render.com](https://render.com) → New → Web Service
+   - Connect your GitHub repo
+   - **Root directory:** `vault5/backend`
+   - **Runtime:** Node
+   - **Build Command:** `npm install`
+   - **Start Command:** `npm start`
 
-d. Deploy
-- Click Deploy.
-- Note the Render service URL, e.g. https://vault5-backend.onrender.com
-- Test: https://vault5-backend.onrender.com/ should return JSON: “Vault5 Backend API is running!”
+2. **Environment Variables** (Render Dashboard → Environment)
+   ```bash
+   # Required - Database
+   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/vault5?retryWrites=true&w=majority
 
-2) Frontend (Vercel) — Free Static (React) Hosting
-a. Prepare frontend env
-- Create vault5/frontend/.env (Vercel will manage this online, but for local testing you can use):
-  REACT_APP_API_URL=https://vault5-backend.onrender.com
+   # Required - Security
+   JWT_SECRET=your-super-long-random-secret-here
+   NODE_ENV=production
 
-- In repo already: src/services/api.js reads REACT_APP_API_URL, falling back to localhost.
+   # Required - CORS
+   CORS_ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app
 
-b. Import project
-- Go to https://vercel.com -> New Project -> Import from GitHub.
-- Root directory: vault5/frontend
-- Framework Preset: Create React App
-- Build Command: npm run build (auto)
-- Output Directory: build (auto)
+   # Required - Email (for notifications)
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
 
-c. Vercel Environment Variables (Project Settings -> Environment Variables)
-- REACT_APP_API_URL = https://vault5-backend.onrender.com
-- Scope: Production (and Preview if needed)
+   # Optional - Features (enable/disable)
+   ENABLE_ADAPTIVE_SPEND=true
+   ENABLE_ACCOUNT_RULES=true
+   ENABLE_LENDING=true
 
-d. Deploy
-- Deploy once variables are set.
-- Note the Vercel domain, e.g. https://vault5-frontend.vercel.app
-- Update CORS_ALLOWED_ORIGINS on Render to include this domain, then redeploy backend.
+   # Optional - Limits & Thresholds
+   DAILY_TRANSFER_LIMIT=50000
+   MONTHLY_EMERGENCY_PAYOUTS=2
+   LONG_TERM_LOCK_DAYS=90
 
-3) Verify Integration
-- Open Vercel URL and log in with seeded account or create a new account.
-- Confirm API calls use the Render URL by inspecting network requests (should hit https://vault5-backend.onrender.com/api/...).
+   # Optional - External Services
+   CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
+   ```
 
-4) Performance Optimizations Done
-- Frontend:
-  - React code-splitting with lazy() + Suspense: routes are loaded on demand.
-  - Tailwind safelist to keep dynamic admin color classes from being purged (reduces runtime recomputation and avoids FOUC).
-- Backend:
-  - Compression and Helmet enabled for GZIP and secure headers.
-  - Static uploads served with caching hints.
-  - CORS narrowed via CORS_ALLOWED_ORIGINS env var.
+3. **Deploy & Test**
+   - Click **Deploy**
+   - Note your Render URL: `https://vault5-backend.onrender.com`
+   - Test: Visit URL → should return "Vault5 Backend API is running!"
 
-5) Optional Local Dev
-- Backend: cd vault5/backend && npm install && npm run dev (PORT=5000)
-- Frontend: cd vault5/frontend && npm install && npm start (proxy is set for localhost)
+### Frontend (Vercel) - Free Static Hosting
 
-6) GitHub Workflow
-- Push any changes:
-  - git add -A
-  - git commit -m "Deploy: admin user mgmt, legal pages, perf (lazy+gzip+helmet)"
-  - git push
-- Render auto-deploys backend.
-- Vercel auto-deploys frontend.
+1. **Import Project**
+   - Go to [vercel.com](https://vercel.com) → New Project → Import GitHub
+   - **Root directory:** `vault5/frontend`
+   - **Framework:** Create React App
+   - **Build Settings:** Auto-detected
 
-7) Troubleshooting
-- CORS: If you get CORS errors on Vercel, ensure Render’s CORS_ALLOWED_ORIGINS includes your Vercel URL, and that frontend REACT_APP_API_URL points to Render backend.
-- Env propagation: After updating env vars, redeploy the service.
-- Slow first load on Render: Free instances may cold-start. Subsequent requests will be faster.
-- Tailwind classes not applied for admin sidebar: Already safelisted.
+2. **Environment Variables** (Vercel Dashboard → Settings → Environment Variables)
+   ```bash
+   REACT_APP_API_URL=https://vault5-backend.onrender.com
+   REACT_APP_ENV=production
+   ```
 
-8) Free-tier Notes
-- Render free dynos can sleep; first request might be slow (cold start).
-- Vercel serves static frontend without cold start. API roundtrips to Render may occasionally cold-start.
+3. **Deploy**
+   - Deploy automatically
+   - Note your Vercel domain: `https://vault5-frontend.vercel.app`
+   - Update Render's `CORS_ALLOWED_ORIGINS` to include this domain
 
-9) Security Notes
-- Do not commit real secrets. Keep using .env and Render/Vercel variable managers.
-- JWT_SECRET should be long and random.
-- As you scale, consider dedicated plans or container hosting for the backend and a managed secret store.
+---
 
-Appendix: Minimal Variables Recap
-Backend (Render):
-- MONGO_URI
-- JWT_SECRET
-- NODE_ENV=production
-- CORS_ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app
+## 🚀 Option 2: Netlify + Railway
 
-Frontend (Vercel):
-- REACT_APP_API_URL=https://your-render-backend.onrender.com
+### Backend (Railway) - Free Tier
+
+1. **Create Railway Project**
+   - Go to [railway.app](https://railway.app) → New Project → GitHub
+   - **Root directory:** `vault5/backend`
+   - **Build Command:** `npm install`
+   - **Start Command:** `npm start`
+
+2. **Environment Variables** (Railway Dashboard → Variables)
+   ```bash
+   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/vault5
+   JWT_SECRET=your-super-long-random-secret-here
+   NODE_ENV=production
+   CORS_ALLOWED_ORIGINS=https://your-frontend-domain.netlify.app
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   ```
+
+### Frontend (Netlify) - Free Tier
+
+1. **Import Project**
+   - Go to [netlify.com](https://netlify.com) → New site from Git → GitHub
+   - **Base directory:** `vault5/frontend`
+   - **Build command:** `npm run build`
+   - **Publish directory:** `build`
+
+2. **Environment Variables** (Netlify Dashboard → Site settings → Environment variables)
+   ```bash
+   REACT_APP_API_URL=https://your-railway-backend.up.railway.app
+   ```
+
+---
+
+## 🚀 Option 3: Heroku + Netlify (Alternative)
+
+### Backend (Heroku) - Free Dynos
+
+1. **Create Heroku App**
+   ```bash
+   # Install Heroku CLI first
+   heroku create vault5-backend
+   heroku buildpacks:add heroku/nodejs
+   ```
+
+2. **Deploy**
+   ```bash
+   git subtree push --prefix vault5/backend heroku main
+   ```
+
+3. **Config Variables** (Heroku Dashboard → Settings → Config Vars)
+   ```bash
+   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/vault5
+   JWT_SECRET=your-super-long-random-secret-here
+   NODE_ENV=production
+   CORS_ALLOWED_ORIGINS=https://your-frontend-domain.netlify.app
+   ```
+
+### Frontend (Netlify) - Same as Option 2
+
+---
+
+## 🚀 Option 4: Firebase + Railway (Full Google Stack)
+
+### Backend (Railway) - Same as Option 2
+
+### Frontend (Firebase Hosting) - Free Tier
+
+1. **Install Firebase CLI**
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   ```
+
+2. **Initialize & Deploy**
+   ```bash
+   cd vault5/frontend
+   firebase init hosting
+   # Choose build directory, no SPA redirect
+   npm run build
+   firebase deploy
+   ```
+
+---
+
+## 🚀 Option 5: AWS Free Tier (S3 + EC2/Elastic Beanstalk)
+
+### Backend (Elastic Beanstalk) - 12 Months Free
+
+1. **Create EB Application**
+   - AWS Console → Elastic Beanstalk → Create Application
+   - Platform: Node.js
+   - Upload `vault5/backend` as ZIP
+
+2. **Environment Variables** (EB Console → Configuration → Software)
+   ```bash
+   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/vault5
+   JWT_SECRET=your-super-long-random-secret-here
+   NODE_ENV=production
+   ```
+
+### Frontend (S3 + CloudFront) - 12 Months Free
+
+1. **Build and Upload**
+   ```bash
+   cd vault5/frontend
+   npm run build
+   aws s3 sync build/ s3://your-bucket-name
+   ```
+
+2. **Enable Static Hosting**
+   - S3 Console → Properties → Static website hosting
+   - Index document: `index.html`
+
+---
+
+## 🔧 Post-Deployment Setup
+
+### 1. Database Migration
+After first deploy, run migration to set up 5-account system:
+```bash
+# Backend will auto-run migration on startup if MIGRATE_FIVE_ACCOUNTS=true
+# Set this in your deployment platform's environment variables
+```
+
+### 2. Test Key Endpoints
+```bash
+# Health check
+curl https://your-backend.com/
+
+# Auth test
+curl -X POST https://your-backend.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password"}'
+
+# Accounts test
+curl https://your-backend.com/api/accounts \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### 3. Enable Features
+Set these environment variables to enable new features:
+```bash
+ENABLE_ADAPTIVE_SPEND=true
+ENABLE_ACCOUNT_RULES=true
+ENABLE_LENDING=true
+ENABLE_TRANSFERS=true
+ENABLE_PAYOUTS=true
+```
+
+---
+
+## 📊 Performance Optimizations
+
+### Frontend Optimizations
+- ✅ React lazy loading + Suspense
+- ✅ Tailwind CSS purging
+- ✅ Image optimization
+- ✅ Code splitting
+
+### Backend Optimizations
+- ✅ Compression middleware
+- ✅ Helmet security headers
+- ✅ CORS optimization
+- ✅ Database connection pooling
+- ✅ Response caching
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **CORS Errors**
+   - Ensure `CORS_ALLOWED_ORIGINS` includes your frontend domain
+   - Redeploy backend after updating CORS
+
+2. **Database Connection Failed**
+   - Verify MongoDB Atlas IP whitelist (0.0.0.0/0 for all)
+   - Check network access in Atlas dashboard
+   - Test connection: `mongosh "your-mongo-uri"`
+
+3. **Build Failures**
+   - Check Node.js version compatibility
+   - Verify all dependencies in package.json
+   - Check build logs in deployment dashboard
+
+4. **Memory Issues (Free Tier)**
+   - Render/Railway free tier has memory limits
+   - Consider upgrading if you hit limits frequently
+   - Monitor usage in dashboard
+
+5. **Cold Start Delays**
+   - Free tier services sleep when inactive
+   - First request after sleep may take 10-30 seconds
+   - Consider pinging service every 5 minutes to keep warm
+
+---
+
+## 🔒 Security Checklist
+
+- [ ] JWT_SECRET is long and random (48+ characters)
+- [ ] MongoDB Atlas has strong password
+- [ ] CORS restricted to your domains only
+- [ ] Environment variables not committed to Git
+- [ ] HTTPS enforced (automatic on most platforms)
+- [ ] Database IP whitelist configured
+- [ ] SMTP credentials use app passwords (not main password)
+
+---
+
+## 📈 Monitoring & Analytics
+
+### Free Monitoring Options
+
+1. **Railway/Netlify Dashboard**
+   - Built-in analytics and logs
+   - Performance metrics
+   - Error tracking
+
+2. **MongoDB Atlas**
+   - Database performance
+   - Query analytics
+   - Real-time metrics
+
+3. **External Services**
+   - Sentry (free tier) for error tracking
+   - Google Analytics for user behavior
+
+---
+
+## 🚀 Scaling Beyond Free Tier
+
+When ready to scale:
+
+1. **Database:** MongoDB Atlas paid clusters
+2. **Backend:** Railway/Heroku paid dynos or AWS ECS
+3. **Frontend:** Vercel/Netlify Pro plans
+4. **CDN:** CloudFlare for global acceleration
+5. **Monitoring:** DataDog/New Relic
+
+---
+
+## 📞 Support
+
+- **GitHub Issues:** For deployment problems
+- **Discord:** Community support
+- **Documentation:** Check updated docs in `/vault5/docs/`
+
+---
+
+## 🎯 Quick Start Commands
+
+```bash
+# 1. Set up MongoDB Atlas (free)
+# Visit mongodb.com/atlas → Create free cluster
+
+# 2. Deploy Backend (choose one)
+# Render: render.com → New Web Service
+# Railway: railway.app → New Project
+# Heroku: heroku create vault5-backend
+
+# 3. Deploy Frontend (choose one)
+# Vercel: vercel.com → New Project
+# Netlify: netlify.com → New site from Git
+
+# 4. Set environment variables (see sections above)
+
+# 5. Test deployment
+curl https://your-backend.com/
+```
+
+**Happy deploying! 🚀**
