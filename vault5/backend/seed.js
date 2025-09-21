@@ -97,6 +97,84 @@ const backfillUsers = async () => {
   console.log('Wallet designation backfill complete');
 };
 
+// Migrate existing users to 5-account model (remove Charity; set new percentages)
+// - Move any Charity balance to LongTerm
+// - Ensure accounts set: Daily 50, Emergency 10, Investment 20, LongTerm 10, Fun 10
+// - Update Fun from 5 to 10 percent if needed
+const migrateToFiveAccounts = async () => {
+  if (process.env.MIGRATE_FIVE_ACCOUNTS !== 'true') {
+    console.log('Skipping 5-account migration (set MIGRATE_FIVE_ACCOUNTS=true to run)');
+    return;
+  }
+  console.log('Running 5-account model migration...');
+
+  const usersCursor = User.find({}, { _id: 1 }).cursor();
+  let updatedUsers = 0;
+
+  for await (const u of usersCursor) {
+    const accounts = await Account.find({ user: u._id });
+    if (!accounts.length) continue;
+
+    const byType = Object.fromEntries(accounts.map(a => [a.type, a]));
+    // Move Charity -> LongTerm then remove Charity
+    if (byType['Charity']) {
+      const charity = byType['Charity'];
+      const amt = Number(charity.balance || 0);
+      if (!byType['LongTerm']) {
+        // Create LongTerm if missing
+        const lt = await Account.create({
+          user: u._id,
+          type: 'LongTerm',
+          percentage: 10,
+          balance: 0,
+          target: 0,
+          status: 'green',
+          isWallet: false,
+          isAutoDistribute: true
+        });
+        byType['LongTerm'] = lt;
+      }
+      if (amt > 0) {
+        await Account.updateOne({ _id: byType['LongTerm']._id }, { $inc: { balance: amt } });
+      }
+      await Account.deleteOne({ _id: charity._id });
+      delete byType['Charity'];
+    }
+
+    // Ensure required accounts exist with target percentages
+    const targetPerc = {
+      Daily: 50,
+      Emergency: 10,
+      Investment: 20,
+      LongTerm: 10,
+      Fun: 10,
+    };
+
+    for (const [type, perc] of Object.entries(targetPerc)) {
+      if (!byType[type]) {
+        const created = await Account.create({
+          user: u._id,
+          type,
+          percentage: perc,
+          balance: 0,
+          target: 0,
+          status: 'green',
+          isWallet: type === 'Daily',
+          isAutoDistribute: true
+        });
+        byType[type] = created;
+      } else {
+        // Update percentage (e.g., set Fun to 10 if previously 5)
+        await Account.updateOne({ _id: byType[type]._id }, { $set: { percentage: perc } });
+      }
+    }
+
+    updatedUsers++;
+  }
+
+  console.log(`5-account migration complete. Users updated: ${updatedUsers}`);
+};
+
 const seedAdminUsers = async () => {
   try {
     const uri = process.env.MONGO_URI;
@@ -114,6 +192,9 @@ const seedAdminUsers = async () => {
 
     // Backfill user compliance fields and wallet designation
     await backfillUsers();
+
+    // Optional migration: enable by setting MIGRATE_FIVE_ACCOUNTS=true in env
+    await migrateToFiveAccounts();
 
     const adminUsers = [
       {
@@ -172,14 +253,13 @@ const seedAdminUsers = async () => {
       });
       await user.save();
 
-      // Create default accounts for each admin
+      // Create default accounts for each admin (5-account model)
       const defaults = [
         { type: 'Daily', percentage: 50 },
         { type: 'Emergency', percentage: 10 },
         { type: 'Investment', percentage: 20 },
         { type: 'LongTerm', percentage: 10 },
-        { type: 'Fun', percentage: 5 },
-        { type: 'Charity', percentage: 5 },
+        { type: 'Fun', percentage: 10 },
       ];
 
       let createdAccounts = [];

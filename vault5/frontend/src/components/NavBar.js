@@ -137,7 +137,7 @@ const NavBar = () => {
                       <Link to="/reports" className="nav-link">Reports</Link>
                       <Link to="/lending" className="nav-link">Lending</Link>
                       <Link to="/loans" className="nav-link">Loans</Link>
-                      <Link to="/investments" className="nav-link">Investments</Link>
+                      <Link to="/accounts" className="nav-link">Accounts</Link>
                       <Link to="/compliance" className="nav-link">Compliance</Link>
                       <Link to="/settings" className="nav-link">Settings</Link>
                       <Link to="/profile" className="nav-link">Profile</Link>
@@ -367,7 +367,7 @@ const NavBar = () => {
                     <Link to="/reports" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Reports</Link>
                     <Link to="/lending" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Lending</Link>
                     <Link to="/loans" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Loans</Link>
-                    <Link to="/investments" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Investments</Link>
+                    <Link to="/accounts" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Accounts</Link>
                     <Link to="/compliance" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Compliance</Link>
                     <Link to="/blog" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Blog</Link>
                     <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>About</Link>

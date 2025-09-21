@@ -8,7 +8,7 @@ const accountSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['Daily', 'Emergency', 'Investment', 'LongTerm', 'Fun', 'Charity'],
+    enum: ['Daily', 'Emergency', 'Investment', 'LongTerm', 'Fun'],
     required: true
   },
   percentage: {

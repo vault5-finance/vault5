@@ -8,170 +8,6 @@ import { useToast } from '../contexts/ToastContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement);
 
-// Add Income Modal Component
-const AddIncomeModal = ({ isOpen, onClose, onSuccess }) => {
-  const [form, setForm] = useState({ amount: '', description: '', tag: '', target: 'auto' });
-  const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newErrors = {};
-
-    if (!form.amount || form.amount <= 0) newErrors.amount = 'Valid amount is required';
-    if (!form.description.trim()) newErrors.description = 'Description is required';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await api.post('/api/accounts/income', {
-        amount: parseFloat(form.amount),
-        description: form.description.trim(),
-        tag: form.tag.trim() || undefined,
-        target: form.target
-      });
-
-      setForm({ amount: '', description: '', tag: '' });
-      onSuccess();
-      onClose();
-    } catch (error) {
-      const errorMessage = error?.response?.data?.message || 'Failed to add income';
-      setErrors({ general: errorMessage });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose}></div>
-      <div className="relative z-50 bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Add Income</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {errors.general && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {errors.general}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (KES)</label>
-              <input
-                type="number"
-                name="amount"
-                value={form.amount}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.amount ? 'border-red-500' : ''}`}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                required
-              />
-              {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <input
-                type="text"
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.description ? 'border-red-500' : ''}`}
-                placeholder="Salary, Business income, etc."
-                required
-              />
-              {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tag (optional)</label>
-              <input
-                type="text"
-                name="tag"
-                value={form.tag}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Business, Freelance, etc."
-              />
-              <p className="text-xs text-gray-500 mt-1">Tagged income bypasses automatic allocation</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-              <div className="flex items-center space-x-4">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="target"
-                    value="auto"
-                    checked={form.target === 'auto'}
-                    onChange={handleChange}
-                    className="text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Auto-distribute by allocations</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="target"
-                    value="wallet"
-                    checked={form.target === 'wallet'}
-                    onChange={handleChange}
-                    className="text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Deposit to Wallet</span>
-                </label>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">If a Tag is provided, it will bypass allocation/destination and be logged only.</p>
-            </div>
-
-            <div className="flex space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Adding...' : 'Add Income'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 // Generate AI insights based on user data
@@ -249,7 +85,6 @@ const Dashboard = () => {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
   const navigate = useNavigate();
 
@@ -324,9 +159,6 @@ const Dashboard = () => {
     return 0; // Default to 0 if no target
   };
 
-  const handleAddIncome = () => {
-    setShowIncomeModal(true);
-  };
 
   const handleAddFunds = () => {
     setShowAddFundsModal(true);
@@ -363,7 +195,7 @@ const Dashboard = () => {
 
       {/* Primary Actions */}
       <div className="mb-8">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={handleAddFunds}
             className="p-4 md:p-5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow hover:from-green-600 hover:to-emerald-700 transition font-semibold text-base md:text-lg"
@@ -375,6 +207,12 @@ const Dashboard = () => {
             className="p-4 md:p-5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-lg shadow hover:from-indigo-600 hover:to-blue-700 transition font-semibold text-base md:text-lg"
           >
             ⇄ Send Money
+          </button>
+          <button
+            onClick={() => navigate('/accounts')}
+            className="p-4 md:p-5 bg-gradient-to-r from-slate-500 to-gray-600 text-white rounded-lg shadow hover:from-slate-600 hover:to-gray-700 transition font-semibold text-base md:text-lg"
+          >
+            Vault Accounts
           </button>
         </div>
       </div>
@@ -527,49 +365,19 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* 6 Account Cards */}
+      {/* Accounts quick link */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-6">Your Vault Accounts</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {accounts.map((account) => (
-            <div key={account._id} className="card border-l-4" style={{ borderLeftColor: getStatusColor(account.status) }}>
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">{account.type}</h3>
-                <span className="px-2 py-1 rounded-full text-xs font-medium" style={{
-                  backgroundColor: getStatusBgColor(account.status),
-                  color: getStatusColor(account.status)
-                }}>
-                  {account.status === 'green' ? 'On Target' :
-                   account.status === 'red' ? 'Behind' : 'Surplus'}
-                </span>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-2xl font-bold text-gray-900">KES {account.balance?.toFixed(2) || '0.00'}</p>
-                <p className="text-sm text-gray-600">Target: {account.percentage}%</p>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex justify-between text-sm text-gray-600 mb-1">
-                  <span>Progress</span>
-                  <span>{getProgressPercentage(account).toFixed(0)}%</span>
-                </div>
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill transition-all duration-300"
-                    style={{
-                      width: `${getProgressPercentage(account)}%`,
-                      backgroundColor: getStatusColor(account.status)
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              {account.balance === 0 && (
-                <p className="text-sm text-gray-500">No funds allocated yet. Add income to get started.</p>
-              )}
-            </div>
-          ))}
+        <div className="bg-white p-6 rounded-lg shadow flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold mb-1">Vault Accounts</h2>
+            <p className="text-sm text-gray-600">Manage Daily, Fun, Emergency, Long-Term, and Investment rules and actions.</p>
+          </div>
+          <button
+            onClick={() => navigate('/accounts')}
+            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+          >
+            Open Accounts Center
+          </button>
         </div>
       </div>
 
@@ -587,12 +395,6 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={handleAddIncome}
-              className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm"
-            >
-              Record Income (Manual)
-            </button>
-            <button
               onClick={() => showInfo('Send Money feature coming soon!')}
               className="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium text-sm"
             >
@@ -609,12 +411,6 @@ const Dashboard = () => {
               className="p-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 font-medium text-sm"
             >
               View History
-            </button>
-            <button
-              onClick={handleManageInvestments}
-              className="p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200 font-medium text-sm col-span-2"
-            >
-              Manage Investments
             </button>
           </div>
         </div>
@@ -682,13 +478,6 @@ const Dashboard = () => {
           </div>
         )}
       </div>
-
-      {/* Add Income Modal */}
-      <AddIncomeModal
-        isOpen={showIncomeModal}
-        onClose={() => setShowIncomeModal(false)}
-        onSuccess={handleIncomeSuccess}
-      />
 
       <AddFundsModal
         isOpen={showAddFundsModal}

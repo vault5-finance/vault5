@@ -19,7 +19,6 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Lending = lazy(() => import('./pages/Lending'));
 const Loans = lazy(() => import('./pages/Loans'));
-const Investments = lazy(() => import('./pages/Investments'));
 const Transactions = lazy(() => import('./pages/Transactions'));
 const Blog = lazy(() => import('./pages/Blog'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -42,6 +41,7 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const LegalCenter = lazy(() => import('./pages/LegalCenter'));
 const PolicyUpdates = lazy(() => import('./pages/PolicyUpdates'));
 const ComplianceCenter = lazy(() => import('./pages/ComplianceCenter'));
+const AccountsCenter = lazy(() => import('./pages/AccountsCenter'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -111,7 +111,7 @@ function App() {
                 Vault5 helps individuals practice financial discipline and reach freedom sooner.
               </p>
               <ul className="mt-4 list-disc pl-6 text-gray-700">
-                <li>6-vault allocation: Daily, Emergency, Investments, Long-Term, Fun, Charity</li>
+                <li>5-vault allocation: Daily, Emergency, Investments, Long-Term, Fun</li>
                 <li>Smart budgets, cashflow, and health score</li>
                 <li>Lending rules and surplus nudges for better habits</li>
               </ul>
@@ -157,7 +157,7 @@ function App() {
                 Native apps with offline mode, instant notifications, and biometric login.
               </p>
               <ul className="mt-4 list-disc pl-6 text-gray-700">
-                <li>Tap-to-allocate income into your 6 vaults</li>
+                <li>Tap-to-allocate income into your 5 vaults</li>
                 <li>Track goals and loans anywhere</li>
                 <li>Android/iOS store links coming soon</li>
               </ul>
@@ -236,10 +236,10 @@ function App() {
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/accounts" element={<ProtectedRoute><AccountsCenter /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/lending" element={<ProtectedRoute><Lending /></ProtectedRoute>} />
         <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
-        <Route path="/investments" element={<ProtectedRoute><Investments /></ProtectedRoute>} />
         <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
