@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import ContactBasedLendingModal from '../components/ContactBasedLendingModal';
 import { useToast } from '../contexts/ToastContext';
+import ContactBasedLendingModal from '../components/ContactBasedLendingModal';
 
 const Lending = () => {
   const { showError, showSuccess } = useToast();
@@ -185,7 +185,7 @@ const Lending = () => {
         )}
       </div>
 
-      <LoanRequestModal
+      <ContactBasedLendingModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSubmit={handleLoanRequest}
