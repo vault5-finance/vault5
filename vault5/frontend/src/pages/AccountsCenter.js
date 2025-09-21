@@ -102,6 +102,18 @@ export default function AccountsCenter() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // EMI Modal states
+  const [transferModal, setTransferModal] = useState({
+    isOpen: false,
+    account: null,
+    type: ''
+  });
+  const [addMoneyModal, setAddMoneyModal] = useState({
+    isOpen: false,
+    account: null,
+    type: ''
+  });
+
   const orderedAccounts = useMemo(() => {
     const order = ['Daily', 'Fun', 'Emergency', 'LongTerm', 'Investment'];
     const filtered = (accounts || []).filter(a => a.type !== 'Charity');
@@ -148,6 +160,10 @@ export default function AccountsCenter() {
       return;
     }
     setAddMoneyModal({ isOpen: true, account: acc, type });
+  };
+
+  const onAddMoneyGeneric = (acc) => {
+    setAddMoneyModal({ isOpen: true, account: acc, type: 'M-Pesa' });
   };
 
   const onInternalTransfer = (acc) => {
@@ -335,7 +351,7 @@ export default function AccountsCenter() {
                     <div className="grid grid-cols-2 gap-2">
                       {rules.canReceiveMpesa && (
                         <button
-                          onClick={() => onAddMoney(acc)}
+                          onClick={() => onAddMoneyGeneric(acc, 'M-Pesa')}
                           className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           M-Pesa
@@ -343,7 +359,7 @@ export default function AccountsCenter() {
                       )}
                       {rules.canReceiveBank && (
                         <button
-                          onClick={() => onAddMoney(acc)}
+                          onClick={() => onAddMoneyGeneric(acc, 'Bank')}
                           className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Bank
@@ -351,7 +367,7 @@ export default function AccountsCenter() {
                       )}
                       {rules.canReceiveCard && (
                         <button
-                          onClick={() => onAddMoney(acc)}
+                          onClick={() => onAddMoneyGeneric(acc, 'Card')}
                           className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Card
@@ -359,7 +375,7 @@ export default function AccountsCenter() {
                       )}
                       {rules.canReceiveP2P && (
                         <button
-                          onClick={() => onAddMoney(acc)}
+                          onClick={() => onAddMoneyGeneric(acc, 'Vault User')}
                           className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Vault User

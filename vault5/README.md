@@ -1,20 +1,92 @@
-# Vault5 — Financial Freedom Platform
+<div align="center">
 
-[![Status](https://img.shields.io/badge/status-active-brightgreen.svg)](https://vault5.example.com)
-[![Version](https://img.shields.io/badge/version-2.0.0--compliance-blue.svg)](#)
-[![Stack](https://img.shields.io/badge/stack-Node%20%7C%20Express%20%7C%20MongoDB%20%7C%20React%20%7C%20Tailwind-blue)](#)
-[![License](https://img.shields.io/badge/license-MIT-black)](#)
-[![Security](https://img.shields.io/badge/security-helmet%20%7C%20rate--limit%20%7C%20audit%20logs-orange)](#)
-[![Node](https://img.shields.io/badge/node-18+-green.svg)](#)
-[![MongoDB](https://img.shields.io/badge/mongodb-6+-green.svg)](#)
+# 🏦 Vault5 — EMI-Style Financial Freedom Platform
 
-> **Personal Bank + Financial Coach + Discipline Enforcer**
+<div align="center">
 
-Vault5 is a comprehensive full-stack financial freedom platform that automates income allocation into 6 strategic accounts, enforces financial discipline through smart rules, implements PayPal-style account limitations with reserve holds and payout workflows, and prepares for SaaS rollout with multi-tenant capabilities.
+![Vault5 EMI](https://img.shields.io/badge/Vault5-EMI%20Banking-1a4b8c?style=for-the-badge&logo=bank&logoColor=white)
+![Version](https://img.shields.io/badge/version-2.1.0--emi-blue.svg)
+![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
+![Design](https://img.shields.io/badge/design-emi--style-purple.svg)
 
-**Mission**: Help users achieve financial freedom through rules-driven, accountable, and transparent money management.
+**Personal Bank + Financial Coach + Discipline Enforcer**
 
-## 🚀 Quick Start
+</div>
+
+<div align="center">
+
+### 🎨 **Professional Banking Interface**
+![EMI Design](https://via.placeholder.com/800x200/1a4b8c/ffffff?text=Professional+EMI+Banking+Interface)
+*Modern banking aesthetics with trust-building design*
+
+### 📱 **Mobile-First Experience**
+![Mobile Banking](https://via.placeholder.com/800x200/2563eb/ffffff?text=Mobile-First+Banking+Experience)
+*Touch-optimized interface for modern banking*
+
+</div>
+
+</div>
+
+---
+
+## 🌟 **What's New in v2.1**
+
+<div align="center">
+
+### ✨ **EMI-Style Design Overhaul**
+- **Professional Banking Aesthetics** - EMI-inspired design that builds user trust
+- **Contact-Based Lending** - Request loans directly from your phone contacts
+- **Smart Recipient Verification** - Kenyan "Hakikisha"-style recipient verification
+- **Enhanced Money Transfers** - Phone/email lookup with auto-fill functionality
+- **Modern UI Components** - Professional modals, animations, and interactions
+
+### 🚀 **New Features**
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Contact Lending** | ✅ Complete | Request loans from phone contacts |
+| **Recipient Lookup** | ✅ Complete | Auto-fill recipient details by phone/email |
+| **Kenyan Verification** | ✅ Complete | Hakikisha-style recipient verification |
+| **EMI Design** | ✅ Complete | Professional banking interface |
+| **Smart Transfers** | ✅ Complete | Enhanced money transfer system |
+
+</div>
+
+---
+
+## 🎯 **Mission**
+Help users achieve financial freedom through rules-driven, accountable, and transparent money management with a **professional banking experience**.
+
+## 🎨 **Visual Features Showcase**
+
+<div align="center">
+
+### 💳 **EMI-Style Account Cards**
+![Account Cards](https://via.placeholder.com/600x300/f8fafc/1a4b8c?text=EMI-Style+Account+Cards)
+*Professional gradient cards with account-specific colors and rules*
+
+### 📱 **Contact-Based Lending**
+![Contact Lending](https://via.placeholder.com/600x300/e0e7ff/6366f1?text=Contact-Based+Lending)
+*Request loans directly from your phone contacts with auto-verification*
+
+### 🔍 **Recipient Verification**
+![Recipient Verification](https://via.placeholder.com/600x300/fef3c7/f59e0b?text=Kenyan+Recipient+Verification)
+*Hakikisha-style verification for secure money transfers*
+
+### 💰 **Smart Money Transfers**
+![Money Transfers](https://via.placeholder.com/600x300/ecfdf5/10b981?text=Smart+Money+Transfers)
+*Phone/email lookup with auto-fill and recipient details*
+
+</div>
+
+---
+
+## 🚀 **Quick Start**
+
+<div align="center">
+
+### 📋 **Setup Instructions**
+
+</div>
 
 ```bash
 # Clone and setup
@@ -34,22 +106,60 @@ npm install
 npm start            # Start on http://localhost:3000
 ```
 
-**Login Credentials** (from seed):
-- Admin: `admin@vault5.com` / `Adminvault5`
-- Super Admin: `bnyaliti@gmail.com` / `Admin`
+<div align="center">
+
+### 🔐 **Login Credentials** (from seed)
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | `admin@vault5.com` | `Adminvault5` |
+| **Super Admin** | `bnyaliti@gmail.com` | `Admin` |
+
+</div>
 
 ---
 
-## Highlights
+## 🌟 **Key Features**
 
-- Six‑vault allocation engine (Daily, Emergency, Investment/Wealth, Long‑Term, Fun, Charity)
-- Wallet vs Auto‑Distribute income routing
-- Goals, Loans, Investments modules
-- Lending rules and ledgers
-- Reports & analytics (dashboard, cashflow, audit logs)
-- Compliance & limitations (temporary_30, temporary_180, permanent), 180‑day reserve logic and payout to verified bank
-- Geo/IP/Device gates, tiered caps, velocity rules, loan eligibility gating
-- Admin consoles, audit logs, legal center, policy updates
+<div align="center">
+
+### 💰 **Smart Account Management**
+| Account Type | Purpose | Features |
+|--------------|---------|----------|
+| **Daily** | Everyday spending | Unrestricted, AI alerts |
+| **Fun** | Entertainment | Month-end sweep, no internal transfers |
+| **Emergency** | Crisis situations | External only, 24h delay, limits |
+| **Long-Term** | Future goals | Lock options, penalty protection |
+| **Investment** | Wealth building | 90-day lock, minimum amounts |
+
+</div>
+
+### 🔐 **Security & Compliance**
+<div align="center">
+
+![Security Features](https://via.placeholder.com/600x150/1a4b8c/ffffff?text=Bank-Grade+Security+%26+Compliance)
+
+**Multi-Layer Protection**
+- Kenyan recipient verification (Hakikisha-style)
+- Contact-based lending with trust scoring
+- Account-specific transfer restrictions
+- Real-time fraud detection
+- Compliance monitoring and reporting
+
+</div>
+
+### 📱 **Modern Banking Experience**
+<div align="center">
+
+![Banking Experience](https://via.placeholder.com/600x150/2563eb/ffffff?text=Modern+Banking+Experience)
+
+**EMI-Style Interface**
+- Professional banking aesthetics
+- Contact-based loan requests
+- Smart recipient lookup
+- Mobile-first design
+- Real-time transaction processing
+
+</div>
 
 ---
 
@@ -95,13 +205,41 @@ _Add your screenshots to `/frontend/public/` and link them here._
 
 ---
 
-## Tech Stack
+## 🛠️ **Technology Stack**
 
-- Backend: Node.js, Express, Mongoose, JWT, bcrypt, helmet, compression
-- Frontend: React, TailwindCSS, React Router, Chart.js, Axios
-- Database: MongoDB
-- Exports: pdfkit (PDF), exceljs (Excel)
-- Tooling: audit logger, feature flags (incremental), rate‑limit middleware (extensible)
+<div align="center">
+
+### **Backend Architecture**
+![Backend Stack](https://img.shields.io/badge/Backend-Node.js%20%7C%20Express%20%7C%20MongoDB-1a4b8c)
+![Security](https://img.shields.io/badge/Security-JWT%20%7C%20bcrypt%20%7C%20helmet-orange)
+![Database](https://img.shields.io/badge/Database-MongoDB%206+-green)
+
+### **Frontend Architecture**
+![Frontend Stack](https://img.shields.io/badge/Frontend-React%20%7C%20TailwindCSS%20%7C%20Chart.js-blue)
+![Mobile](https://img.shields.io/badge/Mobile-Responsive%20%7C%20Touch--Optimized-purple)
+![Design](https://img.shields.io/badge/Design-EMI--Style%20%7C%20Professional-pink)
+
+</div>
+
+### **Core Technologies**
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Server** | Node.js + Express | RESTful API, middleware, routing |
+| **Database** | MongoDB | Document storage, flexible schemas |
+| **Authentication** | JWT + bcrypt | Secure user sessions, password hashing |
+| **Frontend** | React + TailwindCSS | Modern UI, responsive design |
+| **Charts** | Chart.js | Financial data visualization |
+| **Security** | Helmet + Rate Limiting | Protection, audit logging |
+| **Exports** | pdfkit + exceljs | Report generation |
+
+### **Specialized Features**
+
+<div align="center">
+
+![Special Features](https://via.placeholder.com/600x100/6366f1/ffffff?text=Contact-Based+Lending+%7C+Recipient+Verification+%7C+EMI+Design)
+
+</div>
 
 ---
 

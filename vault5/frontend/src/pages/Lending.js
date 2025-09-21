@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import LoanRequestModal from '../components/LoanRequestModal';
+import ContactBasedLendingModal from '../components/ContactBasedLendingModal';
 import { useToast } from '../contexts/ToastContext';
 
 const Lending = () => {
@@ -72,19 +72,32 @@ const Lending = () => {
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Lending & Borrowing</h1>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="font-medium text-blue-800 mb-2">Security Notice</h3>
-        <p className="text-sm text-blue-700">
-          All lending requests include automatic security verification including contact validation,
-          trust scoring, amount limits, and MFA for high-value transactions.
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6 mb-6">
+        <h3 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+          <span>🤝</span> Contact-Based Lending
+        </h3>
+        <p className="text-sm text-purple-700 mb-3">
+          Request loans directly from your contacts! Simply select someone from your phone contacts,
+          and we'll automatically verify if they're a Vault5 user and fill in their details.
         </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-purple-600">
+          <div className="flex items-center gap-2">
+            <span>📱</span> Select from contacts
+          </div>
+          <div className="flex items-center gap-2">
+            <span>✅</span> Auto-verify Vault5 users
+          </div>
+          <div className="flex items-center gap-2">
+            <span>🔒</span> Built-in security checks
+          </div>
+        </div>
       </div>
 
       <button
         onClick={() => setShowModal(true)}
-        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-8 font-medium"
+        className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 mb-8 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
       >
-        New Secure Lending Request
+        🤝 Request Loan from Contact
       </button>
 
       <div className="bg-white p-6 rounded-lg shadow-md">
@@ -158,9 +171,16 @@ const Lending = () => {
           ))}
         </div>
         {lendings.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <div className="text-4xl mb-4">🤝</div>
-            <p>No lending history yet. Create your first secure lending request above.</p>
+          <div className="text-center py-12 text-gray-500">
+            <div className="text-6xl mb-4">📱</div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No lending history yet</h3>
+            <p className="mb-4">Start by requesting a loan from someone in your contacts!</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              🤝 Request from Contact
+            </button>
           </div>
         )}
       </div>
