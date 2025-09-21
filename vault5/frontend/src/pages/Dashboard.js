@@ -80,7 +80,7 @@ const generateInsights = (dashboardData, accounts, transactions) => {
 
 const Dashboard = () => {
   const { showInfo } = useToast();
-  const [data, setData] = useState({ netWorth: 0, allocationData: [], healthScore: 0, totalBalance: 0 });
+  const [data, setData] = useState({ allocationData: [], healthScore: 0, totalBalance: 0 });
   const [accounts, setAccounts] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [insights, setInsights] = useState([]);
@@ -219,10 +219,6 @@ const Dashboard = () => {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Net Worth</h2>
-          <p className="text-2xl text-green-600">KES {data.netWorth?.toFixed(2) || '0.00'}</p>
-        </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Total Balance</h2>
           <p className="text-2xl text-blue-600">KES {data.totalBalance?.toFixed(2) || '0.00'}</p>

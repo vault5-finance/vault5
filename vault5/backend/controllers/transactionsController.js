@@ -182,6 +182,172 @@ const getTransactionSummary = async (req, res) => {
   }
 };
 
+// Validate if phone number is tied to user's account for deposits
+const validateDepositPhone = async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    const userId = req.user._id;
+
+    if (!phoneNumber) {
+      return res.status(400).json({
+        message: 'Phone number is required',
+        valid: false
+      });
+    }
+
+    // Clean phone number (remove spaces, dashes, etc.)
+    const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+
+    // Validate phone number format (Kenyan numbers)
+    const kenyanPhoneRegex = /^(\+254|254|0)[17]\d{8}$/;
+    if (!kenyanPhoneRegex.test(cleanPhone)) {
+      return res.status(400).json({
+        message: 'Invalid Kenyan phone number format',
+        valid: false
+      });
+    }
+
+    // Get user details to check tied phone numbers
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found',
+        valid: false
+      });
+    }
+
+    // Check if the phone number matches user's registered phone
+    const userPhone = user.phone?.replace(/[\s\-\(\)]/g, '');
+    const isTiedToAccount = userPhone === cleanPhone;
+
+    // Additional validation - check if phone is in user's trusted contacts
+    const hasTrustedContact = user.trustedContacts?.some(contact =>
+      contact.phone?.replace(/[\s\-\(\)]/g, '') === cleanPhone
+    );
+
+    const isValid = isTiedToAccount || hasTrustedContact;
+
+    res.json({
+      valid: isValid,
+      tiedToAccount: isTiedToAccount,
+      trustedContact: hasTrustedContact,
+      message: isValid
+        ? 'Phone number is authorized for deposits'
+        : 'Phone number is not tied to your account. Only registered phone numbers can be used for deposits.',
+      phoneInfo: {
+        formatted: cleanPhone.startsWith('+254') ? cleanPhone : `+254${cleanPhone.substring(cleanPhone.length - 9)}`,
+        network: cleanPhone.includes('2547') ? 'Airtel' : 'Safaricom'
+      }
+    });
+
+  } catch (error) {
+    console.error('Phone validation error:', error);
+    res.status(500).json({
+      message: 'Phone validation failed',
+      valid: false,
+      error: error.message
+    });
+  }
+};
+
+// Real-time user verification for transfers
+const verifyRecipient = async (req, res) => {
+  try {
+    const { recipientEmail, recipientPhone } = req.body;
+    const senderId = req.user._id;
+
+    if (!recipientEmail && !recipientPhone) {
+      return res.status(400).json({
+        message: 'Recipient email or phone number is required'
+      });
+    }
+
+    // Find recipient user
+    let recipient = null;
+    let searchCriteria = {};
+
+    if (recipientEmail) {
+      searchCriteria.email = recipientEmail;
+    } else if (recipientPhone) {
+      searchCriteria.phone = recipientPhone;
+    }
+
+    recipient = await User.findOne(searchCriteria);
+
+    if (!recipient) {
+      return res.status(404).json({
+        message: 'Recipient not found',
+        verified: false,
+        vaultUser: false
+      });
+    }
+
+    // Don't allow self-verification
+    if (recipient._id.toString() === senderId.toString()) {
+      return res.status(400).json({
+        message: 'Cannot verify yourself',
+        verified: false,
+        vaultUser: true
+      });
+    }
+
+    // Check if recipient account is blocked
+    const isBlocked = recipient.status === 'blocked' || recipient.status === 'suspended';
+
+    // Check if recipient has active accounts
+    const recipientAccounts = await Account.find({
+      user: recipient._id,
+      balance: { $gt: 0 }
+    });
+
+    const hasActiveAccounts = recipientAccounts.length > 0;
+
+    // Kenyan-style verification (Hakikisha simulation)
+    const verificationResult = {
+      verified: true,
+      vaultUser: true,
+      recipient: {
+        id: recipient._id,
+        name: recipient.name,
+        email: recipient.email,
+        phone: recipient.phone,
+        avatar: recipient.avatar || '👤',
+        vaultUsername: recipient.username || `@${recipient.name.toLowerCase().replace(/\s+/g, '')}`,
+        accountNumber: recipient.accountNumber || 'N/A',
+        bankName: recipient.bankName || 'Vault5 Bank'
+      },
+      accountStatus: {
+        isBlocked,
+        hasActiveAccounts,
+        canReceiveTransfers: !isBlocked && hasActiveAccounts,
+        totalBalance: recipientAccounts.reduce((sum, acc) => sum + acc.balance, 0)
+      },
+      crossPlatform: {
+        canReceiveFromMpesa: true,
+        canReceiveFromAirtel: true,
+        canReceiveFromBanks: true,
+        supportedNetworks: ['M-Pesa', 'Airtel Money', 'KCB', 'Equity', 'Co-op', 'DTB']
+      },
+      security: {
+        lastLogin: recipient.lastLogin || new Date(),
+        accountAge: Math.floor((Date.now() - new Date(recipient.createdAt).getTime()) / (1000 * 60 * 60 * 24)), // days
+        trustScore: Math.floor(Math.random() * 30) + 70, // 70-100 trust score
+        verificationLevel: 'high'
+      }
+    };
+
+    res.json(verificationResult);
+
+  } catch (error) {
+    console.error('Recipient verification error:', error);
+    res.status(500).json({
+      message: 'Verification failed',
+      verified: false,
+      error: error.message
+    });
+  }
+};
+
 // P2P Money Transfer between Vault5 users
 const transferToUser = async (req, res) => {
   try {
@@ -303,5 +469,7 @@ module.exports = {
   updateTransaction,
   deleteTransaction,
   getTransactionSummary,
-  transferToUser
+  transferToUser,
+  verifyRecipient,
+  validateDepositPhone
 };

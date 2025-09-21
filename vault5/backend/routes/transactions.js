@@ -6,7 +6,9 @@ const {
   updateTransaction,
   deleteTransaction,
   getTransactionSummary,
-  transferToUser
+  transferToUser,
+  verifyRecipient,
+  validateDepositPhone
 } = require('../controllers/transactionsController');
 const {
   geoGate,
@@ -34,6 +36,12 @@ router.post('/', limitationGateOutgoing, capsGate, velocityGate, createTransacti
 router.put('/:id', updateTransaction);
 router.delete('/:id', deleteTransaction);
 router.get('/summary', getTransactionSummary);
+
+// Real-time recipient verification - minimal security gates for verification
+router.post('/verify-recipient', geoGate, ipDenyGate, deviceGate, verifyRecipient);
+
+// Phone validation for deposits - minimal security gates
+router.post('/validate-deposit-phone', geoGate, ipDenyGate, deviceGate, validateDepositPhone);
 
 // P2P transfer route - must pass all security gates
 router.post('/transfer', limitationGateOutgoing, capsGate, velocityGate, transferToUser);

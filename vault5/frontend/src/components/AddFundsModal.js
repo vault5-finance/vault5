@@ -19,6 +19,13 @@ export default function AddFundsModal({ isOpen, onClose, onSuccess }) {
     phone: '',
   });
 
+  const [phoneValidation, setPhoneValidation] = useState({
+    isValidating: false,
+    isValid: null,
+    message: '',
+    phoneInfo: null
+  });
+
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,11 +39,17 @@ export default function AddFundsModal({ isOpen, onClose, onSuccess }) {
     if (!(amt > 0)) return false;
     if (!form.provider) return false;
     if (!form.target) return false;
-    if ((form.provider === 'mpesa' || form.provider === 'airtel') && !/^\d{10,13}$/.test(String(form.phone || ''))) {
-      return false;
+    if ((form.provider === 'mpesa' || form.provider === 'airtel')) {
+      if (!/^\d{10,13}$/.test(String(form.phone || ''))) {
+        return false;
+      }
+      // Phone must be validated and valid
+      if (phoneValidation.isValid === false) {
+        return false;
+      }
     }
     return true;
-  }, [form]);
+  }, [form, phoneValidation]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,11 +77,51 @@ export default function AddFundsModal({ isOpen, onClose, onSuccess }) {
     onClose && onClose();
   };
 
+  const validatePhoneNumber = async (phone) => {
+    if (!phone || phone.length < 10) {
+      setPhoneValidation({
+        isValidating: false,
+        isValid: null,
+        message: '',
+        phoneInfo: null
+      });
+      return;
+    }
+
+    setPhoneValidation(prev => ({ ...prev, isValidating: true }));
+
+    try {
+      const response = await api.post('/api/transactions/validate-deposit-phone', {
+        phoneNumber: phone
+      });
+
+      setPhoneValidation({
+        isValidating: false,
+        isValid: response.data.valid,
+        message: response.data.message,
+        phoneInfo: response.data.phoneInfo
+      });
+    } catch (error) {
+      console.error('Phone validation error:', error);
+      setPhoneValidation({
+        isValidating: false,
+        isValid: false,
+        message: 'Failed to validate phone number',
+        phoneInfo: null
+      });
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+
+    // Validate phone number when it changes
+    if (name === 'phone') {
+      validatePhoneNumber(value);
     }
   };
 
@@ -279,6 +332,38 @@ export default function AddFundsModal({ isOpen, onClose, onSuccess }) {
                     required
                   />
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+
+                  {/* Phone Validation Status */}
+                  {phoneValidation.isValidating && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      <span className="text-sm text-blue-700">Validating phone number...</span>
+                    </div>
+                  )}
+
+                  {phoneValidation.isValid === true && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center">
+                      <span className="text-green-600 mr-2">✅</span>
+                      <span className="text-sm text-green-700">{phoneValidation.message}</span>
+                      {phoneValidation.phoneInfo && (
+                        <span className="text-xs text-green-600 ml-2">
+                          ({phoneValidation.phoneInfo.network})
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {phoneValidation.isValid === false && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                      <div className="flex items-center">
+                        <span className="text-red-600 mr-2">❌</span>
+                        <span className="text-sm text-red-700">{phoneValidation.message}</span>
+                      </div>
+                      <p className="text-xs text-red-600 mt-1">
+                        Only phone numbers registered to your account can be used for deposits.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

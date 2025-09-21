@@ -3,7 +3,7 @@ import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
 
 export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showInfo } = useToast();
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
   const [recipientType, setRecipientType] = useState('phone'); // 'phone' or 'email'
@@ -15,6 +15,54 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [recipientVerified, setRecipientVerified] = useState(false);
+  const [description, setDescription] = useState('');
+
+  // Mock data for recipient search - shared between components
+  const mockResults = [
+    {
+      id: 1,
+      name: 'Bryson Nyatiti',
+      phone: '+254745959794',
+      email: 'bnyaliti@gmail.com',
+      vaultUser: true,
+      vaultUsername: '@bnyaliti',
+      avatar: '👨‍💼',
+      accountNumber: '12345678901',
+      bankName: 'KCB Bank'
+    },
+    {
+      id: 2,
+      name: 'Collins Oduya',
+      phone: '+254712345678',
+      email: 'collins@gmail.com',
+      vaultUser: true,
+      vaultUsername: '@collins',
+      avatar: '👨‍🔬',
+      accountNumber: '23456789012',
+      bankName: 'Equity Bank'
+    },
+    {
+      id: 3,
+      name: 'Sarah Wilson',
+      phone: '+254723456789',
+      email: 'sarah.wilson@email.com',
+      vaultUser: true,
+      vaultUsername: '@sarahw',
+      avatar: '👩‍💻',
+      accountNumber: '34567890123',
+      bankName: 'Co-operative Bank'
+    },
+    {
+      id: 4,
+      name: 'Mike Johnson',
+      phone: '+254734567890',
+      email: 'mike.j@email.com',
+      vaultUser: false,
+      avatar: '👨‍🔬',
+      accountNumber: '45678901234',
+      bankName: 'DTB Bank'
+    }
+  ];
 
   if (!isOpen) return null;
 
@@ -211,6 +259,47 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
     }
   };
 
+
+  // Kenyan-style recipient verification (Hakikisha) with real API
+  const verifyRecipient = async () => {
+    if (!recipientDetails) return;
+
+    try {
+      showInfo('Verifying recipient details...');
+
+      // Real API call to verify recipient
+      const response = await api.post('/api/transactions/verify-recipient', {
+        recipientEmail: recipientDetails.email,
+        recipientPhone: recipientDetails.phone
+      });
+
+      if (response.data.verified && response.data.accountStatus.canReceiveTransfers) {
+        setRecipientVerified(true);
+        showSuccess('✅ Recipient verified successfully!');
+      } else {
+        showError(`❌ Could not verify recipient: ${response.data.accountStatus.isBlocked ? 'Account is blocked' : 'Cannot receive transfers'}`);
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      showError('Verification failed. Please try again.');
+    }
+  };
+
+  const sendVerificationCode = async () => {
+    if (!recipientDetails) return;
+
+    try {
+      showInfo('Sending verification code...');
+
+      // Simulate sending verification code
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      showSuccess('📱 Verification code sent to recipient!');
+    } catch (error) {
+      showError('Failed to send verification code.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onClick={onClose}></div>
@@ -325,7 +414,7 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
                   {searchResults.map((result) => (
                     <div
                       key={result.id}
-                      onClick={() => selectRecipient(result)}
+                      onClick={() => selectTransferRecipient(result)}
                       className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                     >
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-lg">
@@ -548,10 +637,54 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
 };
 
 export const EMIAddMoneyModal = ({ isOpen, onClose, account, type }) => {
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showInfo } = useToast();
   const [amount, setAmount] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recipient, setRecipient] = useState('');
+  const [recipientType, setRecipientType] = useState('phone');
+  const [recipientDetails, setRecipientDetails] = useState(null);
+  const [showRecipientSearch, setShowRecipientSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [recipientVerified, setRecipientVerified] = useState(false);
+
+  // Mock data for recipient search
+  const mockResults = [
+    {
+      id: 1,
+      name: 'John Doe',
+      phone: '+254712345678',
+      email: 'john.doe@email.com',
+      vaultUser: true,
+      vaultUsername: '@johndoe',
+      avatar: '👨‍💼',
+      accountNumber: '12345678901',
+      bankName: 'KCB Bank'
+    },
+    {
+      id: 2,
+      name: 'Sarah Wilson',
+      phone: '+254723456789',
+      email: 'sarah.wilson@email.com',
+      vaultUser: true,
+      vaultUsername: '@sarahw',
+      avatar: '👩‍💻',
+      accountNumber: '23456789012',
+      bankName: 'Equity Bank'
+    },
+    {
+      id: 3,
+      name: 'Mike Johnson',
+      phone: '+254734567890',
+      email: 'mike.j@email.com',
+      vaultUser: false,
+      avatar: '👨‍🔬',
+      accountNumber: '34567890123',
+      bankName: 'Co-operative Bank'
+    }
+  ];
 
   if (!isOpen) return null;
 
@@ -631,8 +764,35 @@ export const EMIAddMoneyModal = ({ isOpen, onClose, account, type }) => {
     }
   };
 
+  const selectTransferRecipient = (recipientData) => {
+    // Unmask the data for the selected recipient
+    const unmaskedData = {
+      ...recipientData,
+      email: recipientData.email.replace(/^\*{2}\*\*(.*)$/, (match, domain) => {
+        // This is a simplified unmask - in real app, you'd fetch full data from backend
+        const originalEmail = mockResults.find(r => r.id === recipientData.id)?.email;
+        return originalEmail || recipientData.email;
+      }),
+      phone: recipientData.phone.replace(/^\*{3}(\d{4})$/, (match, digits) => {
+        const originalPhone = mockResults.find(r => r.id === recipientData.id)?.phone;
+        return originalPhone || recipientData.phone;
+      })
+    };
 
-  const selectRecipient = (recipientData) => {
+    setRecipient(recipientType === 'phone' ? unmaskedData.phone : unmaskedData.email);
+    setRecipientDetails(unmaskedData);
+    setShowRecipientSearch(false);
+
+    // For non-Vault5 users, show verification step
+    if (!unmaskedData.vaultUser) {
+      setShowVerification(true);
+    } else {
+      setRecipientVerified(true);
+    }
+  };
+
+
+  const selectAddMoneyRecipient = (recipientData) => {
     // Unmask the data for the selected recipient
     const unmaskedData = {
       ...recipientData,
