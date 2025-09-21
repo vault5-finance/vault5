@@ -328,6 +328,15 @@ const verifyRecipient = async (req, res) => {
         canReceiveFromBanks: true,
         supportedNetworks: ['M-Pesa', 'Airtel Money', 'KCB', 'Equity', 'Co-op', 'DTB']
       },
+      linkedAccounts: recipient.preferences?.linkedAccounts?.filter(acc =>
+        acc.isVerified && acc.status === 'active'
+      ).map(acc => ({
+        accountType: acc.accountType,
+        accountNumber: acc.accountNumber,
+        accountName: acc.accountName,
+        isPrimary: acc.isPrimary,
+        limits: acc.limits
+      })) || [],
       security: {
         lastLogin: recipient.lastLogin || new Date(),
         accountAge: Math.floor((Date.now() - new Date(recipient.createdAt).getTime()) / (1000 * 60 * 60 * 24)), // days
@@ -364,9 +373,10 @@ const transferToUser = async (req, res) => {
       return res.status(400).json({ message: 'Amount must be greater than 0' });
     }
 
-    // Find recipient user (supports linked emails and phones)
+    // Find recipient user (supports linked emails, phones, and linked accounts)
     let recipient = null;
     let foundBy = '';
+    let linkedAccountInfo = null;
 
     if (recipientEmail) {
       // Try to find by primary email first
@@ -378,6 +388,39 @@ const transferToUser = async (req, res) => {
       // Try to find by phone
       recipient = await User.findOne({ 'phones.phone': recipientPhone });
       if (recipient) foundBy = 'phone';
+    }
+
+    // If still not found, try to find by linked account information
+    if (!recipient) {
+      // Search through all users' linked accounts
+      const usersWithLinkedAccounts = await User.find({
+        'preferences.linkedAccounts': {
+          $elemMatch: {
+            $or: [
+              { accountNumber: recipientEmail || recipientPhone },
+              { accountName: recipientEmail || recipientPhone }
+            ],
+            isVerified: true,
+            status: 'active'
+          }
+        }
+      });
+
+      if (usersWithLinkedAccounts.length > 0) {
+        recipient = usersWithLinkedAccounts[0];
+        const linkedAccount = recipient.preferences.linkedAccounts.find(acc =>
+          (acc.accountNumber === recipientEmail || acc.accountNumber === recipientPhone) ||
+          (acc.accountName === recipientEmail || acc.accountName === recipientPhone)
+        );
+        if (linkedAccount) {
+          foundBy = 'linked_account';
+          linkedAccountInfo = {
+            accountType: linkedAccount.accountType,
+            accountNumber: linkedAccount.accountNumber,
+            accountName: linkedAccount.accountName
+          };
+        }
+      }
     }
 
     if (!recipient) {
@@ -463,10 +506,15 @@ const transferToUser = async (req, res) => {
             email: recipientEmail,
             phone: recipientPhone,
             foundBy: foundBy,
-            linkedAccount: foundBy === 'email' ? 'email' : 'phone'
+            linkedAccount: linkedAccountInfo || (foundBy === 'email' ? 'email' : 'phone')
           },
           senderAccount: senderAccount.type,
-          recipientAccount: recipientDailyAccount.type
+          recipientAccount: recipientDailyAccount.type,
+          linkedAccountInfo: linkedAccountInfo ? {
+            accountType: linkedAccountInfo.accountType,
+            accountNumber: linkedAccountInfo.accountNumber,
+            accountName: linkedAccountInfo.accountName
+          } : null
         }
       });
 
@@ -483,6 +531,188 @@ const transferToUser = async (req, res) => {
   }
 };
 
+// Transfer to linked account
+const transferToLinkedAccount = async (req, res) => {
+  try {
+    const { linkedAccountId, amount, description } = req.body;
+    const senderId = req.user._id;
+
+    if (!linkedAccountId || !amount) {
+      return res.status(400).json({
+        message: 'Linked account ID and amount are required'
+      });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ message: 'Amount must be greater than 0' });
+    }
+
+    // Find the linked account owner
+    const recipient = await User.findOne({
+      'preferences.linkedAccounts._id': linkedAccountId,
+      'preferences.linkedAccounts.isVerified': true,
+      'preferences.linkedAccounts.status': 'active'
+    });
+
+    if (!recipient) {
+      return res.status(404).json({
+        message: 'Linked account not found or not verified'
+      });
+    }
+
+    // Don't allow self-transfer
+    if (recipient._id.toString() === senderId.toString()) {
+      return res.status(400).json({ message: 'Cannot transfer to your own linked account' });
+    }
+
+    // Get the linked account details
+    const linkedAccount = recipient.preferences.linkedAccounts.id(linkedAccountId);
+    if (!linkedAccount) {
+      return res.status(404).json({ message: 'Linked account not found' });
+    }
+
+    // Check linked account limits
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const monthlyStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // Get recent transactions to this linked account
+    const recentTransactions = await Transaction.find({
+      'metadata.linkedAccountId': linkedAccountId,
+      date: { $gte: today }
+    });
+
+    const dailyTotal = recentTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const monthlyTotal = await Transaction.find({
+      'metadata.linkedAccountId': linkedAccountId,
+      date: { $gte: monthlyStart }
+    }).then(txs => txs.reduce((sum, tx) => sum + tx.amount, 0));
+
+    if (dailyTotal + amount > linkedAccount.limits.dailyLimit) {
+      return res.status(400).json({
+        message: `Daily limit exceeded. Available: KES ${(linkedAccount.limits.dailyLimit - dailyTotal).toFixed(2)}`
+      });
+    }
+
+    if (monthlyTotal + amount > linkedAccount.limits.monthlyLimit) {
+      return res.status(400).json({
+        message: `Monthly limit exceeded. Available: KES ${(linkedAccount.limits.monthlyLimit - monthlyTotal).toFixed(2)}`
+      });
+    }
+
+    // Find sender's account (use Daily account as default)
+    const senderAccount = await Account.findOne({
+      user: senderId,
+      type: 'Daily'
+    });
+
+    if (!senderAccount) {
+      return res.status(404).json({ message: 'Sender Daily account not found' });
+    }
+
+    if (senderAccount.balance < amount) {
+      return res.status(400).json({ message: 'Insufficient funds' });
+    }
+
+    // Find recipient's Daily account (default receiving account)
+    const recipientDailyAccount = await Account.findOne({
+      user: recipient._id,
+      type: 'Daily'
+    });
+
+    if (!recipientDailyAccount) {
+      return res.status(404).json({ message: 'Recipient Daily account not found' });
+    }
+
+    // Start transaction
+    const session = await Account.startSession();
+    session.startTransaction();
+
+    try {
+      // Deduct from sender's account
+      senderAccount.balance -= amount;
+      await senderAccount.save({ session });
+
+      // Add to recipient's account
+      recipientDailyAccount.balance += amount;
+      await recipientDailyAccount.save({ session });
+
+      // Update linked account last used
+      linkedAccount.lastUsed = new Date();
+      await recipient.save({ session });
+
+      // Create transaction records for both users
+      const senderTransaction = new Transaction({
+        user: senderId,
+        type: 'expense',
+        amount: amount,
+        description: `Transfer to ${linkedAccount.accountName} (${linkedAccount.accountType}) - ${description || 'Linked Account Transfer'}`,
+        category: 'Transfer',
+        date: new Date(),
+        metadata: {
+          linkedAccountId: linkedAccountId,
+          linkedAccountType: linkedAccount.accountType,
+          recipientName: recipient.name
+        }
+      });
+
+      const recipientTransaction = new Transaction({
+        user: recipient._id,
+        type: 'income',
+        amount: amount,
+        description: `Transfer from ${req.user.name} via linked account - ${description || 'Linked Account Transfer'}`,
+        category: 'Transfer',
+        date: new Date(),
+        metadata: {
+          linkedAccountId: linkedAccountId,
+          linkedAccountType: linkedAccount.accountType,
+          senderName: req.user.name
+        }
+      });
+
+      await senderTransaction.save({ session });
+      await recipientTransaction.save({ session });
+
+      // Commit transaction
+      await session.commitTransaction();
+
+      res.status(200).json({
+        message: 'Transfer to linked account completed successfully',
+        transfer: {
+          amount,
+          recipient: {
+            name: recipient.name,
+            linkedAccount: {
+              accountType: linkedAccount.accountType,
+              accountNumber: linkedAccount.accountNumber,
+              accountName: linkedAccount.accountName
+            }
+          },
+          senderAccount: senderAccount.type,
+          recipientAccount: recipientDailyAccount.type,
+          limits: {
+            dailyUsed: dailyTotal + amount,
+            dailyLimit: linkedAccount.limits.dailyLimit,
+            monthlyUsed: monthlyTotal + amount,
+            monthlyLimit: linkedAccount.limits.monthlyLimit
+          }
+        }
+      });
+
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+  } catch (error) {
+    console.error('Linked Account Transfer error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getTransactions,
   createTransaction,
@@ -490,6 +720,7 @@ module.exports = {
   deleteTransaction,
   getTransactionSummary,
   transferToUser,
+  transferToLinkedAccount,
   verifyRecipient,
   validateDepositPhone
 };

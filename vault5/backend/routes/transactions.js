@@ -7,6 +7,7 @@ const {
   deleteTransaction,
   getTransactionSummary,
   transferToUser,
+  transferToLinkedAccount,
   verifyRecipient,
   validateDepositPhone
 } = require('../controllers/transactionsController');
@@ -45,5 +46,8 @@ router.post('/validate-deposit-phone', geoGate, ipDenyGate, deviceGate, validate
 
 // P2P transfer route - must pass all security gates
 router.post('/transfer', limitationGateOutgoing, capsGate, velocityGate, transferToUser);
+
+// Linked account transfer route - must pass all security gates
+router.post('/transfer/linked-account', limitationGateOutgoing, capsGate, velocityGate, transferToLinkedAccount);
 
 module.exports = router;
