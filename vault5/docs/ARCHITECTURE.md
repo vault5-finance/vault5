@@ -1,5 +1,7 @@
 # Vault5 System Architecture
 
+**Architected by Bryson OMullo** 🏗️
+
 Purpose
 - Describe end-to-end architecture for Vault5 including upcoming payments integration.
 - Provide blueprints for implementation and future scale out.

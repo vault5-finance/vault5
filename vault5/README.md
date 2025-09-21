@@ -2,6 +2,8 @@
 
 # 🏦 Vault5 — EMI-Style Financial Freedom Platform
 
+**Created by Bryson OMullo** 🚀
+
 <div align="center">
 
 ![Vault5 EMI](https://img.shields.io/badge/Vault5-EMI%20Banking-1a4b8c?style=for-the-badge&logo=bank&logoColor=white)
@@ -636,6 +638,23 @@ See detailed roadmap: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
+## 👤 **Credits & Ownership**
+
+**Vault5** is proudly created and owned by **Bryson OMullo** - a visionary fintech entrepreneur and software engineer dedicated to democratizing financial freedom through innovative technology.
+
+### **About the Creator**
+- **Name**: Bryson OMullo
+- **Vision**: Building the future of personal finance with EMI-style banking
+- **Mission**: Help millions achieve financial discipline and freedom
+- **Expertise**: Full-stack development, fintech innovation, financial systems design
+
+### **Contact & Recognition**
+- **Email**: bnyaliti@gmail.com
+- **GitHub**: [vault5-finance](https://github.com/vault5-finance)
+- **LinkedIn**: Connect with Bryson for fintech opportunities and collaborations
+
+---
+
 ## License
 
-MIT © Vault5
+MIT © **Bryson OMullo** (Vault5)
