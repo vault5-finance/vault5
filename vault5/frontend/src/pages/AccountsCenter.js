@@ -103,12 +103,12 @@ export default function AccountsCenter() {
   const [loading, setLoading] = useState(true);
 
   // EMI Modal states
-  const [transferModal, setTransferModal] = useState({
+  const [transferModal, setTransferModal] = useState({ // eslint-disable-line no-unused-vars
     isOpen: false,
     account: null,
     type: ''
   });
-  const [addMoneyModal, setAddMoneyModal] = useState({
+  const [addMoneyModal, setAddMoneyModal] = useState({ // eslint-disable-line no-unused-vars
     isOpen: false,
     account: null,
     type: ''

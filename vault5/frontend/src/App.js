@@ -7,7 +7,6 @@ import NavBar from './components/NavBar';
 
 const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
 const SignupChoice = lazy(() => import('./pages/SignupChoice'));
 const SignupEmail = lazy(() => import('./pages/SignupEmail'));
 const SignupPhone = lazy(() => import('./pages/SignupPhone'));
@@ -92,7 +91,6 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupChoice /></PublicRoute>} />
         <Route path="/signup/email" element={<PublicRoute><SignupEmail /></PublicRoute>} />
         <Route path="/signup/phone" element={<PublicRoute><SignupPhone /></PublicRoute>} />
