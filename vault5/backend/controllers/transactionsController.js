@@ -348,15 +348,15 @@ const verifyRecipient = async (req, res) => {
   }
 };
 
-// P2P Money Transfer between Vault5 users
+// P2P Money Transfer between Vault5 users (supports linked accounts)
 const transferToUser = async (req, res) => {
   try {
-    const { recipientEmail, amount, fromAccountId, description } = req.body;
+    const { recipientEmail, recipientPhone, amount, fromAccountId, description } = req.body;
     const senderId = req.user._id;
 
-    if (!recipientEmail || !amount || !fromAccountId) {
+    if ((!recipientEmail && !recipientPhone) || !amount || !fromAccountId) {
       return res.status(400).json({
-        message: 'Recipient email, amount, and from account are required'
+        message: 'Recipient email or phone, amount, and from account are required'
       });
     }
 
@@ -364,10 +364,27 @@ const transferToUser = async (req, res) => {
       return res.status(400).json({ message: 'Amount must be greater than 0' });
     }
 
-    // Find recipient user
-    const recipient = await User.findOne({ email: recipientEmail });
+    // Find recipient user (supports linked emails and phones)
+    let recipient = null;
+    let foundBy = '';
+
+    if (recipientEmail) {
+      // Try to find by primary email first
+      recipient = await User.findOne({ 'emails.email': recipientEmail.toLowerCase() });
+      if (recipient) foundBy = 'email';
+    }
+
+    if (!recipient && recipientPhone) {
+      // Try to find by phone
+      recipient = await User.findOne({ 'phones.phone': recipientPhone });
+      if (recipient) foundBy = 'phone';
+    }
+
     if (!recipient) {
-      return res.status(404).json({ message: 'Recipient not found' });
+      return res.status(404).json({
+        message: 'Recipient not found',
+        searchedBy: recipientEmail ? 'email' : 'phone'
+      });
     }
 
     // Don't allow self-transfer
@@ -443,7 +460,10 @@ const transferToUser = async (req, res) => {
           amount,
           recipient: {
             name: recipient.name,
-            email: recipientEmail
+            email: recipientEmail,
+            phone: recipientPhone,
+            foundBy: foundBy,
+            linkedAccount: foundBy === 'email' ? 'email' : 'phone'
           },
           senderAccount: senderAccount.type,
           recipientAccount: recipientDailyAccount.type

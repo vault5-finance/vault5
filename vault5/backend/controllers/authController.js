@@ -134,16 +134,36 @@ const register = async (req, res) => {
 // POST /api/auth/login
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, phone } = req.body;
 
-    // Try to find user with new email array structure first
-    let user = await User.findOne({
-      'emails.email': email.toLowerCase()
-    }).select('+password');
+    // Support login with email OR phone (PayPal-style)
+    let user = null;
+    let loginMethod = '';
 
-    // If not found, try legacy email field for backward compatibility
+    if (email) {
+      // Try to find user with new email array structure first
+      user = await User.findOne({
+        'emails.email': email.toLowerCase()
+      }).select('+password');
+
+      // If not found, try legacy email field for backward compatibility
+      if (!user) {
+        user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+      }
+      loginMethod = 'email';
+    } else if (phone) {
+      // Try to find user with phone array structure
+      user = await User.findOne({
+        'phones.phone': phone
+      }).select('+password');
+      loginMethod = 'phone';
+    }
+
     if (!user) {
-      user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+      return res.status(401).json({
+        message: 'Invalid credentials',
+        availableMethods: ['email', 'phone']
+      });
     }
 
     if (!user) {
@@ -151,11 +171,20 @@ const login = async (req, res) => {
     }
 
     const requireEmailVerification = (process.env.AUTH_REQUIRE_EMAIL_VERIFICATION || 'false').toLowerCase() === 'true';
+
     // For new email array structure, check if email is verified (configurable)
-    if (requireEmailVerification && user.emails && user.emails.length > 0) {
+    if (requireEmailVerification && loginMethod === 'email' && user.emails && user.emails.length > 0) {
       const emailEntry = user.emails.find(e => e.email === email.toLowerCase());
       if (emailEntry && !emailEntry.isVerified) {
         return res.status(401).json({ message: 'Email not verified. Please check your email for verification link.' });
+      }
+    }
+
+    // For phone login, check if phone is verified
+    if (loginMethod === 'phone' && user.phones && user.phones.length > 0) {
+      const phoneEntry = user.phones.find(p => p.phone === phone);
+      if (phoneEntry && !phoneEntry.isVerified) {
+        return res.status(401).json({ message: 'Phone not verified. Please verify your phone number first.' });
       }
     }
 
