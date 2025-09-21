@@ -1,13 +1,23 @@
-/* Vault5 PayPal-inspired Theme Variables */
+/* Vault5 EMI-inspired Theme Variables */
 :root {
-  /* Primary Colors */
-  --primary: #003087; /* PayPal blue */
-  --primary-hover: #002a6c;
-  --secondary: #0070BA; /* PayPal secondary blue */
-  --secondary-hover: #005ea6;
+  /* Primary Colors - EMI Blue Theme */
+  --primary: #1a4b8c; /* EMI deep blue */
+  --primary-hover: #153d73;
+  --secondary: #2563eb; /* Modern blue */
+  --secondary-hover: #1d4ed8;
+
+  /* EMI Brand Colors */
+  --emi-blue: #0f4c8c;
+  --emi-blue-light: #3b82f6;
+  --emi-blue-dark: #1e3a8a;
+  --emi-teal: #0891b2;
+  --emi-teal-light: #06b6d4;
+  --emi-green: #059669;
+  --emi-green-light: #10b981;
 
   /* Accent Colors */
-  --accent: #7a4bff; /* Purple accent for gradients */
+  --accent: #6366f1; /* Indigo accent for gradients */
+  --accent-light: #8b5cf6;
 
   /* Status Colors */
   --success: #43A047; /* Green */
@@ -50,9 +60,13 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
-  /* Gradients */
-  --gradient-primary: linear-gradient(90deg, #0062cc, #7a4bff);
-  --gradient-secondary: linear-gradient(135deg, #003087, #0070BA);
+  /* EMI-style Gradients */
+  --gradient-primary: linear-gradient(135deg, #1a4b8c, #2563eb);
+  --gradient-secondary: linear-gradient(135deg, #0f4c8c, #3b82f6);
+  --gradient-success: linear-gradient(135deg, #059669, #10b981);
+  --gradient-warning: linear-gradient(135deg, #d97706, #f59e0b);
+  --gradient-danger: linear-gradient(135deg, #dc2626, #ef4444);
+  --gradient-info: linear-gradient(135deg, #0891b2, #06b6d4);
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -236,6 +250,145 @@ body {
     width: 100%;
     margin-bottom: var(--spacing-sm);
   }
+}
+
+/* EMI-style Components */
+.emi-card {
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border: 1px solid rgba(15, 76, 140, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.emi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.emi-button {
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.emi-button:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.emi-button:hover:before {
+  left: 100%;
+}
+
+.emi-gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.emi-status-indicator {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.emi-status-indicator:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.emi-status-green:before { background-color: var(--emi-green); }
+.emi-status-red:before { background-color: var(--danger); }
+.emi-status-blue:before { background-color: var(--info); }
+
+.emi-quick-action {
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(26, 75, 140, 0.3);
+}
+
+.emi-quick-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -1px rgba(26, 75, 140, 0.4);
+}
+
+/* EMI-style Account Cards */
+.account-card-daily {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border-left: 4px solid var(--emi-blue);
+}
+
+.account-card-fun {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-left: 4px solid #f59e0b;
+}
+
+.account-card-emergency {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  border-left: 4px solid var(--danger);
+}
+
+.account-card-longterm {
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  border-left: 4px solid var(--accent);
+}
+
+.account-card-investment {
+  background: linear-gradient(135deg, #f0fdf4, #bbf7d0);
+  border-left: 4px solid var(--emi-green);
+}
+
+/* EMI-style Loading Animation */
+.emi-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(26, 75, 140, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--emi-blue);
+  animation: emi-spin 1s ease-in-out infinite;
+}
+
+@keyframes emi-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* EMI-style Modal */
+.emi-modal {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.emi-modal-content {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transform: scale(0.95);
+  transition: transform 0.2s ease;
+}
+
+.emi-modal.show .emi-modal-content {
+  transform: scale(1);
 }
 
 /* Dark Mode Support (Future Enhancement) */

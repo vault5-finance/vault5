@@ -98,10 +98,10 @@ const NavBar = () => {
   // Authenticated navigation with collapsible side drawer
   return (
     <>
-      <nav className="bg-white shadow-lg">
+      <nav className="bg-white shadow-lg border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center py-4">
-            <Link to="/" className="text-xl font-bold" style={{ color: 'var(--primary)' }}>
+            <Link to="/" className="text-xl font-bold emi-gradient-text">
               Vault5
             </Link>
 
@@ -123,6 +123,30 @@ const NavBar = () => {
             <div className="hidden md:flex items-center space-x-4">
               {token ? (
                 <>
+                  {/* EMI-style Quick Actions */}
+                  {!isAdminArea && (
+                    <div className="flex items-center space-x-2 mr-4">
+                      <Link
+                        to="/accounts"
+                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      >
+                        💰 Accounts
+                      </Link>
+                      <Link
+                        to="/banking"
+                        className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      >
+                        💳 Banking
+                      </Link>
+                      <Link
+                        to="/transactions"
+                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      >
+                        📊 Transactions
+                      </Link>
+                    </div>
+                  )}
+
                   {/* Desktop menu items (admin vs user) */}
                   {isAdminArea ? (
                     <div className="flex space-x-6 mr-4">
@@ -132,12 +156,9 @@ const NavBar = () => {
                   ) : (
                     <div className="flex space-x-6 mr-4">
                       <Link to="/dashboard" className="nav-link">Dashboard</Link>
-                      <Link to="/transactions" className="nav-link">Transactions</Link>
-                      <Link to="/banking" className="nav-link">Banking</Link>
                       <Link to="/reports" className="nav-link">Reports</Link>
                       <Link to="/lending" className="nav-link">Lending</Link>
                       <Link to="/loans" className="nav-link">Loans</Link>
-                      <Link to="/accounts" className="nav-link">Accounts</Link>
                       <Link to="/compliance" className="nav-link">Compliance</Link>
                       <Link to="/settings" className="nav-link">Settings</Link>
                       <Link to="/profile" className="nav-link">Profile</Link>
@@ -361,13 +382,20 @@ const NavBar = () => {
                   </>
                 ) : (
                   <>
+                    {/* EMI-style Quick Actions for Mobile */}
+                    <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Quick Actions</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Link to="/accounts" className="block px-3 py-2 bg-blue-600 text-white text-center rounded-lg text-sm font-medium" onClick={() => setShowMobileMenu(false)}>💰 Accounts</Link>
+                        <Link to="/banking" className="block px-3 py-2 bg-emerald-600 text-white text-center rounded-lg text-sm font-medium" onClick={() => setShowMobileMenu(false)}>💳 Banking</Link>
+                        <Link to="/transactions" className="block px-3 py-2 bg-purple-600 text-white text-center rounded-lg text-sm font-medium" onClick={() => setShowMobileMenu(false)}>📊 Transactions</Link>
+                        <Link to="/reports" className="block px-3 py-2 bg-indigo-600 text-white text-center rounded-lg text-sm font-medium" onClick={() => setShowMobileMenu(false)}>📈 Reports</Link>
+                      </div>
+                    </div>
+
                     <Link to="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Dashboard</Link>
-                    <Link to="/transactions" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Transactions</Link>
-                    <Link to="/banking" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Banking</Link>
-                    <Link to="/reports" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Reports</Link>
                     <Link to="/lending" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Lending</Link>
                     <Link to="/loans" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Loans</Link>
-                    <Link to="/accounts" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Accounts</Link>
                     <Link to="/compliance" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Compliance</Link>
                     <Link to="/blog" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Blog</Link>
                     <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>About</Link>
