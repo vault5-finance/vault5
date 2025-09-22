@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
 
@@ -13,9 +13,7 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
   const [recipientVerified, setRecipientVerified] = useState(false);
-  const [description, setDescription] = useState('');
 
   // Mock data for recipient search - shared between components
   const mockResults = [
@@ -195,22 +193,7 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
         return;
       }
 
-      // Prepare transaction data
-      const transactionData = {
-        type: type,
-        amount: parseFloat(amount),
-        fromAccount: account.type,
-        fromAccountId: account._id,
-        recipient: recipientDetails || {
-          name: recipient,
-          contact: recipient,
-          verified: recipientVerified
-        },
-        recipientType: recipientType,
-        description: `Transfer via ${type}`,
-        fees: type === 'Bank Transfer' ? 0 : 0, // Add actual fee calculation
-        verified: recipientVerified || recipientDetails?.vaultUser
-      };
+      // Prepare transaction data removed (redundant)
 
       // Real API call to process transaction
       showInfo('Processing transaction...');
@@ -225,7 +208,7 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
           recipientEmail: recipientDetails.email,
           amount: parseFloat(amount),
           fromAccountId: account._id,
-          description: description || 'P2P Transfer'
+          description: 'P2P Transfer'
         };
       } else {
         // Other types of transfers (mock for now)
@@ -667,128 +650,10 @@ export const EMIAddMoneyModal = ({ isOpen, onClose, account, type }) => {
   const [amount, setAmount] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
-  const [recipient, setRecipient] = useState('');
-  const [recipientType, setRecipientType] = useState('phone');
-  const [recipientDetails, setRecipientDetails] = useState(null);
-  const [showRecipientSearch, setShowRecipientSearch] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [showVerification, setShowVerification] = useState(false);
-  const [recipientVerified, setRecipientVerified] = useState(false);
 
-  // Mock data for recipient search
-  const mockResults = [
-    {
-      id: 1,
-      name: 'John Doe',
-      phone: '+254712345678',
-      email: 'john.doe@email.com',
-      vaultUser: true,
-      vaultUsername: '@johndoe',
-      avatar: '👨‍💼',
-      accountNumber: '12345678901',
-      bankName: 'KCB Bank'
-    },
-    {
-      id: 2,
-      name: 'Sarah Wilson',
-      phone: '+254723456789',
-      email: 'sarah.wilson@email.com',
-      vaultUser: true,
-      vaultUsername: '@sarahw',
-      avatar: '👩‍💻',
-      accountNumber: '23456789012',
-      bankName: 'Equity Bank'
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      phone: '+254734567890',
-      email: 'mike.j@email.com',
-      vaultUser: false,
-      avatar: '👨‍🔬',
-      accountNumber: '34567890123',
-      bankName: 'Co-operative Bank'
-    }
-  ];
 
   if (!isOpen) return null;
 
-  // Mock recipient search - in real app, this would call an API
-  const searchRecipients = async (query) => {
-    setSearchLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Mock search results
-      const mockResults = [
-        {
-          id: 1,
-          name: 'John Doe',
-          phone: '+254712345678',
-          email: 'john.doe@email.com',
-          vaultUser: true,
-          vaultUsername: '@johndoe',
-          avatar: '👨‍💼',
-          accountNumber: '12345678901',
-          bankName: 'KCB Bank'
-        },
-        {
-          id: 2,
-          name: 'Sarah Wilson',
-          phone: '+254723456789',
-          email: 'sarah.wilson@email.com',
-          vaultUser: true,
-          vaultUsername: '@sarahw',
-          avatar: '👩‍💻',
-          accountNumber: '23456789012',
-          bankName: 'Equity Bank'
-        },
-        {
-          id: 3,
-          name: 'Mike Johnson',
-          phone: '+254734567890',
-          email: 'mike.j@email.com',
-          vaultUser: false,
-          avatar: '👨‍🔬',
-          accountNumber: '34567890123',
-          bankName: 'Co-operative Bank'
-        }
-      ];
-
-      const filtered = mockResults.filter(result =>
-        result.name.toLowerCase().includes(query.toLowerCase()) ||
-        result.phone.includes(query) ||
-        result.email.toLowerCase().includes(query.toLowerCase())
-      );
-
-      // Apply security masking to results
-      const maskedResults = filtered.map(result => ({
-        ...result,
-        // Mask email for security - show only first 2 and last 2 characters
-        email: result.email.replace(/^(.{2}).*(@.*)$/, '$1***$2'),
-        // Mask phone for security - show only last 4 digits
-        phone: result.phone.replace(/^.*(\d{4})$/, '***$1')
-      }));
-
-      setSearchResults(maskedResults);
-    } catch (error) {
-      showError('Failed to search recipients');
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const handleRecipientSearch = (query) => {
-    setRecipient(query);
-    if (query.length >= 3) {
-      searchRecipients(query);
-      setShowRecipientSearch(true);
-    } else {
-      setShowRecipientSearch(false);
-    }
-  };
 
 
 
@@ -797,72 +662,9 @@ export const EMIAddMoneyModal = ({ isOpen, onClose, account, type }) => {
 
 
 
-  const selectAddMoneyRecipient = (recipientData) => {
-    // Unmask the data for the selected recipient
-    const unmaskedData = {
-      ...recipientData,
-      email: recipientData.email.replace(/^\*{2}\*\*(.*)$/, (match, domain) => {
-        // This is a simplified unmask - in real app, you'd fetch full data from backend
-        const originalEmail = mockResults.find(r => r.id === recipientData.id)?.email;
-        return originalEmail || recipientData.email;
-      }),
-      phone: recipientData.phone.replace(/^\*{3}(\d{4})$/, (match, digits) => {
-        const originalPhone = mockResults.find(r => r.id === recipientData.id)?.phone;
-        return originalPhone || recipientData.phone;
-      })
-    };
 
-    setRecipient(recipientType === 'phone' ? unmaskedData.phone : unmaskedData.email);
-    setRecipientDetails(unmaskedData);
-    setShowRecipientSearch(false);
 
-    // For non-Vault5 users, show verification step
-    if (!unmaskedData.vaultUser) {
-      setShowVerification(true);
-    } else {
-      setRecipientVerified(true);
-    }
-  };
 
-  // Kenyan-style recipient verification (Hakikisha)
-  const verifyRecipient = async () => {
-    if (!recipientDetails) return;
-
-    try {
-      // Simulate Kenyan verification system
-      showInfo('Verifying recipient details...');
-
-      // Simulate API call to Kenyan verification systems
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Mock verification result
-      const isVerified = Math.random() > 0.3; // 70% success rate for demo
-
-      if (isVerified) {
-        setRecipientVerified(true);
-        showSuccess('✅ Recipient verified successfully!');
-      } else {
-        showError('❌ Could not verify recipient. Please double-check the details.');
-      }
-    } catch (error) {
-      showError('Verification failed. Please try again.');
-    }
-  };
-
-  const sendVerificationCode = async () => {
-    if (!recipientDetails) return;
-
-    try {
-      showInfo('Sending verification code...');
-
-      // Simulate sending verification code
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      showSuccess('📱 Verification code sent to recipient!');
-    } catch (error) {
-      showError('Failed to send verification code.');
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
