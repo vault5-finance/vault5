@@ -144,6 +144,32 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
     }
   };
 
+  const selectTransferRecipient = (recipientData) => {
+    // Unmask the data for the selected recipient
+    const unmaskedData = {
+      ...recipientData,
+      email: recipientData.email.replace(/^\*{2}\*\*(.*)$/, (match, domain) => {
+        const originalEmail = mockResults.find(r => r.id === recipientData.id)?.email;
+        return originalEmail || recipientData.email;
+      }),
+      phone: recipientData.phone.replace(/^\*{3}(\d{4})$/, (match, digits) => {
+        const originalPhone = mockResults.find(r => r.id === recipientData.id)?.phone;
+        return originalPhone || recipientData.phone;
+      })
+    };
+
+    setRecipient(recipientType === 'phone' ? unmaskedData.phone : unmaskedData.email);
+    setRecipientDetails(unmaskedData);
+    setShowRecipientSearch(false);
+
+    // For non-Vault5 users, show verification step
+    if (!unmaskedData.vaultUser) {
+      setShowVerification(true);
+    } else {
+      setRecipientVerified(true);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -764,32 +790,10 @@ export const EMIAddMoneyModal = ({ isOpen, onClose, account, type }) => {
     }
   };
 
-  const selectTransferRecipient = (recipientData) => {
-    // Unmask the data for the selected recipient
-    const unmaskedData = {
-      ...recipientData,
-      email: recipientData.email.replace(/^\*{2}\*\*(.*)$/, (match, domain) => {
-        // This is a simplified unmask - in real app, you'd fetch full data from backend
-        const originalEmail = mockResults.find(r => r.id === recipientData.id)?.email;
-        return originalEmail || recipientData.email;
-      }),
-      phone: recipientData.phone.replace(/^\*{3}(\d{4})$/, (match, digits) => {
-        const originalPhone = mockResults.find(r => r.id === recipientData.id)?.phone;
-        return originalPhone || recipientData.phone;
-      })
-    };
 
-    setRecipient(recipientType === 'phone' ? unmaskedData.phone : unmaskedData.email);
-    setRecipientDetails(unmaskedData);
-    setShowRecipientSearch(false);
 
-    // For non-Vault5 users, show verification step
-    if (!unmaskedData.vaultUser) {
-      setShowVerification(true);
-    } else {
-      setRecipientVerified(true);
-    }
-  };
+
+
 
 
 

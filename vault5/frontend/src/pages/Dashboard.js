@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement } from 'chart.js';
-import { Pie, Bar, Line } from 'react-chartjs-2';
+import { Pie, Bar } from 'react-chartjs-2';
 import api from '../services/api';
 import AddFundsModal from '../components/AddFundsModal';
 import { useToast } from '../contexts/ToastContext';
@@ -132,33 +132,6 @@ const Dashboard = () => {
     }]
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'red': return 'var(--danger)'; // debt
-      case 'green': return 'var(--success)'; // on-target
-      case 'blue': return 'var(--info)'; // surplus
-      default: return 'var(--gray-500)';
-    }
-  };
-
-  const getStatusBgColor = (status) => {
-    switch (status) {
-      case 'red': return 'var(--danger-light)';
-      case 'green': return 'var(--success-light)';
-      case 'blue': return 'var(--info-light)';
-      default: return 'var(--gray-100)';
-    }
-  };
-
-  const getProgressPercentage = (account) => {
-    // Show allocation compliance % toward target allocation
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-    const targetAmount = totalBalance * (account.percentage / 100);
-    if (targetAmount > 0) {
-      return Math.min((account.balance / targetAmount) * 100, 100);
-    }
-    return 0; // Default to 0 if no target
-  };
 
 
   const handleAddFunds = () => {
@@ -186,9 +159,6 @@ const Dashboard = () => {
     navigate('/reports');
   };
 
-  const handleManageInvestments = () => {
-    navigate('/investments');
-  };
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">

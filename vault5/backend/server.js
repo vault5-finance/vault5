@@ -106,6 +106,7 @@ const {
 const kycRoutes = require('./routes/kyc');
 const plaidRoutes = require('./routes/plaid');
 const linkedAccountsRoutes = require('./routes/linkedAccounts');
+const walletRoutes = require('./routes/wallet');
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/compliance', adminComplianceRoutes);
@@ -131,6 +132,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/plaid', plaidRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/linked-accounts', linkedAccountsRoutes);
+app.use('/api/wallet', walletRoutes);
 // Compliance & KYC routes
 app.use('/api/compliance', require('./routes').complianceRoutes);
 
