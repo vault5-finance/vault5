@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 
@@ -6,8 +6,8 @@ const NavBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+  const user = useMemo(() => JSON.parse(localStorage.getItem('user') || '{}'), []);
+  const adminRoles = useMemo(() => ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'], []);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -16,6 +16,14 @@ const NavBar = () => {
   // Compliance banner state
   const [compliance, setCompliance] = useState(null);
   const [loadingCompliance, setLoadingCompliance] = useState(false);
+
+  // Memoized computed values
+  const isLandingPage = useMemo(() => location.pathname === '/', [location.pathname]);
+  const isAdminArea = useMemo(() => location.pathname.startsWith('/admin'), [location.pathname]);
+  const isAuthPage = useMemo(
+    () => location.pathname === '/login' || location.pathname.startsWith('/signup'),
+    [location.pathname]
+  );
 
   useEffect(() => {
     if (token) {
@@ -37,12 +45,12 @@ const NavBar = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
     navigate('/login');
-  };
+  }, [navigate]);
 
-  const fetchCompliance = async () => {
+  const fetchCompliance = useCallback(async () => {
     try {
       setLoadingCompliance(true);
       const res = await api.get('/api/compliance/status');
@@ -53,18 +61,18 @@ const NavBar = () => {
     } finally {
       setLoadingCompliance(false);
     }
-  };
+  }, []);
 
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
-    if (!showNotifications && notifications.length === 0) {
-      fetchNotifications();
-    }
-  };
+  const toggleNotifications = useCallback(() => {
+    setShowNotifications(prev => {
+      const newState = !prev;
+      if (newState && notifications.length === 0) {
+        fetchNotifications();
+      }
+      return newState;
+    });
+  }, [notifications.length]);
 
-  // Check if we're on the landing page
-  const isLandingPage = location.pathname === '/';
-  const isAdminArea = location.pathname.startsWith('/admin');
 
   // Public navigation for landing page
   if (isLandingPage && !token) {
@@ -220,10 +228,14 @@ const NavBar = () => {
                   </button>
                 </>
               ) : (
-                <div className="space-x-2">
-                  <Link to="/login" className="text-gray-700 hover:text-blue-600">Login</Link>
-                  <Link to="/signup" className="text-gray-700 hover:text-blue-600">Register</Link>
-                </div>
+                !isAuthPage ? (
+                  <div className="space-x-2">
+                    <Link to="/login" className="text-gray-700 hover:text-blue-600">Login</Link>
+                    <Link to="/signup" className="text-gray-700 hover:text-blue-600">Register</Link>
+                  </div>
+                ) : (
+                  <div />
+                )
               )}
             </div>
           </div>

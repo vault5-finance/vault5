@@ -263,7 +263,7 @@ List user transactions with pagination.
       "description": "Salary allocation",
       "type": "income",
       "account": "Daily",
-      "date": "2024-01-15T10:00:00Z",
+      "date": "2025-01-15T10:00:00Z",
       "status": "completed"
     }
   ],
@@ -565,7 +565,7 @@ List user loans.
       "interestRate": 12,
       "term": 12,
       "monthlyPayment": 9167,
-      "nextPayment": "2024-02-01",
+      "nextPayment": "2025-02-01",
       "status": "active"
     }
   ]
@@ -611,7 +611,7 @@ List lending transactions.
       "amount": 10000,
       "recipient": "Family member",
       "purpose": "Medical emergency",
-      "expectedReturn": "2024-03-01",
+      "expectedReturn": "2025-03-01",
       "status": "outstanding"
     }
   ]
@@ -627,7 +627,7 @@ Record lending transaction.
   "amount": 10000,
   "recipient": "John Doe",
   "purpose": "Emergency",
-  "expectedReturn": "2024-03-01"
+  "expectedReturn": "2025-03-01"
 }
 ```
 
@@ -652,7 +652,7 @@ Get user's compliance status.
     "kycLevel": "Tier0",
     "payoutEligible": false,
     "reserves": [],
-    "serverTime": "2024-01-15T10:00:00Z"
+    "serverTime": "2025-01-15T10:00:00Z"
   }
 }
 ```
@@ -686,7 +686,7 @@ List user's KYC requests.
       "levelRequested": "Tier1",
       "status": "pending",
       "documents": [...],
-      "createdAt": "2024-01-15T10:00:00Z"
+      "createdAt": "2025-01-15T10:00:00Z"
     }
   ]
 }
@@ -789,7 +789,7 @@ Get geo allowlist policy.
     "mode": "allowlist",
     "countries": ["KE"],
     "updatedBy": "admin_id",
-    "updatedAt": "2024-01-15T10:00:00Z"
+    "updatedAt": "2025-01-15T10:00:00Z"
   }
 }
 ```
@@ -880,7 +880,7 @@ Vault5 supports webhooks for real-time notifications:
     "amount": 5000,
     "account": "Daily"
   },
-  "timestamp": "2024-01-15T10:00:00Z"
+  "timestamp": "2025-01-15T10:00:00Z"
 }
 ```
 

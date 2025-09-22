@@ -1,6 +1,7 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Flutterwave = require('flutterwave-node-v3');
 const Pesapal = require('pesapal-node');
+const { normalizePhoneNumber } = require('../utils/phoneUtils');
 
 class PaymentService {
   constructor() {
@@ -78,8 +79,15 @@ class PaymentService {
   // M-Pesa payment processing via Flutterwave
   async processMpesaPayment(amount, paymentMethod, user, type) {
     try {
+      // Normalize the phone number to ensure consistent format
+      const normalizedPhone = normalizePhoneNumber(paymentMethod.identifier);
+
+      if (!normalizedPhone) {
+        throw new Error('Invalid phone number format. Please use format: +254XXXXXXXXX, 254XXXXXXXXX, 0XXXXXXXXX, or 07XXXXXXXX');
+      }
+
       const payload = {
-        phone_number: paymentMethod.identifier,
+        phone_number: normalizedPhone,
         amount: amount,
         currency: 'KES',
         email: user.email,
@@ -87,7 +95,9 @@ class PaymentService {
         narration: `Vault5 ${type}`,
         meta: {
           userId: user._id.toString(),
-          type: type
+          type: type,
+          originalPhone: paymentMethod.identifier,
+          normalizedPhone: normalizedPhone
         }
       };
 

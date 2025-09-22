@@ -5,8 +5,12 @@
     <!-- Use data URI to avoid proxying /favicon.ico when backend is offline -->
     <link rel="icon" href="data:," />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#003087" />
+    <meta name="theme-color" content="#3b82f6" />
     <meta name="description" content="Vault5 - Your Personal Financial Freedom Platform" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Vault5" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Vault5</title>
     <!-- Inter Font from Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,5 +20,20 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('ServiceWorker registration successful');
+            })
+            .catch(function(error) {
+              console.log('ServiceWorker registration failed: ', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

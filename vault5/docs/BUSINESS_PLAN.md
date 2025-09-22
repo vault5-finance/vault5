@@ -3,7 +3,7 @@
 ## Comprehensive Financial Freedom Platform for Africa
 
 **Version:** 1.0
-**Date:** September 2024
+**Date:** September 2025
 **Confidentiality:** This document contains confidential and proprietary information
 
 ---
@@ -75,19 +75,19 @@ Vault5 is a fintech startup founded in 2023, headquartered in Nairobi, Kenya. Th
 
 ### Company History & Milestones
 
-**2023 (Foundation):**
-- Company founded by Bryson Nyatiti and Collins Oduya
+**2024 (Foundation):**
+- Company founded by Bryson Nyaliti
 - Initial product concept and market research completed
 - Seed funding secured from angel investors
 - Core team assembled
 
-**2024 (Development & Launch):**
+**2025 (Development & Launch):**
 - Q1: Product development and beta testing
 - Q2: Kenya market launch
 - Q3: 5,000+ active users, KYC system implementation
 - Q4: Revenue generation begins, expansion planning
 
-**2025 (Growth):**
+**2026 (Growth):**
 - East Africa regional expansion
 - 100,000+ users milestone
 - Profitability achievement
@@ -488,7 +488,7 @@ The African fintech sector is experiencing explosive growth, driven by:
 
 ### Executive Team
 
-#### Bryson Nyatiti - CEO & Co-Founder
+#### Bryson Nyaliti - CEO & Founder
 **Background:**
 - 8+ years in fintech and digital banking
 - Former M-Pesa Product Manager at Safaricom
@@ -501,18 +501,6 @@ The African fintech sector is experiencing explosive growth, driven by:
 - Fundraising and investor relations
 - Team leadership and culture
 
-#### Collins Oduya - CTO & Co-Founder
-**Background:**
-- 10+ years in software engineering
-- Former Technical Lead at Safaricom
-- Scaled systems to 1M+ users
-- Computer Science degree from JKUAT
-
-**Responsibilities:**
-- Technology strategy and architecture
-- Product development and engineering
-- Technical partnerships and integrations
-- System scalability and performance
 
 #### Sarah Wilson - CFO
 **Background:**
@@ -549,13 +537,13 @@ The African fintech sector is experiencing explosive growth, driven by:
 
 ### Key Hires Timeline
 
-#### Year 1 (2024)
+#### Year 1 (2025)
 - **Q1:** Engineering team (5 developers)
 - **Q2:** Marketing team (3 specialists)
 - **Q3:** Customer success team (4 agents)
 - **Q4:** Sales team (3 representatives)
 
-#### Year 2 (2025)
+#### Year 2 (2026)
 - **Q1:** Regional managers (3 positions)
 - **Q2:** Product managers (2 positions)
 - **Q3:** Data scientists (2 positions)
@@ -587,7 +575,7 @@ The African fintech sector is experiencing explosive growth, driven by:
 
 #### Income Statement (USD)
 
-| Metric | 2024 | 2025 | 2026 | 2027 | 2028 |
+| Metric | 2025 | 2026 | 2027 | 2028 | 2029 |
 |--------|------|------|------|------|------|
 | **Revenue** | | | | | |
 | Subscriptions | $1,200K | $6,500K | $25,000K | $70,000K | $160,000K |
@@ -606,7 +594,7 @@ The African fintech sector is experiencing explosive growth, driven by:
 
 #### Balance Sheet (USD)
 
-| Assets | 2024 | 2025 | 2026 | 2027 | 2028 |
+| Assets | 2025 | 2026 | 2027 | 2028 | 2029 |
 |--------|------|------|------|------|------|
 | Cash | $2,000K | $8,000K | $25,000K | $65,000K | $150,000K |
 | Accounts Receivable | $200K | $1,000K | $3,750K | $10,000K | $23,000K |
@@ -614,7 +602,7 @@ The African fintech sector is experiencing explosive growth, driven by:
 | Intangible Assets | $500K | $2,000K | $5,000K | $12,000K | $25,000K |
 | **Total Assets** | **$2,800K** | **$11,500K** | **$35,250K** | **$91,000K** | **$208,000K** |
 
-| Liabilities & Equity | 2024 | 2025 | 2026 | 2027 | 2028 |
+| Liabilities & Equity | 2025 | 2026 | 2027 | 2028 | 2029 |
 |---------------------|------|------|------|------|------|
 | Accounts Payable | $150K | $750K | $2,250K | $6,000K | $14,000K |
 | Accrued Expenses | $100K | $500K | $1,500K | $4,000K | $9,000K |
@@ -624,7 +612,7 @@ The African fintech sector is experiencing explosive growth, driven by:
 
 #### Cash Flow Statement (USD)
 
-| Cash Flow | 2024 | 2025 | 2026 | 2027 | 2028 |
+| Cash Flow | 2025 | 2026 | 2027 | 2028 | 2029 |
 |-----------|------|------|------|------|------|
 | Operating Cash Flow | $600K | $5,000K | $22,000K | $65,000K | $155,000K |
 | Investing Cash Flow | ($300K) | ($1,000K) | ($3,000K) | ($8,000K) | ($20,000K) |
@@ -882,5 +870,5 @@ We invite sophisticated investors to join us in building Africa's leading financ
 - **Website:** www.vault5.com
 
 **Prepared by:** Vault5 Management Team
-**Date:** September 2024
+**Date:** September 2025
 **Version:** 1.0

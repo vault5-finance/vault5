@@ -84,11 +84,11 @@ Total Monthly Income    - KES 10,000
 ### Market Growth Projections
 
 ```
-2024: $15M Revenue
-2025: $45M Revenue (+200% YoY)
-2026: $120M Revenue (+167% YoY)
-2027: $280M Revenue (+133% YoY)
-2028: $550M Revenue (+96% YoY)
+2025: $15M Revenue
+2026: $45M Revenue (+200% YoY)
+2027: $120M Revenue (+167% YoY)
+2028: $280M Revenue (+133% YoY)
+2029: $550M Revenue (+96% YoY)
 ```
 
 **Key Drivers:**
@@ -162,17 +162,17 @@ Gross Margin: 85%
 
 ## 🎯 **Go-to-Market Strategy**
 
-### Phase 1: Kenya Launch (Q1 2024)
+### Phase 1: Kenya Launch (Q1 2025)
 - **Target:** University students and young professionals
 - **Channels:** Social media, campus ambassadors, influencers
 - **Partnerships:** Universities, M-Pesa, local banks
 
-### Phase 2: East Africa Expansion (Q3 2024)
+### Phase 2: East Africa Expansion (Q3 2025)
 - **Markets:** Uganda, Tanzania, Rwanda
 - **Localization:** Local languages, payment methods
 - **Strategy:** Franchise partnerships
 
-### Phase 3: Pan-African Scale (2025)
+### Phase 3: Pan-African Scale (2026)
 - **Markets:** Nigeria, South Africa, Ghana
 - **Features:** Multi-currency, cross-border transfers
 - **Growth:** Strategic acquisitions
@@ -213,17 +213,17 @@ Gross Margin: 85%
 
 ### Upcoming Milestones
 
-**Q1 2024:**
+**Q1 2025:**
 - Launch KYC admin system
 - Implement multi-currency support
 - Partner with 3 major banks
 
-**Q2 2024:**
+**Q2 2025:**
 - Reach 50,000 users
 - Launch investment marketplace
 - Expand to Uganda market
 
-**Q3 2024:**
+**Q3 2025:**
 - Achieve profitability
 - Launch white-label solution
 - Secure Series A funding
@@ -234,15 +234,11 @@ Gross Margin: 85%
 
 ### Leadership Team
 
-**CEO & Founder - Bryson Nyatiti**
+**CEO & Founder - Bryson Nyaliti**
 - 8+ years fintech experience
 - Former M-Pesa product manager
 - Built 3 successful fintech startups
 
-**CTO - Collins Oduya**
-- 10+ years software engineering
-- Ex-Safaricom technical lead
-- Scaled systems to 1M+ users
 
 **CFO - Sarah Wilson**
 - 12+ years financial services
@@ -262,11 +258,11 @@ Gross Margin: 85%
 ### 5-Year Revenue Forecast
 
 ```
-Year 1 (2024): $2.5M
-Year 2 (2025): $12M (+380% YoY)
-Year 3 (2026): $45M (+275% YoY)
-Year 4 (2027): $120M (+167% YoY)
-Year 5 (2028): $280M (+133% YoY)
+Year 1 (2025): $2.5M
+Year 2 (2026): $12M (+380% YoY)
+Year 3 (2027): $45M (+275% YoY)
+Year 4 (2028): $120M (+167% YoY)
+Year 5 (2029): $280M (+133% YoY)
 ```
 
 ### Key Metrics
@@ -284,7 +280,7 @@ Year 5 (2028): $280M (+133% YoY)
 ### Why Invest in Vault5?
 
 1. **Massive Market** - $1.2T African fintech opportunity
-2. **Proven Team** - Experienced founders with track record
+2. **Proven Leadership** - Experienced founder with track record
 3. **Product-Market Fit** - 85% user engagement, 4.8/5 ratings
 4. **Scalable Model** - 22.5x LTV/CAC ratio
 5. **First-Mover Advantage** - Only holistic financial platform in Africa

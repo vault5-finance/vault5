@@ -1,22 +1,29 @@
-const AWS = require('aws-sdk');
 const dotenv = require('dotenv');
 
 // Load environment variables first
 dotenv.config();
 
-// Configure AWS SDK (only if credentials are provided)
+let AWS = null;
+let secretsManager = null;
+
+// Only attempt to load AWS SDK if credentials are present
 if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-  AWS.config.update({
-    region: process.env.AWS_REGION || 'us-east-1',
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  });
+  try {
+    // Lazy require to avoid crash when aws-sdk is not installed
+    AWS = require('aws-sdk');
+    AWS.config.update({
+      region: process.env.AWS_REGION || 'us-east-1',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    });
+    secretsManager = new AWS.SecretsManager();
+  } catch (err) {
+    console.warn('AWS SDK not available, skipping AWS Secrets Manager:', err.message);
+  }
 }
 
-const secretsManager = process.env.AWS_ACCESS_KEY_ID ? new AWS.SecretsManager() : null;
-
 async function loadSecrets() {
-  // Try AWS Secrets Manager first (only if configured)
+  // Try AWS Secrets Manager first (only if configured and sdk loaded)
   if (secretsManager && process.env.AWS_SECRETS_NAME) {
     try {
       const secretName = process.env.AWS_SECRETS_NAME;

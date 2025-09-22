@@ -233,6 +233,16 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
       },
+      // Email verification fields (for backward compatibility and primary email)
+      isEmailVerified: {
+        type: Boolean,
+        default: false
+      },
+      emailVerifiedAt: {
+        type: Date
+      },
+      emailVerificationToken: String,
+      emailVerificationExpires: Date,
       verificationToken: String,
       verificationExpires: Date,
       isPrimary: {

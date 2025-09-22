@@ -1,5 +1,6 @@
 const { Transaction, User, Account } = require('../models');
 const { analyzeTransaction } = require('../services/fraudDetection');
+const { normalizePhoneNumber, arePhoneNumbersEqual, getNetworkProvider } = require('../utils/phoneUtils');
 
 // Get all transactions for a user
 const getTransactions = async (req, res) => {
@@ -195,14 +196,11 @@ const validateDepositPhone = async (req, res) => {
       });
     }
 
-    // Clean phone number (remove spaces, dashes, etc.)
-    const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
-
-    // Validate phone number format (Kenyan numbers)
-    const kenyanPhoneRegex = /^(\+254|254|0)[17]\d{8}$/;
-    if (!kenyanPhoneRegex.test(cleanPhone)) {
+    // Normalize the input phone number
+    const normalizedInputPhone = normalizePhoneNumber(phoneNumber);
+    if (!normalizedInputPhone) {
       return res.status(400).json({
-        message: 'Invalid Kenyan phone number format',
+        message: 'Invalid Kenyan phone number format. Please use format: +254XXXXXXXXX, 254XXXXXXXXX, 0XXXXXXXXX, or 07XXXXXXXX',
         valid: false
       });
     }
@@ -216,13 +214,14 @@ const validateDepositPhone = async (req, res) => {
       });
     }
 
-    // Check if the phone number matches user's registered phone
-    const userPhone = user.phone?.replace(/[\s\-\(\)]/g, '');
-    const isTiedToAccount = userPhone === cleanPhone;
+    // Check if the phone number matches any of user's registered phones
+    const isTiedToAccount = user.phones?.some(userPhone =>
+      arePhoneNumbersEqual(userPhone.phone, normalizedInputPhone)
+    );
 
     // Additional validation - check if phone is in user's trusted contacts
     const hasTrustedContact = user.trustedContacts?.some(contact =>
-      contact.phone?.replace(/[\s\-\(\)]/g, '') === cleanPhone
+      arePhoneNumbersEqual(contact.phone, normalizedInputPhone)
     );
 
     const isValid = isTiedToAccount || hasTrustedContact;
@@ -235,8 +234,9 @@ const validateDepositPhone = async (req, res) => {
         ? 'Phone number is authorized for deposits'
         : 'Phone number is not tied to your account. Only registered phone numbers can be used for deposits.',
       phoneInfo: {
-        formatted: cleanPhone.startsWith('+254') ? cleanPhone : `+254${cleanPhone.substring(cleanPhone.length - 9)}`,
-        network: cleanPhone.includes('2547') ? 'Airtel' : 'Safaricom'
+        formatted: normalizedInputPhone,
+        network: getNetworkProvider(normalizedInputPhone),
+        original: phoneNumber
       }
     });
 

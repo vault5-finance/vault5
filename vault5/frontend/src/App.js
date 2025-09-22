@@ -1,9 +1,13 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastProvider } from './contexts/ToastContext';
+import initializePerformanceMonitoring from './utils/performance';
 import './index.css';
 
 import NavBar from './components/NavBar';
+
+// Initialize performance monitoring
+const { trackComponentLoad, trackApiCall, trackRouteChange } = initializePerformanceMonitoring();
 
 const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
@@ -13,6 +17,7 @@ const SignupPhone = lazy(() => import('./pages/SignupPhone'));
 const SignupPersonal = lazy(() => import('./pages/SignupPersonal'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const EmailVerificationStatus = lazy(() => import('./pages/EmailVerificationStatus'));
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Reports = lazy(() => import('./pages/Reports'));
@@ -80,7 +85,13 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   const location = useLocation();
-  const isLandingPage = location.pathname === '/';
+
+  // Track route changes for performance monitoring
+  React.useEffect(() => {
+    trackRouteChange(location.pathname);
+  }, [location.pathname]);
+
+  const isLandingPage = React.useMemo(() => location.pathname === '/', [location.pathname]);
 
   return (
     <ToastProvider>
@@ -97,6 +108,8 @@ function App() {
         <Route path="/signup/personal" element={<PublicRoute><SignupPersonal /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/email-verified" element={<EmailVerificationStatus />} />
+        <Route path="/verify-email/:token" element={<EmailVerificationStatus />} />
         <Route path="/admin-login" element={<AdminLogin />} />
 
         {/* Public Marketing Pages */}

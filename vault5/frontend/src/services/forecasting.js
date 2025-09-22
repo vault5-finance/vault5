@@ -1,11 +1,8 @@
-import * as tf from '@tensorflow/tfjs';
-import * as tfvis from '@tensorflow/tfjs-vis';
 import api from './api';
 
 class ForecastingService {
   constructor() {
-    this.model = null;
-    this.isModelLoaded = false;
+    this.isInitialized = false;
   }
 
   // Fetch historical transaction data for forecasting
@@ -15,7 +12,7 @@ class ForecastingService {
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - months);
 
-      const response = await api.get('/transactions', {
+      const response = await api.get('/api/transactions', {
         params: {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
@@ -30,7 +27,7 @@ class ForecastingService {
     }
   }
 
-  // Prepare time-series data from transactions
+  // Prepare time-series data from transactions using simple statistical approach
   prepareTimeSeriesData(transactions, windowSize = 30) {
     // Group transactions by date and calculate daily net cash flow
     const dailyData = {};
@@ -55,129 +52,131 @@ class ForecastingService {
       netCashFlow: dailyData[date].income - dailyData[date].expenses
     }));
 
-    // Create sequences for training
-    const sequences = [];
-    const targets = [];
-
+    // Calculate simple moving averages for forecasting
+    const movingAverages = [];
     for (let i = windowSize; i < timeSeries.length; i++) {
-      const sequence = timeSeries.slice(i - windowSize, i).map(d => d.netCashFlow);
-      const target = timeSeries[i].netCashFlow;
-      sequences.push(sequence);
-      targets.push(target);
+      const window = timeSeries.slice(i - windowSize, i);
+      const average = window.reduce((sum, day) => sum + day.netCashFlow, 0) / windowSize;
+      movingAverages.push(average);
     }
 
     return {
-      sequences: tf.tensor2d(sequences),
-      targets: tf.tensor1d(targets),
-      timeSeries
+      timeSeries,
+      movingAverages,
+      recentAverage: movingAverages.length > 0 ? movingAverages[movingAverages.length - 1] : 0
     };
   }
 
-  // Create and train the forecasting model
-  async createModel(inputShape) {
-    const model = tf.sequential();
+  // Simple linear regression for trend analysis
+  calculateLinearRegression(data) {
+    const n = data.length;
+    if (n < 2) return { slope: 0, intercept: data[0] || 0 };
 
-    // LSTM layer for time-series prediction
-    model.add(tf.layers.lstm({
-      inputShape: [inputShape, 1],
-      units: 50,
-      returnSequences: false
-    }));
+    const xSum = data.reduce((sum, _, i) => sum + i, 0);
+    const ySum = data.reduce((sum, y) => sum + y, 0);
+    const xySum = data.reduce((sum, y, i) => sum + y * i, 0);
+    const xSquareSum = data.reduce((sum, _, i) => sum + i * i, 0);
 
-    model.add(tf.layers.dense({ units: 25, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 1 }));
+    const slope = (n * xySum - xSum * ySum) / (n * xSquareSum - xSum * xSum);
+    const intercept = (ySum - slope * xSum) / n;
 
-    model.compile({
-      optimizer: tf.train.adam(0.001),
-      loss: 'meanSquaredError',
-      metrics: ['mse']
-    });
-
-    this.model = model;
-    return model;
+    return { slope, intercept };
   }
 
-  // Train the model
-  async trainModel(sequences, targets, epochs = 100) {
-    if (!this.model) {
-      await this.createModel(sequences.shape[1]);
+  // Generate cash flow projections using statistical methods
+  generateProjections(days = 30, timeSeriesData) {
+    if (timeSeriesData.length < 7) {
+      throw new Error('Insufficient data for forecasting. Need at least 7 days of transaction data.');
     }
 
-    // Reshape for LSTM input
-    const xs = sequences.reshape([sequences.shape[0], sequences.shape[1], 1]);
+    const { timeSeries, movingAverages, recentAverage } = timeSeriesData;
 
-    const history = await this.model.fit(xs, targets, {
-      epochs,
-      batchSize: 32,
-      validationSplit: 0.2,
-      callbacks: {
-        onEpochEnd: (epoch, logs) => {
-          if (epoch % 10 === 0) {
-            console.log(`Epoch ${epoch}: loss = ${logs.loss.toFixed(4)}, val_loss = ${logs.val_loss.toFixed(4)}`);
-          }
-        }
-      }
-    });
+    // Use recent average as baseline
+    const baseline = recentAverage;
 
-    this.isModelLoaded = true;
-    return history;
-  }
+    // Calculate trend using linear regression on recent data
+    const recentData = movingAverages.slice(-14); // Last 2 weeks
+    const { slope: trend } = this.calculateLinearRegression(recentData);
 
-  // Generate cash flow projections
-  async generateProjections(days = 30, windowSize = 30) {
-    if (!this.isModelLoaded) {
-      throw new Error('Model not trained yet');
-    }
-
-    // Get recent data for prediction
-    const recentData = await this.fetchHistoricalData(3); // Last 3 months
-    const { sequences } = this.prepareTimeSeriesData(recentData, windowSize);
-
-    // Use the last sequence for prediction
-    let currentSequence = sequences.slice([sequences.shape[0] - 1, 0], [1, windowSize]);
-    currentSequence = currentSequence.reshape([1, windowSize, 1]);
+    // Calculate seasonal patterns (weekly patterns)
+    const weeklyPatterns = this.calculateWeeklyPatterns(timeSeries);
 
     const projections = [];
 
     for (let i = 0; i < days; i++) {
-      const prediction = this.model.predict(currentSequence);
-      const predictedValue = prediction.dataSync()[0];
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + i + 1);
+
+      // Get day of week for seasonal adjustment
+      const dayOfWeek = futureDate.getDay();
+      const seasonalAdjustment = weeklyPatterns[dayOfWeek] || 0;
+
+      // Simple projection: baseline + trend * days + seasonal adjustment
+      const projectedValue = baseline + (trend * (i + 1)) + seasonalAdjustment;
 
       projections.push({
-        date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        projectedCashFlow: predictedValue
+        date: futureDate.toISOString().split('T')[0],
+        projectedCashFlow: Math.max(0, projectedValue), // Ensure non-negative
+        confidence: Math.max(0.3, 0.9 - (i * 0.02)) // Confidence decreases over time
       });
-
-      // Update sequence for next prediction (simple approach)
-      currentSequence = tf.concat([currentSequence.slice([0, 1], [1, windowSize - 1]), prediction.reshape([1, 1, 1])], 1);
     }
 
     return projections;
   }
 
-  // Full forecasting workflow
+  // Calculate weekly patterns from historical data
+  calculateWeeklyPatterns(timeSeries) {
+    const weeklyData = [[], [], [], [], [], [], []]; // 7 days of week
+
+    timeSeries.forEach(day => {
+      const date = new Date(day.date);
+      const dayOfWeek = date.getDay();
+      weeklyData[dayOfWeek].push(day.netCashFlow);
+    });
+
+    // Calculate average for each day of the week
+    const patterns = {};
+    weeklyData.forEach((dayData, index) => {
+      if (dayData.length > 0) {
+        patterns[index] = dayData.reduce((sum, val) => sum + val, 0) / dayData.length;
+      } else {
+        patterns[index] = 0;
+      }
+    });
+
+    // Calculate deviations from overall average
+    const overallAverage = timeSeries.reduce((sum, day) => sum + day.netCashFlow, 0) / timeSeries.length;
+    const deviations = {};
+
+    Object.keys(patterns).forEach(day => {
+      deviations[day] = patterns[day] - overallAverage;
+    });
+
+    return deviations;
+  }
+
+  // Full forecasting workflow using statistical methods
   async forecastCashFlow(months = 12, projectionDays = 30) {
     try {
       // Fetch and prepare data
       const transactions = await this.fetchHistoricalData(months);
-      const { sequences, targets, timeSeries } = this.prepareTimeSeriesData(transactions);
+      const timeSeriesData = this.prepareTimeSeriesData(transactions);
 
-      if (sequences.shape[0] < 10) {
-        throw new Error('Insufficient data for forecasting. Need at least 40 days of transaction data.');
+      if (timeSeriesData.timeSeries.length < 7) {
+        throw new Error('Insufficient data for forecasting. Need at least 7 days of transaction data.');
       }
 
-      // Train model
-      await this.trainModel(sequences, targets);
-
       // Generate projections
-      const projections = await this.generateProjections(projectionDays);
+      const projections = this.generateProjections(projectionDays, timeSeriesData);
 
       return {
-        historical: timeSeries,
+        historical: timeSeriesData.timeSeries,
         projections,
-        modelMetrics: {
-          trainingDataPoints: sequences.shape[0],
-          sequenceLength: sequences.shape[1]
+        methodology: 'Statistical forecasting using moving averages, linear regression, and seasonal patterns',
+        metrics: {
+          dataPoints: timeSeriesData.timeSeries.length,
+          averageCashFlow: timeSeriesData.recentAverage,
+          confidence: 'Medium (statistical methods)'
         }
       };
     } catch (error) {
@@ -186,12 +185,23 @@ class ForecastingService {
     }
   }
 
-  // Clean up resources
-  dispose() {
-    if (this.model) {
-      this.model.dispose();
-      this.model = null;
-      this.isModelLoaded = false;
+  // Simple trend analysis
+  async getTrendAnalysis(months = 3) {
+    try {
+      const transactions = await this.fetchHistoricalData(months);
+      const timeSeriesData = this.prepareTimeSeriesData(transactions);
+
+      const { slope } = this.calculateLinearRegression(timeSeriesData.movingAverages);
+
+      return {
+        trend: slope > 0 ? 'increasing' : slope < 0 ? 'decreasing' : 'stable',
+        slope: slope,
+        average: timeSeriesData.recentAverage,
+        dataPoints: timeSeriesData.timeSeries.length
+      };
+    } catch (error) {
+      console.error('Trend analysis error:', error);
+      throw error;
     }
   }
 }

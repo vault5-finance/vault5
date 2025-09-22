@@ -3,7 +3,7 @@
 ## Your Complete Guide to Financial Freedom
 
 **Version:** 1.0
-**Date:** September 2024
+**Date:** September 2025
 
 ---
 
@@ -512,4 +512,4 @@ We're committed to helping you achieve financial freedom. If you have any questi
 
 **Happy saving!** 💰✨
 
-*This user guide is regularly updated. Last updated: September 2024*
+*This user guide is regularly updated. Last updated: September 2025*

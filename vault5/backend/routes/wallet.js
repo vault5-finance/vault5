@@ -1,13 +1,13 @@
 const express = require('express');
 const { body } = require('express-validator');
 const walletController = require('../controllers/walletController');
-const authMiddleware = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const walletMiddleware = require('../middleware/wallet');
 
 const router = express.Router();
 
 // All routes require authentication
-router.use(authMiddleware);
+router.use(protect);
 
 // GET /api/wallet - Get user's wallet
 router.get('/', walletController.getWallet);
@@ -84,7 +84,7 @@ router.get('/stats', walletController.getWalletStats);
 
 // PUT /api/wallet/limits - Update wallet limits (admin only)
 router.put('/limits', [
-  authMiddleware.requireRole('admin'),
+  authorize('admin'),
   body('dailyLimit')
     .optional()
     .isNumeric()
@@ -120,7 +120,7 @@ router.delete('/payment-method/:methodId', walletController.removePaymentMethod)
 
 // PUT /api/wallet/status - Update wallet status (admin only)
 router.put('/status', [
-  authMiddleware.requireRole('admin'),
+  authorize('admin'),
   body('status')
     .isIn(['active', 'inactive', 'suspended', 'blocked'])
     .withMessage('Invalid wallet status'),

@@ -4,7 +4,7 @@
 
 **Version:** 1.0.0
 **Base URL:** `https://api.vault5.com/v1`
-**Date:** September 2024
+**Date:** September 2025
 
 ---
 
@@ -156,7 +156,7 @@ Authorization: Bearer <your_jwt_token>
 ## Reports
 
 ### Monthly Report
-**GET** `/reports/monthly?year=2024&month=1`
+**GET** `/reports/monthly?year=2025&month=1`
 
 ### Export Report
 **POST** `/reports/export`
@@ -164,7 +164,7 @@ Authorization: Bearer <your_jwt_token>
 {
   "reportType": "monthly",
   "format": "pdf",
-  "period": {"year": 2024, "month": 1}
+  "period": {"year": 2025, "month": 1}
 }
 ```
 
