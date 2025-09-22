@@ -10,3 +10,31 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+/* Ensure input text is visible across devices and autofill states */
+input, textarea, select {
+  color: #111827; /* Tailwind text-gray-900 */
+  background-color: #ffffff;
+}
+
+/* Placeholder visibility */
+input::placeholder, textarea::placeholder {
+  color: #9CA3AF; /* Tailwind placeholder-gray-400 */
+}
+
+/* Fix Chrome/Safari autofill text color/background */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: #111827;
+  transition: background-color 5000s ease-in-out 0s;
+  /* Force white bg to avoid low-contrast autofill yellow with white text */
+  box-shadow: 0 0 0px 1000px #ffffff inset;
+}
+
+/* Accessible focus outline for inputs */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* Tailwind ring-blue-500 */
+  border-color: transparent;
+}

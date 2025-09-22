@@ -9,10 +9,23 @@ import NavBar from './components/NavBar';
 // Initialize performance monitoring
 const { trackComponentLoad, trackApiCall, trackRouteChange } = initializePerformanceMonitoring();
 
+// Robust lazy loader to auto-recover from stale chunk errors during HMR/refresh
+const lazyWithRetry = (importer) => React.lazy(() =>
+  importer().catch((err) => {
+    const message = err?.message || String(err);
+    const needsRefresh = /ChunkLoadError|Loading chunk .* failed/i.test(message);
+    if (needsRefresh && typeof window !== 'undefined' && !window.__chunk_error_reload__) {
+      window.__chunk_error_reload__ = true;
+      window.location.reload();
+    }
+    throw err;
+  })
+);
+
 const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
 const SignupChoice = lazy(() => import('./pages/SignupChoice'));
-const SignupEmail = lazy(() => import('./pages/SignupEmail'));
+const SignupEmail = lazyWithRetry(() => import('./pages/SignupEmail'));
 const SignupPhone = lazy(() => import('./pages/SignupPhone'));
 const SignupPersonal = lazy(() => import('./pages/SignupPersonal'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -217,11 +230,13 @@ function App() {
             <div className="p-8">
               <h1 className="text-3xl font-bold">Fees & Pricing</h1>
               <ul className="mt-4 list-disc pl-6 text-gray-700">
-                <li>Transfers: Transparent fees shown before confirmation</li>
-                <li>Subscriptions: Free tier + optional premium add-ons</li>
-                <li>Loan interest/penalties: Shown upfront per application</li>
+                <li>Transaction & Service Fees: Transparent and shown before confirmation</li>
+                <li>Penalties, Fines & Interests: Applied where applicable and disclosed upfront</li>
+                <li>Lawful Data Use: Insights/revenue only where permitted by law and policy</li>
+                <li>Investments: Company investments and returns reinvested into user value</li>
+                <li>Partnerships & Referrals: Strategic collaborations that benefit users</li>
               </ul>
-              <p className="mt-4 text-gray-700">No hidden fees. You always see costs before you approve.</p>
+              <p className="mt-4 text-gray-700">No subscriptions. No hidden fees. All costs are disclosed before approval.</p>
             </div>
           }
         />

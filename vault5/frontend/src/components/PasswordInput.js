@@ -1,41 +1,41 @@
 import React, { useState } from 'react';
 
-const PasswordInput = ({ name, value, onChange, placeholder, className = '', ...props }) => {
-  const [showPassword, setShowPassword] = useState(false);
+const Eye = (props) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...props}>
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none"/>
+    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+  </svg>
+);
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+const EyeOff = (props) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...props}>
+    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.66 20.66 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 5c7 0 11 7 11 7a20.66 20.66 0 0 1-3.17 4.12M1 1l22 22" stroke="currentColor" strokeWidth="2" fill="none"/>
+  </svg>
+);
+
+export default function PasswordInput({ value, onChange, name = 'password', placeholder = 'Enter password', className = '', ...rest }) {
+  const [show, setShow] = useState(false);
 
   return (
     <div className="relative">
       <input
-        type={showPassword ? 'text' : 'password'}
+        type={show ? 'text' : 'password'}
         name={name}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
-        {...props}
+        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white pr-10 ${className}`}
+        autoComplete="new-password"
+        {...rest}
       />
       <button
         type="button"
-        onClick={togglePasswordVisibility}
-        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+        onClick={() => setShow((s) => !s)}
+        aria-label={show ? 'Hide password' : 'Show password'}
+        className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
       >
-        {showPassword ? (
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-          </svg>
-        ) : (
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-        )}
+        {show ? <EyeOff /> : <Eye />}
       </button>
     </div>
   );
-};
-
-export default PasswordInput;
+}

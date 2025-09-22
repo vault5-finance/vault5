@@ -1,6 +1,6 @@
 # 👤 Founder — Bryson Nyaliti (2025)
 
-Vault5 was founded by Bryson Nyaliti. The project vision, direction, and stewardship are led by the founder.
+Vault5 began in January 2025. The project vision, direction, and stewardship are led by the founder.
 
 Mission:
 - Discipline builds freedom. Vault5 exists to automate good money habits so people can allocate, protect, and grow their capital with confidence.
@@ -59,7 +59,16 @@ Docs Integration:
 Branding & Legal Notes:
 - Vault5 is not a clone; it is original work by the founder. Comparative references to PayPal and others are allowed for UX analogies only. See [LEGAL-NOTES.md](./LEGAL-NOTES.md).
 
+## Founder Story — “From Discipline to Freedom”
+
+January 2025. I was staring at a spreadsheet at 1:17 AM, the kind of silence where even Nairobi traffic feels like a distant memory. My money wasn’t misbehaving; my habits were. I wanted a simple system that would not negotiate with my impulses — one that would tell my money where to go before feelings woke up. I sketched six vaults on paper: Daily, Emergency, Investment, Long-Term, Fun, Charity. It looked too simple to fail.
+
+The eureka moment didn’t arrive as fireworks; it arrived as friction. The more I tried to manually stick to discipline, the more I realized: discipline is rarely sweet — it’s the heat that separates ore from gold. You don’t “enjoy” smelting; you endure it to wear the gold. That night the vision shifted from a personal tool to a public mission: if this thing can harden my behaviors, it can serve families, businesses, and communities across Africa. I would be selfish to hoard the crucible for myself.
+
+Vault5 became the name — a vault not just for money, but for habits, goals, and community wealth. A system that splits, enforces, and reminds — so you can suffer less from guesswork and enjoy more of the outcome. From that night forward, the burden became clear: turn discipline into a product, so freedom becomes predictable.
+
 Change Log (Founder-specific, 2025):
+- 2025-01: Inception and first vault allocation sketch
 - 2025-09: Established founder credit policy and UI component guidelines
 - 2025-09: Added FOUNDER.md, README links, and public docs conventions
 

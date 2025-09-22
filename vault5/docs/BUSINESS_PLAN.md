@@ -75,10 +75,9 @@ Vault5 is a fintech startup founded in 2023, headquartered in Nairobi, Kenya. Th
 
 ### Company History & Milestones
 
-**2024 (Foundation):**
+**January 2025 (Foundation):**
 - Company founded by Bryson Nyaliti
 - Initial product concept and market research completed
-- Seed funding secured from angel investors
 - Core team assembled
 
 **2025 (Development & Launch):**
@@ -278,28 +277,14 @@ The African fintech sector is experiencing explosive growth, driven by:
 - **Financial Data:** Bank account aggregation
 - **Notifications:** SMS, email, push notifications
 
-### Service Tiers
+### Monetization Principles (No Subscriptions)
 
-#### Freemium Model
-**Basic (Free):**
-- 3 accounts (Daily, Emergency, Fun)
-- Basic budgeting tools
-- Community access
-- Mobile app access
-
-**Pro ($4.99/month):**
-- All 6 accounts
-- Advanced analytics
-- Investment tracking
-- Priority support
-- No advertisements
-
-**Business ($9.99/month):**
-- Team management
-- Advanced reporting
-- API access
-- White-label options
-- Dedicated support
+Vault5 does not charge subscription plans. Revenue is generated through:
+- Transaction & Service Fees: Transparent fees disclosed before confirmation.
+- Penalties, Fines & Interests: Applied where applicable and fully disclosed.
+- Lawful Data Use: Insights or data monetization only where permitted by law and policy.
+- Investments: Company treasury and strategic investments; returns reinvested into user value.
+- Partnerships & Referrals: Bank/fintech partners, affiliate programs, and co-branded initiatives.
 
 ### Quality Assurance
 
@@ -555,21 +540,11 @@ The African fintech sector is experiencing explosive growth, driven by:
 
 ### Revenue Model
 
-#### Subscription Revenue
-- **Basic:** Free tier (freemium model)
-- **Pro:** $4.99/month ($60/year)
-- **Business:** $9.99/month ($120/year)
-- **Enterprise:** Custom pricing
-
-#### Transaction Revenue
-- **P2P Transfers:** 0.5% fee (capped at $1)
-- **Investment Tracking:** 0.1% AUM annually
-- **Premium Features:** 1-2% transaction fees
-
-#### Partnership Revenue
-- **Bank Referrals:** 20-30% commission
-- **Affiliate Programs:** 15-25% revenue share
-- **API Access:** $0.01 per transaction
+- Transaction & Service Fees: Transparent fees disclosed before confirmation; tiered by KYC/risk.
+- Penalties, Fines & Interests: Applied per policy and regulation; visible before user approval.
+- Lawful Data Use: Insights monetization only where permitted by law and user agreements.
+- Investments & Treasury: Returns from company investments and liquidity programs.
+- Partnerships & Referrals: Strategic partner programs, co-branded products, and affiliate revenue.
 
 ### 5-Year Financial Projections
 
@@ -630,10 +605,10 @@ The African fintech sector is experiencing explosive growth, driven by:
 - **Gross Margin:** 85%
 
 #### Growth Metrics
-- **Monthly Recurring Revenue:** $1.2M by Year 2
-- **Annual Recurring Revenue:** $14.4M by Year 2
-- **User Growth Rate:** 300% YoY for first 3 years
+- **Processed Volume (TPV):** Growth tracked monthly and yearly
+- **Active Users:** 300% YoY for first 3 years
 - **Market Share:** 15% in Kenya by Year 3
+- **Partner Footprint:** Bank/MNO/Institutional partners onboarded per quarter
 
 #### Profitability Metrics
 - **Break-even Point:** Month 8 of operations
@@ -729,7 +704,7 @@ The African fintech sector is experiencing explosive growth, driven by:
 **Mitigation:**
 - Diversified revenue streams
 - Multiple geographic markets
-- Freemium model for recession resistance
+- Diverse revenue mix (transactions, lawful data use, investments, partnerships)
 - Conservative financial planning
 
 ### Operational Risks
