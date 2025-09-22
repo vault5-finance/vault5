@@ -47,7 +47,7 @@ const Sidebar = () => {
       </nav>
       <div className="absolute bottom-0 w-64 p-4 border-t">
         <div className="text-xs text-gray-500 text-center">
-          © 2024 Vault5. Secure & Trusted.
+          © {new Date().getFullYear()} Vault5. Secure & Trusted.
         </div>
       </div>
     </div>

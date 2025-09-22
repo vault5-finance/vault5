@@ -320,7 +320,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Vault5. All rights reserved. | <Link to="/legal" className="hover:text-white">Privacy</Link> | <Link to="/legal" className="hover:text-white">Terms</Link> | <Link to="/legal" className="hover:text-white">Accessibility</Link></p>
+            <p>&copy; {new Date().getFullYear()} Vault5. All rights reserved. | <Link to="/legal" className="hover:text-white">Privacy</Link> | <Link to="/legal" className="hover:text-white">Terms</Link> | <Link to="/legal" className="hover:text-white">Accessibility</Link></p>
           </div>
         </div>
       </footer>
