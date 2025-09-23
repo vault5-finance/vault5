@@ -333,11 +333,24 @@ const registerStep1 = async (req, res) => {
 
     // Check if email already exists (arrays or legacy field)
     const emailLower = email.toLowerCase();
-    let existingUser = await User.findOne({ 'emails.email': emailLower });
+    let foundPath = null;
+    let existingUser = await User.findOne({ 'emails.email': emailLower }).select('_id accountStatus emails email');
+    if (existingUser) {
+      foundPath = 'emails.email';
+    }
     if (!existingUser) {
-      existingUser = await User.findOne({ email: emailLower });
+      existingUser = await User.findOne({ email: emailLower }).select('_id accountStatus emails email');
+      if (existingUser) {
+        foundPath = 'legacy email';
+      }
     }
     if (existingUser) {
+      console.warn('registerStep1: email exists', {
+        email: emailLower,
+        userId: existingUser?._id?.toString?.(),
+        accountStatus: existingUser?.accountStatus || null,
+        path: foundPath
+      });
       return res.status(400).json({ message: 'Email already exists' });
     }
 

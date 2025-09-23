@@ -1,4 +1,9 @@
-const plaid = require('plaid');
+let plaidLib = null;
+try {
+  plaidLib = require('plaid');
+} catch (e) {
+  console.warn('Plaid SDK not installed; Plaid features disabled:', e.message);
+}
 const { PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV } = process.env;
 
 // Map environment string to Plaid environment object
@@ -18,13 +23,13 @@ const getPlaidEnvironment = (env) => {
 // Only initialize client if credentials are available
 // Plaid v10+ style with Configuration and PlaidApi. Falls back gracefully on missing creds.
 let client = null;
-if (PLAID_CLIENT_ID && PLAID_SECRET && PLAID_ENV) {
+if (plaidLib && PLAID_CLIENT_ID && PLAID_SECRET && PLAID_ENV) {
   try {
-    const { Configuration, PlaidApi, PlaidEnvironments } = plaid;
+    const { Configuration, PlaidApi, PlaidEnvironments } = plaidLib || {};
     const envName = getPlaidEnvironment(PLAID_ENV); // 'sandbox' | 'development' | 'production'
     const basePath =
       (PlaidEnvironments && PlaidEnvironments[envName]) ||
-      (plaid.environments && plaid.environments[envName]); // older SDKs
+      (plaidLib && plaidLib.environments && plaidLib.environments[envName]); // older SDKs
 
     const config = new Configuration({
       basePath,
@@ -43,7 +48,7 @@ if (PLAID_CLIENT_ID && PLAID_SECRET && PLAID_ENV) {
     client = null;
   }
 } else {
-  console.warn('Plaid credentials not configured - Plaid features will be disabled');
+  console.warn('Plaid credentials or SDK not configured - Plaid features will be disabled');
 }
 
 // Create link token for client-side Plaid Link

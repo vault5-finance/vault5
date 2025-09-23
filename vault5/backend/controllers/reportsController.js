@@ -1,6 +1,4 @@
 const { User, Account, Transaction, Goal, Loan, Investment, Lending } = require('../models');
-const PDFDocument = require('pdfkit');
-const ExcelJS = require('exceljs');
 
 // Dashboard data
 const getDashboard = async (req, res) => {
@@ -60,59 +58,80 @@ const getDashboard = async (req, res) => {
 };
 
 // Generate cash flow report (weekly/monthly/yearly)
+/**
+ * Core computation used by reports and exports.
+ * Returns plain data; does not write to res.
+ */
+const computeCashFlowReportData = async (userId, period = 'monthly') => {
+  const now = new Date();
+  let startDate;
+
+  if (period === 'weekly') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+  } else if (period === 'monthly') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  } else if (period === 'yearly') {
+    startDate = new Date(now.getFullYear(), 0, 1);
+  } else {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  const transactions = await Transaction.find({
+    user: userId,
+    date: { $gte: startDate }
+  }).sort({ date: -1 });
+
+  const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  const expenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  const netCashFlow = income - expenses;
+
+  const missedDeposits = await Account.aggregate([
+    { $match: { user: userId } },
+    {
+      $lookup: {
+        from: 'transactions',
+        localField: 'transactions',
+        foreignField: '_id',
+        as: 'trans'
+      }
+    },
+    {
+      $addFields: {
+        shortfall: {
+          $cond: [
+            { $lt: ['$balance', '$target'] },
+            { $subtract: ['$target', '$balance'] },
+            0
+          ]
+        }
+      }
+    }
+  ]);
+
+  const debtHistory = missedDeposits.filter(acc => acc.shortfall > 0);
+
+  const surplusHistory = await Transaction.find({ user: userId, type: 'surplus' }).sort({ date: -1 });
+  const lendingHistory = await Lending.find({ user: userId }).sort({ createdAt: -1 });
+
+  return {
+    period,
+    startDate,
+    income,
+    expenses,
+    netCashFlow,
+    missedDeposits: debtHistory,
+    surplusHistory,
+    lendingHistory
+  };
+};
+
+// Generate cash flow report (weekly/monthly/yearly)
 const getCashFlowReport = async (req, res) => {
   try {
-    const { period = 'monthly' } = req.query; // weekly, monthly, yearly
+    const { period = 'monthly' } = req.query;
     const userId = req.user._id;
-    const now = new Date();
-    let startDate;
-
-    if (period === 'weekly') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
-    } else if (period === 'monthly') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (period === 'yearly') {
-      startDate = new Date(now.getFullYear(), 0, 1);
-    }
-
-    const transactions = await Transaction.find({
-      user: userId,
-      date: { $gte: startDate }
-    }).sort({ date: -1 });
-
-    const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const expenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const netCashFlow = income - expenses;
-
-    const missedDeposits = await Account.aggregate([
-      { $match: { user: userId } },
-      {
-        $lookup: {
-          from: 'transactions',
-          localField: 'transactions',
-          foreignField: '_id',
-          as: 'trans'
-        }
-      },
-      { $addFields: { shortfall: { $cond: [{ $lt: ['$balance', '$target'] }, { $subtract: ['$target', '$balance'] }, 0] } } }
-    ]);
-
-    const debtHistory = missedDeposits.filter(acc => acc.shortfall > 0);
-
-    const surplusHistory = await Transaction.find({ user: userId, type: 'surplus' }).sort({ date: -1 });
-
-    const lendingHistory = await Lending.find({ user: userId }).sort({ createdAt: -1 });
-
-    res.json({
-      period,
-      startDate,
-      income,
-      expenses,
-      netCashFlow,
-      missedDeposits: debtHistory,
-      surplusHistory,
-      lendingHistory
-    });
+    const data = await computeCashFlowReportData(userId, period);
+    res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -121,8 +140,19 @@ const getCashFlowReport = async (req, res) => {
 // Export report to PDF
 const exportToPDF = async (req, res) => {
   try {
-    const { reportType = 'cashflow' } = req.query;
-    const reportData = await getCashFlowReportData(req.user._id, reportType); // Helper to get data
+    const { reportType = 'cashflow', period = 'monthly' } = req.query;
+    const userId = req.user._id;
+
+    // Lazy-load pdfkit to avoid startup hard-failure if missing
+    let PDFDocument;
+    try {
+      PDFDocument = require('pdfkit');
+    } catch (e) {
+      console.error('pdfkit not installed or failed to load:', e?.message || e);
+      return res.status(500).json({ message: 'PDF generation library not available' });
+    }
+
+    const reportData = await computeCashFlowReportData(userId, period);
 
     const doc = new PDFDocument();
     res.setHeader('Content-Type', 'application/pdf');
@@ -132,6 +162,7 @@ const exportToPDF = async (req, res) => {
     doc.fontSize(20).text('Vault5 Financial Report', { align: 'center' });
     doc.moveDown();
     doc.fontSize(12).text(`Report Type: ${reportType.toUpperCase()}`);
+    doc.text(`Period: ${period}`);
     doc.text(`Date: ${new Date().toLocaleDateString()}`);
 
     if (reportType === 'cashflow') {
@@ -143,19 +174,20 @@ const exportToPDF = async (req, res) => {
       doc.moveDown();
       doc.text('Missed Deposits:');
       reportData.missedDeposits.forEach(dep => {
-        doc.text(`${dep.accountType}: KES ${dep.shortfall.toFixed(2)}`);
+        doc.text(`${(dep.accountType || dep.type) ?? 'Account'}: KES ${Number(dep.shortfall || 0).toFixed(2)}`);
       });
 
       doc.moveDown();
       doc.text('Surplus History:');
       reportData.surplusHistory.forEach(sur => {
-        doc.text(`${sur.description}: KES ${sur.amount.toFixed(2)} on ${sur.date.toLocaleDateString()}`);
+        const dateStr = sur.date ? new Date(sur.date).toLocaleDateString() : '';
+        doc.text(`${sur.description || 'Surplus'}: KES ${Number(sur.amount || 0).toFixed(2)} ${dateStr ? `on ${dateStr}` : ''}`);
       });
 
       doc.moveDown();
       doc.text('Lending History:');
       reportData.lendingHistory.forEach(lend => {
-        doc.text(`${lend.borrowerName} - ${lend.type}: KES ${lend.amount.toFixed(2)} (${lend.status})`);
+        doc.text(`${lend.borrowerName || 'Borrower'} - ${lend.type || 'lending'}: KES ${Number(lend.amount || 0).toFixed(2)} (${lend.status || 'status'})`);
       });
     }
 
@@ -166,18 +198,27 @@ const exportToPDF = async (req, res) => {
 };
 
 // Helper for report data (simplified)
-const getCashFlowReportData = async (userId, type) => {
-  // Similar to getCashFlowReport but return data instead of json
-  // Implementation as in getCashFlowReport, return the computed data
-  const { income, expenses, netCashFlow, missedDeposits, surplusHistory, lendingHistory } = await getCashFlowReport({ user: { _id: userId } }, {}, (err) => {}); // Mock
-  return { income, expenses, netCashFlow, missedDeposits, surplusHistory, lendingHistory };
+const getCashFlowReportData = async (userId, period = 'monthly') => {
+  // Delegate to the core computation
+  return computeCashFlowReportData(userId, period);
 };
 
 // Export to Excel
 const exportToExcel = async (req, res) => {
   try {
-    const { reportType = 'cashflow' } = req.query;
-    const reportData = await getCashFlowReportData(req.user._id, reportType);
+    const { reportType = 'cashflow', period = 'monthly' } = req.query;
+    const userId = req.user._id;
+
+    // Lazy-load exceljs to avoid startup hard-failure if missing
+    let ExcelJS;
+    try {
+      ExcelJS = require('exceljs');
+    } catch (e) {
+      console.error('exceljs not installed or failed to load:', e?.message || e);
+      return res.status(500).json({ message: 'Excel export library not available' });
+    }
+
+    const reportData = await computeCashFlowReportData(userId, period);
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(reportType);
@@ -185,14 +226,13 @@ const exportToExcel = async (req, res) => {
     if (reportType === 'cashflow') {
       worksheet.columns = [
         { header: 'Category', key: 'category', width: 20 },
-        { header: 'Amount (KES)', key: 'amount', width: 15 },
-        { header: 'Date', key: 'date', width: 15 }
+        { header: 'Amount (KES)', key: 'amount', width: 18 },
+        { header: 'Date', key: 'date', width: 18 }
       ];
 
       worksheet.addRow(['Income', reportData.income, new Date()]);
       worksheet.addRow(['Expenses', reportData.expenses, new Date()]);
       worksheet.addRow(['Net Cash Flow', reportData.netCashFlow, new Date()]);
-
       worksheet.addRow([]); // Blank row
 
       reportData.missedDeposits.forEach(dep => {
@@ -200,11 +240,11 @@ const exportToExcel = async (req, res) => {
       });
 
       reportData.surplusHistory.forEach(sur => {
-        worksheet.addRow(['Surplus', sur.amount, sur.date]);
+        worksheet.addRow(['Surplus', sur.amount, sur.date || new Date()]);
       });
 
       reportData.lendingHistory.forEach(lend => {
-        worksheet.addRow(['Lending', lend.amount, lend.createdAt]);
+        worksheet.addRow(['Lending', lend.amount, lend.createdAt || new Date()]);
       });
     }
 

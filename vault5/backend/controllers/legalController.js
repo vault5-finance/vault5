@@ -1,4 +1,3 @@
-const PDFDocument = require('pdfkit');
 
 /**
  * Simple in-memory User Agreement content.
@@ -27,6 +26,15 @@ const USER_AGREEMENT_SECTIONS = [
  */
 const downloadUserAgreementPDF = async (req, res) => {
   try {
+    // Lazy-load pdfkit to avoid crashing server at startup if dependency is missing
+    let PDFDocument;
+    try {
+      PDFDocument = require('pdfkit');
+    } catch (loadErr) {
+      console.error('pdfkit not installed or failed to load:', loadErr?.message || loadErr);
+      return res.status(500).json({ message: 'PDF generation library not available' });
+    }
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="Vault5-User-Agreement.pdf"');
 

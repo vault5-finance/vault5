@@ -46,6 +46,34 @@ loadSecrets().then(secretsLoaded => {
 
   app.use(express.json());
 
+  // Lightweight request/response logger to trace auth/signup failures without leaking secrets
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const path = req.path || req.url;
+    // Redact sensitive fields
+    const safeBody = (() => {
+      try {
+        if (!req.body || typeof req.body !== 'object') return undefined;
+        const clone = { ...req.body };
+        if ('password' in clone) clone.password = '[redacted]';
+        if ('confirmPassword' in clone) clone.confirmPassword = '[redacted]';
+        if ('token' in clone) clone.token = '[redacted]';
+        return clone;
+      } catch {
+        return undefined;
+      }
+    })();
+
+    console.log('[req]', req.method, path, safeBody ? { body: safeBody } : '');
+
+    res.on('finish', () => {
+      const ms = Date.now() - start;
+      console.log('[res]', req.method, path, res.statusCode, `${ms}ms`);
+    });
+
+    next();
+  });
+
   // Serve uploaded files statically (with cache hints)
   app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
     maxAge: '7d',

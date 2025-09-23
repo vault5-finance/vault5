@@ -1,10 +1,29 @@
-const natural = require('natural');
-const nlp = require('compromise');
+ // Optional NLP deps are loaded lazily in the constructor to avoid startup failures.
 
 class ReceiptProcessor {
   constructor() {
-    this.tokenizer = new natural.WordTokenizer();
-    this.stemmer = natural.PorterStemmer;
+    // Lazy/optional NLP dependencies
+    try {
+      this.natural = require('natural');
+    } catch (e) {
+      this.natural = null;
+      console.warn('Optional dependency "natural" not installed; using basic tokenizer/stemmer');
+    }
+
+    try {
+      this.nlp = require('compromise');
+    } catch (e) {
+      this.nlp = null;
+      console.warn('Optional dependency "compromise" not installed; using regex-based vendor extraction');
+    }
+
+    this.tokenizer = this.natural
+      ? new this.natural.WordTokenizer()
+      : { tokenize: (t) => String(t || '').split(/\s+/) };
+
+    this.stemmer = this.natural
+      ? this.natural.PorterStemmer
+      : { stem: (w) => w };
   }
 
   // Main method to process OCR text and extract receipt data
@@ -54,13 +73,13 @@ class ReceiptProcessor {
 
   // Extract vendor/store name
   extractVendor(text) {
-    const doc = nlp(text);
+    const doc = this.nlp ? this.nlp(text) : null;
 
     // Look for organization names
-    const organizations = doc.organizations().out('array');
+    const organizations = doc ? doc.organizations().out('array') : [];
 
     // Look for proper nouns that might be business names
-    const properNouns = doc.match('#ProperNoun+').out('array');
+    const properNouns = doc ? doc.match('#ProperNoun+').out('array') : [];
 
     // Common vendor patterns
     const vendorPatterns = [
