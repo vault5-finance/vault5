@@ -4,7 +4,7 @@ const path = require('path');
 const { protect } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimit');
 const { auditLog } = require('../middleware/audit');
-const { register, login, getProfile, updateProfile, registerStep1, registerStep2, registerStep3, registerStep4, checkEmail, sendOTP, verifyOTP, checkVaultTag, forgotPassword, resetPassword, addEmail, verifyEmail, addPhone, verifyPhone, setPrimaryEmail, setPrimaryPhone, removeEmail, removePhone, changePassword } = require('../controllers/authController');
+const { register, login, getProfile, updateProfile, registerStep1, registerStep2, registerStep3, registerStep4, checkEmail, sendOTP, verifyOTP, checkVaultTag, checkUsername, forgotPassword, resetPassword, addEmail, verifyEmail, addPhone, verifyPhone, setPrimaryEmail, setPrimaryPhone, removeEmail, removePhone, changePassword } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -46,6 +46,7 @@ router.post('/check-email', authLimiter, checkEmail);
 router.post('/send-otp', authLimiter, auditLog('send_otp', 'auth'), sendOTP);
 router.post('/verify-otp', authLimiter, auditLog('verify_otp', 'auth'), verifyOTP);
 router.post('/check-vault-tag', checkVaultTag);
+router.post('/check-username', checkUsername);
 
 // Password reset routes
 router.post('/forgot-password', authLimiter, auditLog('password_change', 'auth'), forgotPassword);

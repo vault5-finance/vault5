@@ -7,11 +7,7 @@ const userSchema = new mongoose.Schema({
       // Name is required only after registration step 2 (when personal details are collected)
       return this.registrationStep >= 2;
     },
-    trim: true,
-    immutable: function() {
-      // Name cannot be changed once set (after registration step 2)
-      return this.registrationStep >= 2;
-    }
+    trim: true
   },
   emails: [{
     email: {
@@ -103,17 +99,16 @@ const userSchema = new mongoose.Schema({
     default: ''
   },
   dob: {
-    type: Date,
-    immutable: function() {
-      // Date of birth cannot be changed once set (after registration step 2)
-      return this.registrationStep >= 2;
-    }
+    type: Date
   },
   vaultTag: {
     type: String,
     unique: true,
     sparse: true,
     lowercase: true
+  },
+  lastUsernameChange: {
+    type: Date
   },
   kycStatus: {
     type: String,

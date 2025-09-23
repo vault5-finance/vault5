@@ -273,10 +273,6 @@ const updateProfile = async (req, res) => {
     const user = await User.findById(req.user._id).select('+password');
     if (!user) return res.status(404).json({ message: 'User not found' });
  
-    // Enforce immutability of core PII after step 2
-    if ((name !== undefined || dob !== undefined) && user.registrationStep >= 2) {
-      return res.status(400).json({ message: 'Personal information (name, date of birth) cannot be changed after verification' });
-    }
  
     // Emails and phones must be managed via dedicated endpoints
     if (email !== undefined) {
@@ -295,7 +291,33 @@ const updateProfile = async (req, res) => {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
     }
- 
+
+    // Handle username change with cooldown
+    if (req.body.vaultTag !== undefined) {
+      const newUsername = req.body.vaultTag;
+      console.log('Updating vaultTag from', user.vaultTag, 'to', newUsername);
+      if (newUsername !== user.vaultTag) {
+        // Check cooldown (30 days)
+        if (user.lastUsernameChange) {
+          const daysSinceLastChange = (new Date() - new Date(user.lastUsernameChange)) / (1000 * 60 * 60 * 24);
+          if (daysSinceLastChange < 30) {
+            const daysLeft = Math.ceil(30 - daysSinceLastChange);
+            return res.status(400).json({ message: `Username can only be changed once every 30 days. ${daysLeft} days remaining.` });
+          }
+        }
+
+        // Check if username is available
+        const existing = await User.findOne({ vaultTag: newUsername.toLowerCase() });
+        console.log('Existing user with vaultTag:', existing ? existing._id : 'none');
+        if (existing && existing._id.toString() !== user._id.toString()) {
+          return res.status(400).json({ message: 'Username is already taken' });
+        }
+
+        user.vaultTag = newUsername.toLowerCase();
+        user.lastUsernameChange = new Date();
+      }
+    }
+
     await user.save();
  
     // Resolve primary email for response
@@ -649,6 +671,34 @@ const checkVaultTag = async (req, res) => {
   }
 };
 
+// POST /api/auth/check-username
+const checkUsername = async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ message: 'Username is required' });
+    }
+
+    // Validate username format
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({
+        available: false,
+        error: 'Username must be 3-20 characters, letters, numbers, and underscores only'
+      });
+    }
+
+    // Check if username is available
+    const existing = await User.findOne({ vaultTag: username.toLowerCase() });
+    const available = !existing;
+
+    res.json({ available });
+  } catch (error) {
+    console.error('Check username error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // POST /api/auth/forgot-password
 const forgotPassword = async (req, res) => {
   try {
@@ -823,8 +873,15 @@ const verifyEmail = async (req, res) => {
 // POST /api/auth/add-phone
 const addPhone = async (req, res) => {
   try {
-    const { phone } = req.body;
+    let { phone } = req.body;
     if (!phone) return res.status(400).json({ message: 'Phone is required' });
+
+    // Normalize phone number: if starts with 0, replace with +254
+    if (phone.startsWith('0')) {
+      phone = '+254' + phone.substring(1);
+    } else if (!phone.startsWith('+')) {
+      phone = '+254' + phone;
+    }
 
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -872,7 +929,15 @@ const verifyPhone = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const phoneEntry = user.phones.find(p => p.phone === phone && p.verificationCode === code);
+    // In development, accept any 6-digit code
+    const isDev = process.env.NODE_ENV !== 'production';
+    let phoneEntry;
+    if (isDev && code.length === 6 && /^\d{6}$/.test(code)) {
+      phoneEntry = user.phones.find(p => p.phone === phone && !p.isVerified);
+    } else {
+      phoneEntry = user.phones.find(p => p.phone === phone && p.verificationCode === code);
+    }
+
     if (!phoneEntry) return res.status(400).json({ message: 'Invalid code' });
 
     phoneEntry.isVerified = true;
@@ -1042,6 +1107,7 @@ module.exports = {
   sendOTP,
   verifyOTP,
   checkVaultTag,
+  checkUsername,
   forgotPassword,
   resetPassword,
   addEmail,

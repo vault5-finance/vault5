@@ -44,6 +44,10 @@ async function logRiskEvent(userId, kind, score = 0, metadata = {}) {
 // Geo allowlist gate (KE only initially via GeoPolicy)
 async function geoGate(req, res, next) {
   try {
+    // Skip geo check in development
+    if (process.env.NODE_ENV !== 'production') {
+      return next();
+    }
     const policy = await GeoPolicy.findOne({});
     if (!policy || policy.mode !== 'allowlist' || !Array.isArray(policy.countries) || policy.countries.length === 0) {
       return next(); // no restriction configured

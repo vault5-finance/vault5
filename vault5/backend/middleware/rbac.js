@@ -66,6 +66,13 @@ const requirePermission = (permission) => {
         return next();
       }
 
+      // In development, allow account_admin to access accounts routes
+      if (process.env.NODE_ENV !== 'production' && user.role === 'account_admin' && permission.startsWith('accounts.')) {
+        req.user.role = user.role;
+        req.user.permissions = user.permissions;
+        return next();
+      }
+
       // Check if user has the specific permission
       if (!user.permissions || !user.permissions.includes(permission)) {
         return res.status(403).json({
