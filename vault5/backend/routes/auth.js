@@ -4,7 +4,7 @@ const path = require('path');
 const { protect } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimit');
 const { auditLog } = require('../middleware/audit');
-const { register, login, getProfile, updateProfile, registerStep1, registerStep2, registerStep3, registerStep4, checkEmail, sendOTP, verifyOTP, forgotPassword, resetPassword, addEmail, verifyEmail, addPhone, verifyPhone, setPrimaryEmail, setPrimaryPhone, removeEmail, removePhone, changePassword } = require('../controllers/authController');
+const { register, login, getProfile, updateProfile, registerStep1, registerStep2, registerStep3, registerStep4, checkEmail, sendOTP, verifyOTP, forgotPassword, resetPassword, addEmail, verifyEmail, addPhone, verifyPhone, setPrimaryEmail, setPrimaryPhone, removeEmail, removePhone, changePassword, deleteAccount } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -65,5 +65,8 @@ router.delete('/remove-phone/:phoneId', protect, removePhone);
 
 // Password management
 router.post('/change-password', protect, changePassword);
+
+// Danger zone: delete account permanently
+router.delete('/account', protect, deleteAccount);
 
 module.exports = router;

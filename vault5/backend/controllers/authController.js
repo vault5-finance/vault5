@@ -1,6 +1,10 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Account, Transaction } = require('../models');
+const Wallet = require('../models/Wallet');
+const Notification = require('../models/Notification');
+const Lending = require('../models/Lending');
+const Loan = require('../models/Loan');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '30d' });
@@ -1119,6 +1123,33 @@ const changePassword = async (req, res) => {
   }
 };
 
+/**
+ * DELETE /api/auth/account
+ * Danger zone: permanently delete the user's account and related data
+ */
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Best-effort cascading deletes
+    await Promise.all([
+      Account.deleteMany({ user: userId }),
+      Transaction.deleteMany({ user: userId }),
+      Notification.deleteMany({ user: userId }),
+      Lending.deleteMany({ user: userId }),
+      Loan.deleteMany({ user: userId }),
+      Wallet.deleteOne({ user: userId })
+    ]);
+
+    await User.deleteOne({ _id: userId });
+
+    return res.json({ success: true, message: 'Account and related data deleted permanently' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete account' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -1143,4 +1174,5 @@ module.exports = {
   removeEmail,
   removePhone,
   changePassword,
+  deleteAccount,
 };

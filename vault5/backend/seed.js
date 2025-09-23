@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const User = require('./models/User');
 const Account = require('./models/Account');
+const Wallet = require('./models/Wallet');
 const {
   LimitTier,
   GeoPolicy,
@@ -282,6 +283,43 @@ const seedAdminUsers = async () => {
       await user.save();
 
       console.log(`Admin user ${adminData.email} created successfully`);
+    }
+
+    // Seed test balance for Collins (existing user) - 10,000 to wallet, 10,000 auto-split to accounts
+    try {
+      const collins = await User.findOne({
+        $or: [
+          { 'emails.email': 'collins@gmail.om' },
+          { email: 'collins@gmail.om' }
+        ]
+      });
+
+      if (collins) {
+        // Ensure wallet and credit 10,000
+        let wallet = await Wallet.findOne({ user: collins._id });
+        if (!wallet) {
+          wallet = await Wallet.create({ user: collins._id, balance: 10000 });
+        } else {
+          wallet.balance = Number(wallet.balance || 0) + 10000;
+          await wallet.save();
+        }
+
+        // Allocate 10,000 across existing accounts by their percentage
+        const accounts = await Account.find({ user: collins._id });
+        if (accounts && accounts.length > 0) {
+          const alloc = 10000;
+          for (const acc of accounts) {
+            const inc = Math.round((alloc * Number(acc.percentage || 0)) / 100);
+            acc.balance = Number(acc.balance || 0) + inc;
+            await acc.save();
+          }
+        }
+        console.log('Seeded Collins test funds: 10,000 wallet + 10,000 auto-split');
+      } else {
+        console.log('Collins user not found, skipping test funds seed');
+      }
+    } catch (e) {
+      console.error('Seed Collins funds error:', e?.message || e);
     }
 
     console.log('Seeding completed');

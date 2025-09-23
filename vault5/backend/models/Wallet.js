@@ -113,27 +113,8 @@ walletSchema.virtual('availableBalance').get(function() {
   return this.balance;
 });
 
-// Method to check if transaction is within limits
+// Limits disabled by business decision
 walletSchema.methods.isWithinLimits = function(amount, type = 'recharge') {
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  // Check daily limit
-  if (type === 'spend' && amount > this.limits.dailyLimit) {
-    return { allowed: false, reason: 'Amount exceeds daily limit' };
-  }
-
-  // Check monthly limit
-  if (type === 'spend' && amount > this.limits.monthlyLimit) {
-    return { allowed: false, reason: 'Amount exceeds monthly limit' };
-  }
-
-  // Check transaction limit
-  if (amount > this.limits.transactionLimit) {
-    return { allowed: false, reason: 'Amount exceeds transaction limit' };
-  }
-
   return { allowed: true };
 };
 

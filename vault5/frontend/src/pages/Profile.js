@@ -25,6 +25,7 @@ const Profile = () => {
     selfie: { status: 'pending', file: null }
   });
   const [uploading, setUploading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -200,10 +201,6 @@ const Profile = () => {
                     <p className="text-xs text-gray-500 mt-1">Name is locked after verification for security and compliance.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">VaultTag (Username)</label>
-                    <input type="text" value={user.vaultTag || ''} onChange={(e)=>setUser({...user, vaultTag: e.target.value})} className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="@yourname" />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium mb-1">Date of Birth</label>
                     <input type="date" value={user.dob ? user.dob.split('T')[0] : ''} disabled readOnly className="w-full p-2 border rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed" />
                     <p className="text-xs text-gray-500 mt-1">Date of birth cannot be changed after verification.</p>
@@ -213,10 +210,49 @@ const Profile = () => {
                     <input type="text" value={user.city || ''} onChange={(e)=>setUser({...user, city: e.target.value})} className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nairobi" />
                   </div>
                 </div>
-                <div className="mt-6">
-                  <label className="block text-sm font-medium mb-1">Profile Picture URL</label>
-                  <input type="url" value={user.avatar || ''} onChange={(e)=>setUser({...user, avatar: e.target.value})} className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://..." />
+
+                {/* Avatar section (PayPal-like) */}
+                <div className="mt-6 p-4 rounded-lg border bg-gray-50">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={user.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name || 'U')}
+                      alt="avatar"
+                      className="w-16 h-16 rounded-full border shadow-sm object-cover"
+                    />
+                    <div>
+                      <div className="text-sm text-gray-700 mb-2">Update profile photo</div>
+                      <label className="inline-block">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 5 * 1024 * 1024) { showError('File must be less than 5MB'); return; }
+                            setAvatarUploading(true);
+                            try {
+                              const fd = new FormData();
+                              fd.append('avatar', file);
+                              // Only send avatar; backend will merge
+                              await api.put('/api/auth/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' }});
+                              showSuccess('Profile photo updated');
+                              await loadProfile();
+                            } catch (err) {
+                              showError('Failed to update profile photo');
+                            } finally {
+                              setAvatarUploading(false);
+                            }
+                          }}
+                        />
+                        <span className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50 cursor-pointer">
+                          {avatarUploading ? 'Uploading...' : 'Change Photo'}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
+
                 <button type="submit" disabled={updating} className={`mt-6 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 ${updating ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   {updating ? 'Updating...' : 'Update Profile'}
                 </button>
@@ -439,7 +475,7 @@ const Profile = () => {
 
           {activeTab === 'security' && (
             <div className="p-6">
-              <h2 className="text-xl font-semibold mb-6">Security Settings</h2>
+              <h2 className="text-xl font-semibold mb-6">Security & Privacy</h2>
               <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
@@ -462,6 +498,33 @@ const Profile = () => {
                     />
                     <span className="ml-2 text-sm">Enable</span>
                   </label>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-medium text-red-700">Danger Zone</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Permanently delete your account and all related data. This action cannot be undone.
+                  </p>
+                  <button
+                    onClick={async () => {
+                      const c1 = window.confirm('Are you sure you want to permanently delete your account?');
+                      if (!c1) return;
+                      const c2 = window.prompt('Type DELETE to confirm account deletion');
+                      if (String(c2).trim().toUpperCase() !== 'DELETE') return;
+                      try {
+                        await api.delete('/api/auth/account');
+                        showSuccess('Account deleted. Logging out...');
+                        localStorage.removeItem('token');
+                        setTimeout(()=> window.location.href = '/login', 600);
+                      } catch (e) {
+                        showError(e?.response?.data?.message || 'Failed to delete account');
+                      }
+                    }}
+                    className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Delete Account
+                  </button>
                 </div>
               </div>
             </div>

@@ -9,7 +9,9 @@ const {
   transferToUser,
   transferToLinkedAccount,
   verifyRecipient,
-  validateDepositPhone
+  validateDepositPhone,
+  calculateFees,
+  transferExternal
 } = require('../controllers/transactionsController');
 const {
   geoGate,
@@ -41,11 +43,17 @@ router.get('/summary', getTransactionSummary);
 // Real-time recipient verification - minimal security gates for verification
 router.post('/verify-recipient', geoGate, ipDenyGate, deviceGate, verifyRecipient);
 
+// Fee calculator (for realtime previews)
+router.post('/calculate-fees', geoGate, ipDenyGate, deviceGate, calculateFees);
+
 // Phone validation for deposits - minimal security gates
 router.post('/validate-deposit-phone', geoGate, ipDenyGate, deviceGate, validateDepositPhone);
 
 // P2P transfer route - must pass all security gates
 router.post('/transfer', limitationGateOutgoing, capsGate, velocityGate, transferToUser);
+
+// External transfer (to non-Vault users via telco/bank rails)
+router.post('/transfer/external', limitationGateOutgoing, capsGate, velocityGate, transferExternal);
 
 // Linked account transfer route - must pass all security gates
 router.post('/transfer/linked-account', limitationGateOutgoing, capsGate, velocityGate, transferToLinkedAccount);

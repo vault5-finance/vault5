@@ -192,94 +192,21 @@ async function limitationGateOutgoing(req, res, next) {
   }
 }
 
-// Caps gate based on KYC tier and transactions within daily/monthly windows
+// Caps gate disabled by business decision (no KYC tier caps)
 async function capsGate(req, res, next) {
   try {
-    const u = req.user;
-    if (!u) return res.status(401).json({ message: 'Not authorized' });
-    const tierName = u.kycLevel || 'Tier0';
-    const tier = await LimitTier.findOne({ name: tierName });
-    if (!tier) return next(); // no caps configured
-
-    const amount = Number(req.body?.amount || 0);
-    if (!(amount > 0)) return res.status(400).json({ message: 'Valid amount is required' });
-
-    // Sum user transactions for current day/month
-    const now = new Date();
-    const sod = startOfDay(now);
-    const som = startOfMonth(now);
-
-    const [dayAgg, monthAgg] = await Promise.all([
-      Transaction.aggregate([
-        { $match: { user: u._id, date: { $gte: sod, $lte: now } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      Transaction.aggregate([
-        { $match: { user: u._id, date: { $gte: som, $lte: now } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ])
-    ]);
-
-    const usedToday = Number(dayAgg?.[0]?.total || 0);
-    const usedMonth = Number(monthAgg?.[0]?.total || 0);
-
-    const wouldDay = usedToday + amount;
-    const wouldMonth = usedMonth + amount;
-
-    if (tier.dailyLimit > 0 && wouldDay > tier.dailyLimit) {
-      await logRiskEvent(u._id, 'cap_hit', 40, { type: 'daily', usedToday, amount, limit: tier.dailyLimit });
-      return res.status(429).json({ message: `Daily limit exceeded for your tier (${tierName}).` });
-    }
-    if (tier.monthlyLimit > 0 && wouldMonth > tier.monthlyLimit) {
-      await logRiskEvent(u._id, 'cap_hit', 40, { type: 'monthly', usedMonth, amount, limit: tier.monthlyLimit });
-      return res.status(429).json({ message: `Monthly limit exceeded for your tier (${tierName}).` });
-    }
-
-    next();
+    return next();
   } catch (e) {
-    next(e);
+    return next();
   }
 }
 
-// Velocity gate (basic counters). Blocks if exceeding 2x caps as a safety net; otherwise logs signals.
-// This can be tuned later or aligned with separate velocity policies.
+// Velocity gate disabled (no rate-based blocking)
 async function velocityGate(req, res, next) {
   try {
-    const u = req.user;
-    if (!u) return res.status(401).json({ message: 'Not authorized' });
-
-    const amount = Number(req.body?.amount || 0);
-    if (!(amount > 0)) return res.status(400).json({ message: 'Valid amount is required' });
-
-    const tier = await LimitTier.findOne({ name: u.kycLevel || 'Tier0' });
-    const now = new Date();
-
-    const windows = [
-      { win: 'day', resetAt: startOfDay(new Date(now.getTime() + 24 * 60 * 60 * 1000)) },
-      { win: 'week', resetAt: startOfDay(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)) },
-      { win: 'month', resetAt: startOfMonth(new Date(now.getFullYear(), now.getMonth() + 1, 1)) },
-    ];
-
-    for (const w of windows) {
-      const vc = await VelocityCounter.findOneAndUpdate(
-        { user: u._id, window: w.win },
-        {
-          $setOnInsert: { resetAt: w.resetAt },
-          $inc: { count: 1, amount: amount }
-        },
-        { new: true, upsert: true }
-      );
-
-      // Simple guard: if daily velocity > 2x daily limit, block
-      if (tier && w.win === 'day' && tier.dailyLimit > 0 && vc.amount > 2 * tier.dailyLimit) {
-        await logRiskEvent(u._id, 'velocity_hit', 50, { window: w.win, amount: vc.amount });
-        return res.status(429).json({ message: 'Transaction velocity too high. Please try again later.' });
-      }
-    }
-
-    next();
+    return next();
   } catch (e) {
-    next();
+    return next();
   }
 }
 

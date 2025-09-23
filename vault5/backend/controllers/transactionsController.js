@@ -250,103 +250,116 @@ const validateDepositPhone = async (req, res) => {
   }
 };
 
-// Real-time user verification for transfers
+// Real-time user verification for transfers (enforce single mode and identifier)
 const verifyRecipient = async (req, res) => {
   try {
-    const { recipientEmail, recipientPhone } = req.body;
+    const { mode, recipientEmail, recipientPhone } = req.body;
     const senderId = req.user._id;
 
-    if (!recipientEmail && !recipientPhone) {
-      return res.status(400).json({
-        message: 'Recipient email or phone number is required'
-      });
+    // Enforce selection
+    if (!mode || !['email', 'phone'].includes(mode)) {
+      return res.status(400).json({ message: 'Select a mode: email or phone' });
+    }
+    if (recipientEmail && recipientPhone) {
+      return res.status(400).json({ message: 'Provide either email or phone, not both' });
+    }
+    if (mode === 'email' && !recipientEmail) {
+      return res.status(400).json({ message: 'Recipient email is required' });
+    }
+    if (mode === 'phone' && !recipientPhone) {
+      return res.status(400).json({ message: 'Recipient phone is required' });
     }
 
-    // Find recipient user
     let recipient = null;
-    let searchCriteria = {};
+    let foundBy = null;
 
-    if (recipientEmail) {
-      searchCriteria.email = recipientEmail;
-    } else if (recipientPhone) {
-      searchCriteria.phone = recipientPhone;
+    if (mode === 'email') {
+      const emailLower = String(recipientEmail).toLowerCase();
+      // Find by new emails array first, then legacy email
+      recipient = await User.findOne({ 'emails.email': emailLower });
+      if (!recipient) {
+        recipient = await User.findOne({ email: emailLower });
+      }
+      if (!recipient) {
+        // Email must exist to proceed (block)
+        return res.status(404).json({
+          message: 'No Vault5 user with this email',
+          verified: false,
+          vaultUser: false,
+          canProceed: false
+        });
+      }
+      foundBy = 'email';
     }
 
-    recipient = await User.findOne(searchCriteria);
-
-    if (!recipient) {
-      return res.status(404).json({
-        message: 'Recipient not found',
-        verified: false,
-        vaultUser: false
-      });
+    if (mode === 'phone') {
+      const normalized = normalizePhoneNumber(recipientPhone);
+      if (!normalized) {
+        return res.status(400).json({ message: 'Invalid phone format' });
+      }
+      // Match any registered phone (primary or secondary)
+      recipient = await User.findOne({ 'phones.phone': normalized });
+      if (recipient) {
+        foundBy = 'phone';
+      } else {
+        // Simulate cross-network directory for non-Vault users
+        const network = getNetworkProvider(normalized);
+        const obfuscated = `User ${normalized.slice(0, 6)}****`;
+        return res.json({
+          verified: true,
+          vaultUser: false,
+          canProceed: true,
+          recipient: {
+            name: obfuscated,
+            phone: normalized,
+            network,
+            avatar: '👤'
+          },
+          fees: { transferType: 'external', network }
+        });
+      }
     }
 
-    // Don't allow self-verification
-    if (recipient._id.toString() === senderId.toString()) {
+    // Prevent sending to self
+    if (recipient && recipient._id.toString() === senderId.toString()) {
       return res.status(400).json({
-        message: 'Cannot verify yourself',
+        message: 'Cannot send to yourself',
         verified: false,
-        vaultUser: true
+        vaultUser: true,
+        canProceed: false
       });
     }
 
-    // Check if recipient account is blocked
-    const isBlocked = recipient.status === 'blocked' || recipient.status === 'suspended';
+    // Compose display fields
+    let primaryEmail = recipient.email;
+    if (recipient.emails && recipient.emails.length > 0) {
+      const entry = recipient.emails.find(e => e.isPrimary) || recipient.emails[0];
+      primaryEmail = entry?.email || primaryEmail;
+    }
+    let primaryPhone = recipient.phone;
+    if (recipient.phones && recipient.phones.length > 0) {
+      const entry = recipient.phones.find(p => p.isPrimary) || recipient.phones[0];
+      primaryPhone = entry?.phone || primaryPhone;
+    }
 
-    // Check if recipient has active accounts
-    const recipientAccounts = await Account.find({
-      user: recipient._id,
-      balance: { $gt: 0 }
-    });
+    // Basic account sanity info
+    const isBlocked = ['blocked', 'suspended', 'banned'].includes(String(recipient.accountStatus || '').toLowerCase());
+    const hasDaily = await Account.exists({ user: recipient._id, type: 'Daily' });
 
-    const hasActiveAccounts = recipientAccounts.length > 0;
-
-    // Kenyan-style verification (Hakikisha simulation)
-    const verificationResult = {
+    return res.json({
       verified: true,
       vaultUser: true,
+      canProceed: !isBlocked && Boolean(hasDaily),
       recipient: {
         id: recipient._id,
         name: recipient.name,
-        email: recipient.email,
-        phone: recipient.phone,
-        avatar: recipient.avatar || '👤',
-        vaultUsername: recipient.username || `@${recipient.name.toLowerCase().replace(/\s+/g, '')}`,
-        accountNumber: recipient.accountNumber || 'N/A',
-        bankName: recipient.bankName || 'Vault5 Bank'
+        email: primaryEmail || null,
+        phone: primaryPhone || null,
+        avatar: recipient.avatar || '👤'
       },
-      accountStatus: {
-        isBlocked,
-        hasActiveAccounts,
-        canReceiveTransfers: !isBlocked && hasActiveAccounts,
-        totalBalance: recipientAccounts.reduce((sum, acc) => sum + acc.balance, 0)
-      },
-      crossPlatform: {
-        canReceiveFromMpesa: true,
-        canReceiveFromAirtel: true,
-        canReceiveFromBanks: true,
-        supportedNetworks: ['M-Pesa', 'Airtel Money', 'KCB', 'Equity', 'Co-op', 'DTB']
-      },
-      linkedAccounts: recipient.preferences?.linkedAccounts?.filter(acc =>
-        acc.isVerified && acc.status === 'active'
-      ).map(acc => ({
-        accountType: acc.accountType,
-        accountNumber: acc.accountNumber,
-        accountName: acc.accountName,
-        isPrimary: acc.isPrimary,
-        limits: acc.limits
-      })) || [],
-      security: {
-        lastLogin: recipient.lastLogin || new Date(),
-        accountAge: Math.floor((Date.now() - new Date(recipient.createdAt).getTime()) / (1000 * 60 * 60 * 24)), // days
-        trustScore: Math.floor(Math.random() * 30) + 70, // 70-100 trust score
-        verificationLevel: 'high'
-      }
-    };
-
-    res.json(verificationResult);
-
+      foundBy: foundBy || mode,
+      fees: { transferType: 'vault' }
+    });
   } catch (error) {
     console.error('Recipient verification error:', error);
     res.status(500).json({
@@ -722,6 +735,140 @@ const transferToLinkedAccount = async (req, res) => {
   }
 };
 
+// Simple fee calculator for client previews
+function computeFees({ amount, transferType, network = 'Safaricom', international = false }) {
+  const amt = Number(amount || 0);
+  if (!(amt > 0)) return { fee: 0, total: 0, breakdown: [] };
+
+  if (transferType === 'vault' && !international) {
+    // Vault-to-Vault domestic: tiered, cheaper than telcos
+    // Example schedule: 0-999: 8, 1000-4999: 18, 5000-19999: 35, 20000+: 60
+    let fee = 0;
+    if (amt <= 999) fee = 8;
+    else if (amt <= 4999) fee = 18;
+    else if (amt <= 19999) fee = 35;
+    else fee = 60;
+    return { fee, total: amt + fee, breakdown: [{ label: 'Vault fee', value: fee }] };
+  }
+
+  if (transferType === 'vault' && international) {
+    // International Vault-to-Vault: 1.2% capped at 250, min 20
+    let fee = Math.max(20, Math.min(250, Math.round(amt * 0.012)));
+    return { fee, total: amt + fee, breakdown: [{ label: 'Intl fee', value: fee }] };
+  }
+
+  // External network: approximate telco fees (simplified)
+  const telcoTables = {
+    Safaricom: [
+      { upTo: 999, fee: 15 },
+      { upTo: 4999, fee: 35 },
+      { upTo: 19999, fee: 55 },
+      { upTo: Infinity, fee: 100 }
+    ],
+    Airtel: [
+      { upTo: 999, fee: 12 },
+      { upTo: 4999, fee: 30 },
+      { upTo: 19999, fee: 50 },
+      { upTo: Infinity, fee: 90 }
+    ],
+    Default: [
+      { upTo: 999, fee: 15 },
+      { upTo: 4999, fee: 35 },
+      { upTo: 19999, fee: 55 },
+      { upTo: Infinity, fee: 100 }
+    ]
+  };
+  const table = telcoTables[network] || telcoTables.Default;
+  const fee = table.find(t => amt <= t.upTo).fee;
+  return { fee, total: amt + fee, breakdown: [{ label: `${network} fee`, value: fee }] };
+}
+
+const calculateFees = async (req, res) => {
+  try {
+    const { amount, transferType, network, international } = req.body || {};
+    const result = computeFees({ amount, transferType, network, international });
+    return res.json({ success: true, ...result });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: 'Failed to calculate fees' });
+  }
+};
+
+
+// External transfer to non-Vault users via telco/bank rails
+const transferExternal = async (req, res) => {
+  try {
+    const { recipientPhone, amount, description, international = false } = req.body || {};
+    const senderId = req.user._id;
+
+    if (!(amount > 0)) {
+      return res.status(400).json({ message: 'Valid amount is required' });
+    }
+    const normalized = normalizePhoneNumber(recipientPhone || '');
+    if (!normalized) {
+      return res.status(400).json({ message: 'Valid recipient phone is required' });
+    }
+
+    // Determine network for fees
+    const network = getNetworkProvider(normalized);
+
+    // Compute fees using shared schedule
+    const feeResult = computeFees({ amount, transferType: 'external', network, international: Boolean(international) });
+    const totalDebit = feeResult.total;
+
+    // Deduct from sender's Daily account by default
+    let senderAccount = await Account.findOne({ user: senderId, type: 'Daily' });
+    if (!senderAccount) {
+      return res.status(404).json({ message: 'Sender Daily account not found' });
+    }
+    if (senderAccount.balance < totalDebit) {
+      return res.status(400).json({ message: `Insufficient funds. Required: KES ${totalDebit}` });
+    }
+
+    // Simulate payout processing; integrate with PSP in production
+    const session = await Account.startSession();
+    session.startTransaction();
+    try {
+      senderAccount.balance -= totalDebit;
+      await senderAccount.save({ session });
+
+      // Record sender transaction with fee metadata
+      const senderTransaction = new Transaction({
+        user: senderId,
+        type: 'expense',
+        amount: totalDebit,
+        description: `External transfer to ${normalized} (${network}) - ${description || 'P2P External'}`,
+        category: 'Transfer',
+        date: new Date(),
+        allocations: [],
+        fraudRisk: { riskScore: 0, isHighRisk: false, flags: [] },
+      });
+      await senderTransaction.save({ session });
+
+      await session.commitTransaction();
+    } catch (e) {
+      await session.abortTransaction();
+      throw e;
+    } finally {
+      session.endSession();
+    }
+
+    return res.status(200).json({
+      message: 'External transfer initiated successfully',
+      transfer: {
+        amount,
+        fee: feeResult.fee,
+        totalDebited: totalDebit,
+        network,
+        recipientPhone: normalized,
+        international: Boolean(international),
+      },
+    });
+  } catch (error) {
+    console.error('External transfer error:', error);
+    return res.status(500).json({ message: 'Failed to process external transfer' });
+  }
+};
+
 module.exports = {
   getTransactions,
   createTransaction,
@@ -731,5 +878,6 @@ module.exports = {
   transferToUser,
   transferToLinkedAccount,
   verifyRecipient,
-  validateDepositPhone
+  validateDepositPhone,
+  calculateFees
 };

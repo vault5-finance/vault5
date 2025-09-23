@@ -12,6 +12,7 @@ const NavBar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   // Compliance banner state
   const [compliance, setCompliance] = useState(null);
@@ -162,19 +163,7 @@ const NavBar = () => {
                       <Link to="/admin/users" className="nav-link">Users</Link>
                     </div>
                   ) : (
-                    <div className="flex space-x-6 mr-4">
-                      <Link to="/dashboard" className="nav-link">Dashboard</Link>
-                      <Link to="/reports" className="nav-link">Reports</Link>
-                      <Link to="/lending" className="nav-link">Lending</Link>
-                      <Link to="/loans" className="nav-link">Loans</Link>
-                      <Link to="/compliance" className="nav-link">Compliance</Link>
-                      <Link to="/settings" className="nav-link">Settings</Link>
-                      <Link to="/profile" className="nav-link">Profile</Link>
-                      <Link to="/legal" className="nav-link">Legal</Link>
-                      {adminRoles.includes(user.role) && (
-                        <Link to="/admin" className="nav-link">Admin</Link>
-                      )}
-                    </div>
+                    <div className="mr-4" />
                   )}
                   <div className="relative dropdown-container">
                     <button
