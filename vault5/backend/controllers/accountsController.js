@@ -126,6 +126,26 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
       account.status = status;
       await account.save();
 
+      // Generate notifications and debt ledger for shortfall or surplus
+      if (status === 'red') {
+        const shortfallAmount = account.target - account.balance;
+        // Create debt transaction for shortfall
+        const debtTransaction = new Transaction({
+          user: userId,
+          amount: shortfallAmount,
+          type: 'debt',
+          description: `Shortfall in ${account.type} account`,
+          allocations: [{ account: account._id, amount: shortfallAmount }]
+        });
+        await debtTransaction.save();
+        account.transactions.push(debtTransaction._id);
+        await account.save();
+
+        await generateNotification(userId, 'missed_deposit', 'Missed Deposit Alert', `Your ${account.type} account is below target. Shortfall: KES ${shortfallAmount.toFixed(2)}`, account._id, 'high');
+      } else if (status === 'blue') {
+        await generateNotification(userId, 'surplus_deposit', 'Surplus Alert', `Your ${account.type} account has exceeded target. Surplus: KES ${(account.balance - account.target).toFixed(2)}`, account._id, 'medium');
+      }
+
       allocations.push({ account: account._id, amount: splitAmount });
     }
 

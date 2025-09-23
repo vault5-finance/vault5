@@ -1,6 +1,6 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
-const { createLending, getLendings, updateLendingStatus, getLendingLedger } = require('../controllers/lendingController');
+const { createLending, getLendings, updateLendingStatus, getLendingLedger, getLendingAnalytics } = require('../controllers/lendingController');
 
 const router = express.Router();
 
@@ -10,5 +10,6 @@ router.post('/', createLending);
 router.get('/', getLendings);
 router.put('/:id/status', updateLendingStatus);
 router.get('/ledger', getLendingLedger);
+router.get('/analytics', getLendingAnalytics);
 
 module.exports = router;

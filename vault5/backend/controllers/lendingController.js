@@ -1,4 +1,5 @@
 const { Lending, Account, Transaction, User } = require('../models');
+const { generateNotification } = require('./notificationsController');
 
 // Rule engine for lending - calculate safe amount from allowed accounts
 const calculateSafeLendingAmount = async (userId, requestedAmount, approvedEmergency = false) => {
@@ -118,6 +119,9 @@ const createLending = async (req, res) => {
       return res.status(400).json({ message: 'Exceeded non-repayable lending cap for this period' });
     }
 
+    // Notify about outstanding lending debt
+    await generateNotification(req.user._id, 'lending_debt', 'Outstanding Lending Debt', `You have lent KES ${amount} to ${borrowerName}. Expected return: ${expectedReturnDate ? new Date(expectedReturnDate).toLocaleDateString() : 'N/A'}`, lending._id, 'medium');
+
     res.status(201).json(lending);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -186,10 +190,56 @@ const getLendingLedger = async (req, res) => {
   }
 };
 
+// Get lending analytics (frequency by period)
+const getLendingAnalytics = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { period = 'month' } = req.query; // month, quarter, year
+
+    const now = new Date();
+    let startDate;
+
+    if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (period === 'quarter') {
+      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      startDate = new Date(now.getFullYear(), quarterStartMonth, 1);
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const lendings = await Lending.find({
+      user: userId,
+      createdAt: { $gte: startDate }
+    });
+
+    const totalLent = lendings.reduce((sum, l) => sum + l.amount, 0);
+    const repaid = lendings.filter(l => l.status === 'repaid').length;
+    const outstanding = lendings.filter(l => l.status === 'pending' || l.status === 'overdue').length;
+    const writtenOff = lendings.filter(l => l.status === 'written_off').length;
+
+    res.json({
+      period,
+      startDate,
+      totalLendings: lendings.length,
+      totalAmountLent: totalLent,
+      repaidCount: repaid,
+      outstandingCount: outstanding,
+      writtenOffCount: writtenOff,
+      repaymentRate: lendings.length > 0 ? (repaid / lendings.length * 100).toFixed(2) : 0
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createLending,
   getLendings,
   updateLendingStatus,
   getLendingLedger,
-  calculateSafeLendingAmount
+  calculateSafeLendingAmount,
+  getLendingAnalytics
 };

@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import ProgressBar from '../components/ProgressBar';
 
 const Loans = () => {
   const { showError, showSuccess } = useToast();
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', principal: '', interestRate: 0, repaymentAmount: '', frequency: 'monthly', nextDueDate: '', accountDeduction: '' });
+  const [form, setForm] = useState({ name: '', principal: '', interestRate: 0, repaymentAmount: '', frequency: 'monthly', nextDueDate: '', accountDeduction: '', autoDeduct: false });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,7 +43,7 @@ const Loans = () => {
     .then(response => {
       setLoans([response.data, ...loans]);
       setShowForm(false);
-      setForm({ name: '', principal: '', interestRate: 0, repaymentAmount: '', frequency: 'monthly', nextDueDate: '', accountDeduction: '' });
+      setForm({ name: '', principal: '', interestRate: 0, repaymentAmount: '', frequency: 'monthly', nextDueDate: '', accountDeduction: '', autoDeduct: false });
       showSuccess('Loan created successfully');
     })
     .catch(error => {
@@ -134,14 +135,27 @@ const Loans = () => {
               className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required 
             />
-            <input 
-              type="text" 
-              name="accountDeduction" 
-              placeholder="Account ID for Deduction (optional)" 
-              value={form.accountDeduction} 
+            <input
+              type="text"
+              name="accountDeduction"
+              placeholder="Account ID for Deduction (optional)"
+              value={form.accountDeduction}
               onChange={handleChange}
               className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 md:col-span-2"
             />
+            <div className="flex items-center md:col-span-2">
+              <input
+                type="checkbox"
+                id="autoDeduct"
+                name="autoDeduct"
+                checked={form.autoDeduct}
+                onChange={(e) => setForm({ ...form, autoDeduct: e.target.checked })}
+                className="mr-2"
+              />
+              <label htmlFor="autoDeduct" className="text-sm">
+                Enable auto-deduction from selected account on due dates
+              </label>
+            </div>
             <button type="submit" className="md:col-span-2 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">
               Create Loan
             </button>
@@ -156,10 +170,21 @@ const Loans = () => {
             {loans.map(loan => (
               <div key={loan._id} className="border p-4 rounded-lg">
                 <div className="font-medium">{loan.name}</div>
-                <div>Remaining Balance: KES {loan.remainingBalance.toFixed(2)}</div>
-                <div>Progress: {loan.progress.toFixed(0)}%</div>
-                <div>Next Due: {new Date(loan.nextDueDate).toLocaleDateString()}</div>
-                <div>Status: <span className={`capitalize ${loan.status === 'paid' ? 'text-green-600' : loan.status === 'defaulted' ? 'text-red-600' : 'text-yellow-600'}`}>{loan.status}</span></div>
+                <div className="mt-2">
+                  <ProgressBar progress={loan.progress} color={loan.status === 'paid' ? 'green' : loan.status === 'defaulted' ? 'red' : 'blue'} label={`Payoff Progress: ${loan.progress.toFixed(0)}%`} />
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+                  <div>Remaining Balance: KES {loan.remainingBalance.toFixed(2)}</div>
+                  <div>Next Due: {new Date(loan.nextDueDate).toLocaleDateString()}</div>
+                  <div>Status: <span className={`capitalize ${loan.status === 'paid' ? 'text-green-600' : loan.status === 'defaulted' ? 'text-red-600' : 'text-yellow-600'}`}>{loan.status}</span></div>
+                  <div>Auto-Deduct: {loan.autoDeduct ? 'Enabled' : 'Disabled'}</div>
+                </div>
+                <div className="mt-2">
+                  <h4 className="font-medium">Repayment Calendar</h4>
+                  <div className="text-xs text-gray-600 mt-1">
+                    Frequency: {loan.frequency} • Amount: KES {loan.repaymentAmount.toFixed(2)}
+                  </div>
+                </div>
                 <button onClick={() => makeRepayment(loan._id)} className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
                   Make Repayment
                 </button>

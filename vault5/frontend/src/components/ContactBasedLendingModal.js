@@ -26,6 +26,12 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
     mfaRequired: false
   });
 
+  const [lendingRules, setLendingRules] = useState({
+    safeAmount: 0,
+    recommendedAmount: 0,
+    sourceBreakdown: {}
+  });
+
   // Mock contacts data - in real app, this would come from device contacts API
   useEffect(() => {
     if (isOpen) {
@@ -137,10 +143,24 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
     }
   };
 
+  const calculateLendingRules = async (amount) => {
+    try {
+      const response = await api.post('/api/lending/calculate-safe-amount', {
+        requestedAmount: parseFloat(amount) || 0
+      });
+      setLendingRules(response.data);
+    } catch (error) {
+      console.error('Lending rules calculation failed:', error);
+    }
+  };
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    if (e.target.name === 'amount' && selectedContact) {
-      checkSecurityRequirements(selectedContact);
+    if (e.target.name === 'amount') {
+      if (selectedContact) {
+        checkSecurityRequirements(selectedContact);
+      }
+      calculateLendingRules(e.target.value);
     }
   };
 
@@ -195,6 +215,11 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
       amountWithinLimits: true,
       dailyLimitCheck: true,
       mfaRequired: false
+    });
+    setLendingRules({
+      safeAmount: 0,
+      recommendedAmount: 0,
+      sourceBreakdown: {}
     });
   };
 
@@ -355,6 +380,23 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
                     min="100"
                     required
                   />
+                  {lendingRules.safeAmount > 0 && (
+                    <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+                      <div className="text-sm text-blue-800">
+                        <div className="font-medium">Recommended: KES {lendingRules.recommendedAmount.toFixed(2)}</div>
+                        <div className="text-xs mt-1">
+                          Safe limit: KES {lendingRules.safeAmount.toFixed(2)}
+                          {lendingRules.sourceBreakdown && (
+                            <div className="mt-1">
+                              Sources: {Object.entries(lendingRules.sourceBreakdown).map(([account, amount]) =>
+                                `${account}: KES ${amount.toFixed(2)}`
+                              ).join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">

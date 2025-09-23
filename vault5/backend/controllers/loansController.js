@@ -1,4 +1,5 @@
 const { Loan, Account, Transaction, User } = require('../models');
+const { generateNotification } = require('./notificationsController');
 
 // Create loan
 const createLoan = async (req, res) => {
@@ -70,6 +71,14 @@ const makeRepayment = async (req, res) => {
       loan.nextDueDate = now;
     }
     await loan.save();
+
+    // Notify if next due date is within 3 days
+    if (loan.nextDueDate) {
+      const daysUntilDue = Math.ceil((new Date(loan.nextDueDate) - new Date()) / (1000 * 60 * 60 * 24));
+      if (daysUntilDue <= 3 && daysUntilDue > 0) {
+        await generateNotification(req.user._id, 'loan_due', 'Upcoming Loan Repayment', `Your loan "${loan.name}" is due in ${daysUntilDue} day(s) on ${new Date(loan.nextDueDate).toLocaleDateString()}`, loan._id, 'high');
+      }
+    }
 
     // Deduct from account
     if (loan.accountDeduction) {
