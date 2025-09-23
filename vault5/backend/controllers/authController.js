@@ -923,22 +923,48 @@ const addPhone = async (req, res) => {
 // POST /api/auth/verify-phone
 const verifyPhone = async (req, res) => {
   try {
-    const { phone, code } = req.body;
-    if (!phone || !code) return res.status(400).json({ message: 'Phone and code are required' });
+    const { phone, phoneId, code } = req.body;
+
+    if (!code || (!phone && !phoneId)) {
+      return res.status(400).json({ message: 'Phone or phoneId and code are required' });
+    }
 
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // In development, accept any 6-digit code
     const isDev = process.env.NODE_ENV !== 'production';
-    let phoneEntry;
-    if (isDev && code.length === 6 && /^\d{6}$/.test(code)) {
-      phoneEntry = user.phones.find(p => p.phone === phone && !p.isVerified);
+    const isSixDigits = /^\d{6}$/.test(String(code));
+
+    let phoneEntry = null;
+
+    if (isDev && isSixDigits) {
+      // Dev mode: accept any 6-digit code, only require that the phone entry exists and is not yet verified
+      if (phoneId) {
+        const entry = user.phones.id(phoneId);
+        if (entry && !entry.isVerified) {
+          phoneEntry = entry;
+        }
+      } else if (phone) {
+        phoneEntry = user.phones.find(p => p.phone === phone && !p.isVerified);
+      }
     } else {
-      phoneEntry = user.phones.find(p => p.phone === phone && p.verificationCode === code);
+      // Production: enforce exact code match and 6-digit format
+      if (!isSixDigits) {
+        return res.status(400).json({ message: 'Invalid code format' });
+      }
+      if (phoneId) {
+        const entry = user.phones.id(phoneId);
+        if (entry && entry.verificationCode === code) {
+          phoneEntry = entry;
+        }
+      } else if (phone) {
+        phoneEntry = user.phones.find(p => p.phone === phone && p.verificationCode === code);
+      }
     }
 
-    if (!phoneEntry) return res.status(400).json({ message: 'Invalid code' });
+    if (!phoneEntry) {
+      return res.status(400).json({ message: 'Invalid code' });
+    }
 
     phoneEntry.isVerified = true;
     phoneEntry.verificationCode = undefined;
@@ -946,7 +972,11 @@ const verifyPhone = async (req, res) => {
 
     await user.save();
 
-    res.json({ message: 'Phone verified successfully' });
+    res.json({
+      message: 'Phone verified successfully',
+      phoneId: phoneEntry._id,
+      phone: phoneEntry.phone
+    });
   } catch (error) {
     console.error('Verify phone error:', error);
     res.status(500).json({ message: 'Server error' });

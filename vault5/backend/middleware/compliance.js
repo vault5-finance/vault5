@@ -83,18 +83,27 @@ async function ipDenyGate(req, res, next) {
 // Device rules gate (cookies and headless checks)
 async function deviceGate(req, res, next) {
   try {
+    // Skip device checks in development to improve DX (mirrors geoGate dev bypass)
+    if (process.env.NODE_ENV !== 'production') {
+      return next();
+    }
+
     const rules = await DeviceRule.findOne({});
     if (!rules) return next();
+
     const ua = String(req.headers['user-agent'] || '');
     const hasCookies = Boolean(req.headers['cookie'] || req.headers['cookies']);
+
     if (rules.forbidHeadless && /Headless|PhantomJS|Puppeteer|Playwright/i.test(ua)) {
       await logRiskEvent(req.user?._id, 'device_block', 70, { ua });
       return res.status(400).json({ message: 'Unsupported browser environment' });
     }
+
     if (rules.requireCookies && !hasCookies) {
       await logRiskEvent(req.user?._id, 'device_block', 50, { reason: 'cookies_disabled' });
       return res.status(400).json({ message: 'Please enable cookies to continue' });
     }
+
     next();
   } catch {
     next();
