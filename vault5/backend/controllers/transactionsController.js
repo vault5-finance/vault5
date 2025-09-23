@@ -363,9 +363,10 @@ const transferToUser = async (req, res) => {
     const { recipientEmail, recipientPhone, amount, fromAccountId, description } = req.body;
     const senderId = req.user._id;
 
-    if ((!recipientEmail && !recipientPhone) || !amount || !fromAccountId) {
+    // Allow defaulting fromAccountId to user's Daily account if not provided
+    if ((!recipientEmail && !recipientPhone) || !amount) {
       return res.status(400).json({
-        message: 'Recipient email or phone, amount, and from account are required'
+        message: 'Recipient email or phone and amount are required'
       });
     }
 
@@ -435,11 +436,19 @@ const transferToUser = async (req, res) => {
       return res.status(400).json({ message: 'Cannot transfer to yourself' });
     }
 
-    // Find sender's account
-    const senderAccount = await Account.findOne({
-      _id: fromAccountId,
-      user: senderId
-    });
+    // Find sender's account (default to Daily if fromAccountId is not provided)
+    let senderAccount = null;
+    if (fromAccountId) {
+      senderAccount = await Account.findOne({
+        _id: fromAccountId,
+        user: senderId
+      });
+    } else {
+      senderAccount = await Account.findOne({
+        user: senderId,
+        type: 'Daily'
+      });
+    }
 
     if (!senderAccount) {
       return res.status(404).json({ message: 'Sender account not found' });

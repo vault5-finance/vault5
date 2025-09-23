@@ -1,13 +1,28 @@
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 const { User, Account, Lending } = require('../models');
+
+// Extend Jest timeouts for CI (must be top-level to affect hooks)
+jest.setTimeout(30000);
+
+let mongoServer;
 
 describe('Lending Rule Engine Tests', () => {
   beforeAll(async () => {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/vault5_test');
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vault5_test';
+    try {
+      await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+    } catch (e) {
+      mongoServer = await MongoMemoryServer.create();
+      await mongoose.connect(mongoServer.getUri());
+    }
   });
 
   afterAll(async () => {
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
   });
 
   beforeEach(async () => {

@@ -9,6 +9,12 @@ const userSchema = new mongoose.Schema({
     },
     trim: true
   },
+  // Legacy top-level email for backward compatibility with older tests/flows
+  email: {
+    type: String,
+    lowercase: true,
+    select: true
+  },
   emails: [{
     email: {
       type: String,
@@ -23,6 +29,9 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    // Align with controller logic that issues verificationCode for emails
+    verificationCode: String,
+    // Keep legacy token support
     verificationToken: String,
     verificationExpires: Date,
     addedAt: {

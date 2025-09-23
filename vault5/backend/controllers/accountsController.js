@@ -11,10 +11,14 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
       throw new Error('User not found');
     }
 
-    const accounts = user.accounts || [];
+    let accounts = user.accounts || [];
+    if (!accounts || accounts.length === 0) {
+      accounts = await Account.find({ user: userId });
+    }
 
-    // Tagged income bypasses allocation (logged-only)
-    if (tag) {
+    // Tagged income bypasses allocation ONLY for special cases
+    const bypassTags = ['rent', 'debt_repayment', 'reimbursement'];
+    if (tag && bypassTags.includes(tag)) {
       const transaction = new Transaction({
         user: userId,
         amount,
@@ -82,19 +86,18 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
 
     // Auto-distribution across accounts where isAutoDistribute !== false
     const includedAccounts = accounts.filter(a => a.isAutoDistribute !== false);
+    // Deterministic account ordering (Daily first) for stable behavior and tests
+    const typePriority = { Daily: 1, Emergency: 2, Investment: 3, LongTerm: 4, Fun: 5, Charity: 6 };
+    includedAccounts.sort((a, b) => (typePriority[a.type] || 99) - (typePriority[b.type] || 99));
     if (includedAccounts.length === 0) {
       throw new Error('No accounts available for auto-distribution');
     }
-    const includedTotalPercent = includedAccounts.reduce((sum, acc) => sum + (acc.percentage || 0), 0);
-    if (includedTotalPercent <= 0) {
-      throw new Error('Auto-distribution accounts have zero total percentage');
-    }
+    // Use absolute percentages of total income (do not normalize)
 
     const allocations = [];
 
     for (const account of includedAccounts) {
-      const normalizedShare = (account.percentage || 0) / includedTotalPercent;
-      const splitAmount = parseFloat((amount * normalizedShare).toFixed(2));
+      const splitAmount = parseFloat(((amount * (account.percentage || 0)) / 100).toFixed(2));
 
       // Update account balance
       account.balance += splitAmount;
@@ -129,21 +132,21 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
       // Generate notifications and debt ledger for shortfall or surplus
       if (status === 'red') {
         const shortfallAmount = account.target - account.balance;
-        // Create debt transaction for shortfall
-        const debtTransaction = new Transaction({
+        // Create expense transaction for shortfall (aligns with tests and reporting)
+        const shortfallTx = new Transaction({
           user: userId,
           amount: shortfallAmount,
-          type: 'debt',
-          description: `Shortfall in ${account.type} account`,
+          type: 'expense',
+          description: `shortfall in ${account.type} account`,
           allocations: [{ account: account._id, amount: shortfallAmount }]
         });
-        await debtTransaction.save();
-        account.transactions.push(debtTransaction._id);
+        await shortfallTx.save();
+        account.transactions.push(shortfallTx._id);
         await account.save();
 
         await generateNotification(userId, 'missed_deposit', 'Missed Deposit Alert', `Your ${account.type} account is below target. Shortfall: KES ${shortfallAmount.toFixed(2)}`, account._id, 'high');
       } else if (status === 'blue') {
-        await generateNotification(userId, 'surplus_deposit', 'Surplus Alert', `Your ${account.type} account has exceeded target. Surplus: KES ${(account.balance - account.target).toFixed(2)}`, account._id, 'medium');
+        await generateNotification(userId, 'surplus', 'Surplus Alert', `Your ${account.type} account has exceeded target. Surplus: KES ${(account.balance - account.target).toFixed(2)}`, account._id, 'medium');
       }
 
       allocations.push({ account: account._id, amount: splitAmount });

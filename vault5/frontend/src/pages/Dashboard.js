@@ -4,6 +4,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Pie, Bar } from 'react-chartjs-2';
 import api from '../services/api';
 import AddFundsModal from '../components/AddFundsModal';
+import SendMoneyModal from '../components/SendMoneyModal';
 import { useToast } from '../contexts/ToastContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement);
@@ -86,6 +87,7 @@ const Dashboard = () => {
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
+  const [showSendMoneyModal, setShowSendMoneyModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -155,6 +157,27 @@ const Dashboard = () => {
     fetchData();
   };
 
+  const handleSendMoney = () => {
+    setShowSendMoneyModal(true);
+  };
+
+  const handleSendMoneySuccess = () => {
+    // Refresh dashboard data after successful transfer
+    const fetchData = async () => {
+      try {
+        const [dashboardRes, accountsRes] = await Promise.all([
+          api.get('/api/reports/dashboard'),
+          api.get('/api/accounts')
+        ]);
+        setData(dashboardRes.data);
+        setAccounts(accountsRes.data);
+      } catch (error) {
+        console.error('Failed to refresh data:', error);
+      }
+    };
+    fetchData();
+  };
+
   const handleViewReports = () => {
     navigate('/reports');
   };
@@ -174,7 +197,7 @@ const Dashboard = () => {
             + Add Funds
           </button>
           <button
-            onClick={() => showInfo('Send Money feature coming soon!')}
+            onClick={handleSendMoney}
             className="p-4 md:p-5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-lg shadow hover:from-indigo-600 hover:to-blue-700 transition font-semibold text-base md:text-lg"
           >
             ⇄ Send Money
@@ -362,7 +385,7 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => showInfo('Send Money feature coming soon!')}
+              onClick={handleSendMoney}
               className="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium text-sm"
             >
               Send Money
@@ -451,6 +474,13 @@ const Dashboard = () => {
         onClose={() => setShowAddFundsModal(false)}
         onSuccess={handleIncomeSuccess}
       />
+
+      {showSendMoneyModal && (
+        <SendMoneyModal
+          onClose={() => setShowSendMoneyModal(false)}
+          onSuccess={handleSendMoneySuccess}
+        />
+      )}
     </div>
   );
 };

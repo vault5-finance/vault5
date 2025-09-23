@@ -4,7 +4,7 @@ const path = require('path');
 const { protect } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimit');
 const { auditLog } = require('../middleware/audit');
-const { register, login, getProfile, updateProfile, registerStep1, registerStep2, registerStep3, registerStep4, checkEmail, sendOTP, verifyOTP, checkVaultTag, checkUsername, forgotPassword, resetPassword, addEmail, verifyEmail, addPhone, verifyPhone, setPrimaryEmail, setPrimaryPhone, removeEmail, removePhone, changePassword } = require('../controllers/authController');
+const { register, login, getProfile, updateProfile, registerStep1, registerStep2, registerStep3, registerStep4, checkEmail, sendOTP, verifyOTP, forgotPassword, resetPassword, addEmail, verifyEmail, addPhone, verifyPhone, setPrimaryEmail, setPrimaryPhone, removeEmail, removePhone, changePassword } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -45,17 +45,17 @@ router.put('/profile', protect, upload.single('avatar'), auditLog('profile_updat
 router.post('/check-email', authLimiter, checkEmail);
 router.post('/send-otp', authLimiter, auditLog('send_otp', 'auth'), sendOTP);
 router.post('/verify-otp', authLimiter, auditLog('verify_otp', 'auth'), verifyOTP);
-router.post('/check-vault-tag', checkVaultTag);
-router.post('/check-username', checkUsername);
 
 // Password reset routes
 router.post('/forgot-password', authLimiter, auditLog('password_change', 'auth'), forgotPassword);
 router.post('/reset-password', authLimiter, auditLog('password_change', 'auth'), resetPassword);
 
 
-// Multi-email/phone management routes (protected)
+/* Multi-email/phone management routes */
 router.post('/add-email', protect, addEmail);
-router.post('/verify-email', protect, verifyEmail);
+/* Make verify-email public and support both GET (from link) and POST (manual) */
+router.post('/verify-email', verifyEmail);
+router.get('/verify-email', verifyEmail);
 router.post('/add-phone', protect, addPhone);
 router.post('/verify-phone', protect, verifyPhone);
 router.patch('/set-primary-email', protect, setPrimaryEmail);

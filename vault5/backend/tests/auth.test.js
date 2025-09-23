@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
@@ -10,21 +11,34 @@ const {
   checkEmail,
   sendOTP,
   verifyOTP,
-  checkVaultTag,
   forgotPassword,
   resetPassword
 } = require('../controllers/authController');
 
+// Extend Jest timeouts for CI (must be top-level to affect hooks)
+jest.setTimeout(30000);
+
+let mongoServer;
+
 describe('Auth Controller Tests', () => {
   beforeAll(async () => {
-    // Connect to test database
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/vault5_test');
+    // Prefer real Mongo if available, fallback to in-memory for CI
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vault5_test';
+    try {
+      await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+    } catch (e) {
+      mongoServer = await MongoMemoryServer.create();
+      await mongoose.connect(mongoServer.getUri());
+    }
   });
 
   afterAll(async () => {
     // Clean up and close connection
     await User.deleteMany({});
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
   });
 
   beforeEach(async () => {
@@ -227,37 +241,4 @@ describe('Auth Controller Tests', () => {
     });
   });
 
-  describe('checkVaultTag', () => {
-    it('should return available for non-existent vault tag', async () => {
-      const mockReq = { body: { vaultTag: 'uniqueTag' } };
-      const mockRes = {
-        json: jest.fn(),
-        status: jest.fn().mockReturnThis()
-      };
-
-      await checkVaultTag(mockReq, mockRes);
-
-      expect(mockRes.json).toHaveBeenCalledWith({ available: true });
-    });
-
-    it('should return unavailable for existing vault tag', async () => {
-      // Create user with vault tag
-      await User.create({
-        name: 'Test User',
-        email: 'test@example.com',
-        password: 'password123',
-        vaultTag: 'takenTag'
-      });
-
-      const mockReq = { body: { vaultTag: 'takenTag' } };
-      const mockRes = {
-        json: jest.fn(),
-        status: jest.fn().mockReturnThis()
-      };
-
-      await checkVaultTag(mockReq, mockRes);
-
-      expect(mockRes.json).toHaveBeenCalledWith({ available: false });
-    });
-  });
 });

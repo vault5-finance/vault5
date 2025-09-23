@@ -32,7 +32,7 @@ const auditLogSchema = new mongoose.Schema({
   },
   ipAddress: {
     type: String,
-    required: true
+    required: false
   },
   userAgent: {
     type: String,

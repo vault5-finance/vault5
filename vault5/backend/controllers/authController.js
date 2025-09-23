@@ -41,12 +41,18 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Name, email, password, DOB, phone, and city are required' });
     }
 
-    // Check if email already exists in any user's emails array
+    // Normalize email
+    const emailLower = email.toLowerCase();
+
+    // Check if email already exists in either new array or legacy field
     const existingUser = await User.findOne({
-      'emails.email': email.toLowerCase()
+      $or: [
+        { 'emails.email': emailLower },
+        { email: emailLower }
+      ]
     });
     if (existingUser) {
-      return res.status(400).json({ message: 'Email already exists' });
+      return res.status(400).json({ message: 'User already exists' });
     }
 
     // Check if phone already exists in any user's phones array
@@ -65,8 +71,10 @@ const register = async (req, res) => {
     // Create user with all required fields for single-step registration
     const user = new User({
       name,
+      // Set legacy top-level email for backward compatibility (used by tests and some queries)
+      email: emailLower,
       emails: [{
-        email: email.toLowerCase(),
+        email: emailLower,
         isPrimary: true,
         isVerified: true  // Mark as verified for legacy registration
       }],
@@ -292,31 +300,6 @@ const updateProfile = async (req, res) => {
       user.password = await bcrypt.hash(password, salt);
     }
 
-    // Handle username change with cooldown
-    if (req.body.vaultTag !== undefined) {
-      const newUsername = req.body.vaultTag;
-      console.log('Updating vaultTag from', user.vaultTag, 'to', newUsername);
-      if (newUsername !== user.vaultTag) {
-        // Check cooldown (30 days)
-        if (user.lastUsernameChange) {
-          const daysSinceLastChange = (new Date() - new Date(user.lastUsernameChange)) / (1000 * 60 * 60 * 24);
-          if (daysSinceLastChange < 30) {
-            const daysLeft = Math.ceil(30 - daysSinceLastChange);
-            return res.status(400).json({ message: `Username can only be changed once every 30 days. ${daysLeft} days remaining.` });
-          }
-        }
-
-        // Check if username is available
-        const existing = await User.findOne({ vaultTag: newUsername.toLowerCase() });
-        console.log('Existing user with vaultTag:', existing ? existing._id : 'none');
-        if (existing && existing._id.toString() !== user._id.toString()) {
-          return res.status(400).json({ message: 'Username is already taken' });
-        }
-
-        user.vaultTag = newUsername.toLowerCase();
-        user.lastUsernameChange = new Date();
-      }
-    }
 
     await user.save();
  
@@ -816,25 +799,22 @@ const addEmail = async (req, res) => {
       return res.status(400).json({ message: 'Maximum 6 emails allowed' });
     }
 
-    // Generate verification token
-    const verificationToken = jwt.sign(
-      { email: email.toLowerCase(), userId: user._id },
-      process.env.JWT_SECRET || 'dev_secret',
-      { expiresIn: '24h' }
-    );
+    // Generate verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     user.emails.push({
       email: email.toLowerCase(),
       isPrimary: false,
       isVerified: false,
-      verificationToken,
-      verificationExpires: Date.now() + 86400000 // 24 hours
+      verificationCode,
+      verificationExpires: Date.now() + 600000 // 10 minutes
     });
 
     await user.save();
 
-    // Send verification email (simulated)
-    console.log(`Verification email sent to ${email}: http://localhost:3000/verify-email?token=${verificationToken}`);
+    // Send verification email with code and verification link
+    const verificationLink = `http://localhost:3000/verify-email?email=${encodeURIComponent(email)}&code=${verificationCode}`;
+    console.log(`Verification email sent to ${email}: Click here to verify: ${verificationLink}`);
 
     res.json({ message: 'Verification email sent' });
   } catch (error) {
@@ -846,24 +826,39 @@ const addEmail = async (req, res) => {
 // POST /api/auth/verify-email
 const verifyEmail = async (req, res) => {
   try {
-    const { token } = req.body;
-    if (!token) return res.status(400).json({ message: 'Token is required' });
+    // Support both query params (from email link) and body params
+    const email = req.query.email || req.body.email;
+    const code = req.query.code || req.body.code;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
-    const user = await User.findById(decoded.userId);
+    if (!email || !code) return res.status(400).json({ message: 'Email and code are required' });
 
+    const user = await User.findOne({ 'emails.email': email.toLowerCase() });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const emailEntry = user.emails.find(e => e.email === decoded.email && e.verificationToken === token);
-    if (!emailEntry) return res.status(400).json({ message: 'Invalid token' });
+    const emailEntry = user.emails.find(e => e.email === email.toLowerCase() && e.verificationCode === code);
+    if (!emailEntry) return res.status(400).json({ message: 'Invalid code' });
+
+    if (emailEntry.verificationExpires < Date.now()) {
+      return res.status(400).json({ message: 'Verification code has expired' });
+    }
 
     emailEntry.isVerified = true;
-    emailEntry.verificationToken = undefined;
+    emailEntry.verificationCode = undefined;
     emailEntry.verificationExpires = undefined;
 
     await user.save();
 
-    res.json({ message: 'Email verified successfully' });
+    // Redirect to frontend login with email prefilled if request came from a link (query present)
+    const frontendBase = process.env.FRONTEND_URL || 'http://localhost:3000';
+    if (req.query.email && req.query.code) {
+      return res.redirect(302, `${frontendBase}/login?email=${encodeURIComponent(email)}`);
+    }
+
+    // Otherwise respond with JSON for API clients
+    return res.json({
+      message: 'Email verified successfully',
+      redirect: `/login?email=${encodeURIComponent(email)}`
+    });
   } catch (error) {
     console.error('Verify email error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -1137,7 +1132,6 @@ module.exports = {
   sendOTP,
   verifyOTP,
   checkVaultTag,
-  checkUsername,
   forgotPassword,
   resetPassword,
   addEmail,
