@@ -1,4 +1,5 @@
 const { Account, Transaction, User } = require('../models');
+const { generateNotification } = require('./notificationsController');
 const bcrypt = require('bcryptjs'); // Not used here, but for consistency if needed
 
 // Allocation engine function

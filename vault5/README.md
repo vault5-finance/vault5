@@ -14,7 +14,7 @@ Badges:
 
 ## Core Pillars
 
-- Authentication & RBAC: JWT-based auth, user/admin roles
+- Authentication & RBAC: JWT-based auth, user/admin roles (super_admin, system_admin, finance_admin, compliance_admin, support_admin, content_admin, account_admin)
 - Allocation Engine: Auto-split income into dedicated vaults with customizable percentages, compliance tracking (target, shortfall, surplus)
 - Goals & Discipline: Goals per account, progress bars, notifications, debt/shortfall ledger, surplus encouragement
 - Lending Module: Rules-driven lending from safe sources, caps for non-repay lending, history and ledgers
@@ -25,6 +25,76 @@ Badges:
 - Notifications: Missed deposits, surpluses, goal hits, loan and lending reminders
 - SaaS-Ready: Public-facing routes, landing, onboarding, education content
 - Mobile-First UI: TailwindCSS, responsive charts, progressive enhancement
+
+## Implemented Features (2025)
+
+### Landing Page
+- Hero section with animated counters (10,000+ users, 95% success rate, 24/7 support, 500+ features)
+- Feature highlights: Fast & Secure transactions, Smart Allocation (6 vaults), Borderless payments
+- Detailed features grid: Smart Allocation, Discipline Enforcement, Investment Tracking, Send & Receive Money, Cash Flow Reports, Bank-Level Security
+- Call-to-action sections for signup and app download
+- Footer with product, support, company links, and social media
+
+### Admin Dashboard
+- Role-based dashboards: Super Admin (system overview, user stats, admin team), Finance Admin (approvals, transactions), Compliance Admin (flagged items, KYC), Support Admin (tickets), Content Admin (articles, campaigns), System Admin (uptime, active users)
+- User management: Create, update status (active/dormant/suspended/banned), soft delete users
+- Account Admin role: Manages user accounts, allocation trends, lending patterns (analytics dashboard for user compliance)
+
+### User Dashboard
+- Primary actions: Add Funds, Send Money, Vault Accounts
+- Summary stats: Vault Wallet balance, Health Score, Active Accounts
+- AI Insights: Allocation alerts, surplus detection, income trends, health score feedback
+- AI-Powered Features: Cash Flow Forecasting, Smart Recommendations, Financial Wellness
+- Recent Transactions table with type, description, amount
+- Accounts quick link with description
+- Charts: Allocation Compliance (pie chart), Weekly Summary (bar chart)
+- Add Funds modal for income entry
+
+### Navigation & UI
+- Responsive NavBar with desktop/mobile menus, notifications dropdown, compliance banner for limited accounts
+- Mobile-first design with TailwindCSS, framer-motion animations
+- Toast notifications, progress bars, charts with Chart.js
+- Sidebar for admin areas, profile cards, password inputs with eye toggle
+
+### Backend Enhancements
+- Dev-mode bypasses for geoGate and deviceGate to prevent 400s in development
+- Phone verification supports phoneId or phone, accepts any 6-digit code in dev
+- Compliance gates: geo, IP deny, device, limitation, caps, velocity
+- RBAC with role hierarchies, permission checks, dev allowances for account_admin
+- Notifications system with generation and management
+- Audit logging and error handling
+
+### Authentication & Security
+- Multi-step registration (email/password, personal details, terms, KYC skip)
+- Login with email or phone, role-based redirects
+- Profile management with vaultTag (username) cooldown, phone/email additions/verifications
+- Password reset, change password, OTP for phones
+- Rate limiting on auth routes, input validation
+
+### Compliance & KYC
+- Status endpoint with limitation details, reserves, payout eligibility
+- KYC request submission and listing
+- Payout requests for limited accounts after reserve release
+
+### Reports & Analytics
+- Dashboard with allocation data, health score, wallet balance
+- Transaction summaries by period
+- Export capabilities (PDF/Excel lazy-loaded)
+
+### Investments, Loans, Lending
+- CRUD for investments with growth tracking
+- Loan tracking with repayment schedules
+- Lending requests with classification, rule engine, capacity checks, ledger
+
+### Settings & Preferences
+- Allocation percentages management
+- Linked accounts (M-Pesa, banks) with verification
+- Notification thresholds, lending rules
+
+### Public Site
+- Landing page with features and CTA
+- About, Blog, Legal pages
+- SaaS-ready registration flow
 
 System entry points:
 - Backend API: Node.js + Express + Mongoose
@@ -60,7 +130,7 @@ Backend:
 - cp .env.example .env
 - Configure MONGO_URI and JWT_SECRET (at minimum)
 - npm install
-- npm run dev
+- npm run dev (run only one instance to avoid port conflicts)
 
 Frontend:
 - npm install
@@ -69,6 +139,10 @@ Frontend:
 Production builds:
 - Frontend: npm run build
 - Backend runs behind a process manager or container
+
+Dev Notes:
+- Ensure only one backend dev server is running (npm run dev) to avoid EADDRINUSE errors
+- Kill duplicate processes with taskkill /PID <pid> /F on Windows
 
 ## Environment Flags (Dev)
 
