@@ -1,6 +1,6 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
-const { createLoan, getLoans, makeRepayment, updateLoan, deleteLoan } = require('../controllers/loansController');
+const { createLoan, getLoans, makeRepayment, updateLoan, deleteLoan, checkSecurity } = require('../controllers/loansController');
 const {
   geoGate,
   ipDenyGate,
@@ -21,6 +21,9 @@ router.post('/', limitationGate, loanEligibilityGate, createLoan);
 
 // Listing loans allowed for all authenticated users
 router.get('/', getLoans);
+
+// Security check for lending
+router.post('/check-security', checkSecurity);
 
 // Repayments are money-moving; block if under limitation
 router.post('/:id/repay', limitationGate, makeRepayment);

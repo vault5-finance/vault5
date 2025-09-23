@@ -57,13 +57,14 @@ const seedComplianceDefaults = async () => {
   );
   console.log('Geo allowlist set to ["KE"]');
 
-  // Device rules defaults: require cookies, forbid headless
+  // Device rules defaults: require cookies, forbid headless (disabled in dev)
+  const isDev = process.env.NODE_ENV !== 'production';
   await DeviceRule.updateOne(
     {},
-    { $set: { requireCookies: true, forbidHeadless: true, minSignals: 1, updatedAt: new Date() } },
+    { $set: { requireCookies: !isDev, forbidHeadless: !isDev, minSignals: 1, updatedAt: new Date() } },
     { upsert: true }
   );
-  console.log('Device rules seeded');
+  console.log(`Device rules seeded (dev mode: ${isDev ? 'disabled' : 'enabled'})`);
 };
 
 const backfillUsers = async () => {

@@ -101,15 +101,6 @@ const userSchema = new mongoose.Schema({
   dob: {
     type: Date
   },
-  vaultTag: {
-    type: String,
-    unique: true,
-    sparse: true,
-    lowercase: true
-  },
-  lastUsernameChange: {
-    type: Date
-  },
   kycStatus: {
     type: String,
     enum: ['pending', 'approved', 'rejected', 'not_required'],

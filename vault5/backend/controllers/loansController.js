@@ -141,10 +141,30 @@ const deleteLoan = async (req, res) => {
   }
 };
 
+const checkSecurity = async (req, res) => {
+  try {
+    const { borrowerEmail, borrowerVaultTag, amount, isVaultUser } = req.body;
+
+    // Mock security checks for lending
+    const securityChecks = {
+      isKnownContact: isVaultUser,
+      trustScore: isVaultUser ? 85 : 0,
+      amountWithinLimits: parseFloat(amount) <= 50000, // Mock limit
+      dailyLimitCheck: parseFloat(amount) <= 10000, // Mock daily limit
+      mfaRequired: parseFloat(amount) > 25000
+    };
+
+    res.json(securityChecks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createLoan,
   getLoans,
   makeRepayment,
   updateLoan,
-  deleteLoan
+  deleteLoan,
+  checkSecurity
 };
