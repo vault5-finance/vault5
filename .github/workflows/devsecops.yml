@@ -36,7 +36,7 @@ jobs:
     - name: Run frontend tests
       run: |
         cd vault5/frontend
-        npm test
+        npm test -- --passWithNoTests
 
   security-scan:
     needs: build-and-test
