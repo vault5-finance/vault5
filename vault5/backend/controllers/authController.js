@@ -196,9 +196,12 @@ const login = async (req, res) => {
    }
 
    // Account status gates (activation/deactivation/suspension/banned/deleted)
-   if (user.isActive === false) {
-     return res.status(403).json({ message: 'Account is inactive. Please contact support.' });
-   }
+   // Admin bypass: super/system/finance/compliance/support/content/account admins may log in even if isActive === false,
+   // but everyone (including admins) is still blocked if accountStatus is suspended/banned/deleted.
+   const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'];
+   const isAdmin = adminRoles.includes(user.role);
+
+   // Always block hard on restricted statuses
    const blockedStatuses = ['suspended', 'banned', 'deleted'];
    if (blockedStatuses.includes(user.accountStatus)) {
      const statusMsg = {
@@ -209,14 +212,28 @@ const login = async (req, res) => {
      return res.status(403).json({ message: statusMsg[user.accountStatus] || 'Account access restricted' });
    }
 
+   // Non-admin users must be active to log in
+   if (!isAdmin && user.isActive === false) {
+     return res.status(403).json({ message: 'Account is inactive. Please contact support.' });
+   }
+
+   // Admins with inactive flag: allow but log for audit/visibility
+   if (isAdmin && user.isActive === false) {
+     try {
+       console.warn('Admin login with inactive flag', {
+         userId: user._id?.toString?.() || null,
+         role: user.role,
+         email: (user.emails?.[0]?.email || user.email || null)
+       });
+     } catch {}
+   }
+
    const match = await bcrypt.compare(password, user.password);
    if (!match) {
      return res.status(401).json({ message: 'Invalid credentials' });
    }
 
    // 2FA decision point: admin skip, trusted device skip, suspicious forces 2FA
-   const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
-   const isAdmin = adminRoles.includes(user.role);
    const headers = req.headers || {};
    const deviceId = headers['x-device-id'] || (req.body && req.body.deviceId) || '';
    const trusted = typeof user.isDeviceTrusted === 'function' ? user.isDeviceTrusted(deviceId) : false;

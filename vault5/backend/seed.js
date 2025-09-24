@@ -179,15 +179,28 @@ const migrateToFiveAccounts = async () => {
 
 const seedAdminUsers = async () => {
   try {
-    const uri = process.env.MONGO_URI;
-    if (!uri) {
-      throw new Error('MONGO_URI is not set. Please configure backend/.env');
+    // Prefer explicit MONGO_URI, but fall back to local dev Mongo if not set
+    let uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/vault5';
+    if (!process.env.MONGO_URI) {
+      console.warn('[seed] MONGO_URI not set. Falling back to local Mongo at mongodb://127.0.0.1:27017/vault5');
     }
 
     await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
     // First update any existing admin users
     await updateExistingAdmins();
+
+    // Reactivate all admin roles to ensure access
+    try {
+      const adminRoles = ['super_admin','system_admin','finance_admin','compliance_admin','support_admin','content_admin','account_admin'];
+      const resAdmins = await User.updateMany(
+        { role: { $in: adminRoles } },
+        { $set: { isActive: true, accountStatus: 'active' } }
+      );
+      console.log('Reactivated admin roles:', resAdmins?.modifiedCount ?? 0);
+    } catch (e) {
+      console.warn('Admin reactivation skipped:', e?.message || e);
+    }
 
     // Seed compliance defaults (tiers, geo, device)
     await seedComplianceDefaults();
@@ -218,6 +231,16 @@ const seedAdminUsers = async () => {
         city: 'Nairobi',
         avatar: 'https://ui-avatars.com/api/?name=Bryson+Nyaliti',
         role: 'super_admin'
+      },
+      {
+        email: 'superadmin@vault5.com',
+        password: 'Openai2030*',
+        name: 'Vault5 Super Admin',
+        dob: new Date('1985-01-01'),
+        phone: '+254700000000',
+        city: 'Nairobi',
+        avatar: 'https://ui-avatars.com/api/?name=Vault5+Super+Admin',
+        role: 'super_admin'
       }
     ];
 
@@ -233,6 +256,7 @@ const seedAdminUsers = async () => {
 
       const user = new User({
         name: adminData.name,
+        email: adminData.email, // legacy top-level email for compatibility
         emails: [{
           email: adminData.email,
           isPrimary: true,
