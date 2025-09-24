@@ -4,7 +4,7 @@ const path = require('path');
 const { protect } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimit');
 const { auditLog } = require('../middleware/audit');
-const { register, login, getProfile, updateProfile, registerStep1, registerStep2, registerStep3, registerStep4, checkEmail, sendOTP, verifyOTP, forgotPassword, resetPassword, addEmail, verifyEmail, addPhone, verifyPhone, setPrimaryEmail, setPrimaryPhone, removeEmail, removePhone, changePassword, deleteAccount } = require('../controllers/authController');
+const { register, login, getProfile, updateProfile, registerStep1, registerStep2, registerStep3, registerStep4, checkEmail, sendOTP, verifyOTP, forgotPassword, resetPassword, addEmail, verifyEmail, addPhone, verifyPhone, setPrimaryEmail, setPrimaryPhone, removeEmail, removePhone, changePassword, deleteAccount, verifyTwoFactor } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -38,6 +38,7 @@ router.patch('/register/:userId/step4', auditLog('register', 'auth'), registerSt
 // Legacy registration route
 router.post('/register', upload.single('avatar'), authLimiter, auditLog('register', 'auth'), register);
 router.post('/login', authLimiter, auditLog('login', 'auth'), login);
+router.post('/verify-2fa', authLimiter, auditLog('verify_2fa', 'auth'), verifyTwoFactor);
 router.get('/profile', protect, auditLog('profile_update', 'user'), getProfile);
 router.put('/profile', protect, upload.single('avatar'), auditLog('profile_update', 'user'), updateProfile);
 

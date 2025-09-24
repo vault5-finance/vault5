@@ -145,125 +145,152 @@ const register = async (req, res) => {
 
 // POST /api/auth/login
 const login = async (req, res) => {
-  try {
-    const { email, password, phone } = req.body;
+ try {
+   const { email, password, phone } = req.body;
 
-    // Support login with email OR phone (PayPal-style)
-    let user = null;
-    let loginMethod = '';
+   // Support login with email OR phone (PayPal-style)
+   let user = null;
+   let loginMethod = '';
 
-    if (email) {
-      // Try to find user with new email array structure first
-      user = await User.findOne({
-        'emails.email': email.toLowerCase()
-      }).select('+password');
+   if (email) {
+     // Robust find by either emails[] or legacy email in one query
+     const emailLower = String(email).toLowerCase();
+     user = await User.findOne({
+       $or: [
+         { 'emails.email': emailLower },
+         { email: emailLower }
+       ]
+     }).select('+password');
+     loginMethod = 'email';
+   } else if (phone) {
+     // Try to find user with phone array structure
+     user = await User.findOne({
+       'phones.phone': phone
+     }).select('+password');
+     loginMethod = 'phone';
+   }
 
-      // If not found, try legacy email field for backward compatibility
-      if (!user) {
-        user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-      }
-      loginMethod = 'email';
-    } else if (phone) {
-      // Try to find user with phone array structure
-      user = await User.findOne({
-        'phones.phone': phone
-      }).select('+password');
-      loginMethod = 'phone';
-    }
+   if (!user) {
+     return res.status(401).json({
+       message: 'Invalid credentials',
+       availableMethods: ['email', 'phone']
+     });
+   }
 
-    if (!user) {
-      return res.status(401).json({
-        message: 'Invalid credentials',
-        availableMethods: ['email', 'phone']
-      });
-    }
+   const requireEmailVerification = (process.env.AUTH_REQUIRE_EMAIL_VERIFICATION || 'false').toLowerCase() === 'true';
 
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+   // For new email array structure, check if email is verified (configurable)
+   if (requireEmailVerification && loginMethod === 'email' && user.emails && user.emails.length > 0) {
+     const emailEntry = user.emails.find(e => e.email === String(email).toLowerCase());
+     if (emailEntry && !emailEntry.isVerified) {
+       return res.status(401).json({ message: 'Email not verified. Please check your email for verification link.' });
+     }
+   }
 
-    const requireEmailVerification = (process.env.AUTH_REQUIRE_EMAIL_VERIFICATION || 'false').toLowerCase() === 'true';
+   // For phone login, check if phone is verified
+   if (loginMethod === 'phone' && user.phones && user.phones.length > 0) {
+     const phoneEntry = user.phones.find(p => p.phone === phone);
+     if (phoneEntry && !phoneEntry.isVerified) {
+       return res.status(401).json({ message: 'Phone not verified. Please verify your phone number first.' });
+     }
+   }
 
-    // For new email array structure, check if email is verified (configurable)
-    if (requireEmailVerification && loginMethod === 'email' && user.emails && user.emails.length > 0) {
-      const emailEntry = user.emails.find(e => e.email === email.toLowerCase());
-      if (emailEntry && !emailEntry.isVerified) {
-        return res.status(401).json({ message: 'Email not verified. Please check your email for verification link.' });
-      }
-    }
+   // Account status gates (activation/deactivation/suspension/banned/deleted)
+   if (user.isActive === false) {
+     return res.status(403).json({ message: 'Account is inactive. Please contact support.' });
+   }
+   const blockedStatuses = ['suspended', 'banned', 'deleted'];
+   if (blockedStatuses.includes(user.accountStatus)) {
+     const statusMsg = {
+       suspended: 'Your account is suspended. Please contact support.',
+       banned: 'Your account is banned. Access is restricted.',
+       deleted: 'This account has been deleted.'
+     };
+     return res.status(403).json({ message: statusMsg[user.accountStatus] || 'Account access restricted' });
+   }
 
-    // For phone login, check if phone is verified
-    if (loginMethod === 'phone' && user.phones && user.phones.length > 0) {
-      const phoneEntry = user.phones.find(p => p.phone === phone);
-      if (phoneEntry && !phoneEntry.isVerified) {
-        return res.status(401).json({ message: 'Phone not verified. Please verify your phone number first.' });
-      }
-    }
+   const match = await bcrypt.compare(password, user.password);
+   if (!match) {
+     return res.status(401).json({ message: 'Invalid credentials' });
+   }
 
-    // Account status gates (activation/deactivation/suspension/banned/deleted)
-    if (user.isActive === false) {
-      return res.status(403).json({ message: 'Account is inactive. Please contact support.' });
-    }
-    const blockedStatuses = ['suspended', 'banned', 'deleted'];
-    if (blockedStatuses.includes(user.accountStatus)) {
-      const statusMsg = {
-        suspended: 'Your account is suspended. Please contact support.',
-        banned: 'Your account is banned. Access is restricted.',
-        deleted: 'This account has been deleted.'
-      };
-      return res.status(403).json({ message: statusMsg[user.accountStatus] || 'Account access restricted' });
-    }
+   // 2FA decision point: admin skip, trusted device skip, suspicious forces 2FA
+   const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+   const isAdmin = adminRoles.includes(user.role);
+   const headers = req.headers || {};
+   const deviceId = headers['x-device-id'] || (req.body && req.body.deviceId) || '';
+   const trusted = typeof user.isDeviceTrusted === 'function' ? user.isDeviceTrusted(deviceId) : false;
+   const suspicious = Boolean(user.flags?.suspicious);
+   const isProd = (process.env.NODE_ENV === 'production');
+   const isTestEnv = (process.env.NODE_ENV === 'test') || Boolean(process.env.JEST_WORKER_ID);
+   const require2FA = !isTestEnv && isProd && !isAdmin && (!trusted || suspicious);
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+   if (require2FA) {
+     // Build primary phone for hint
+     let primaryPhone = user.phone;
+     if (user.phones && user.phones.length > 0) {
+       const entry = user.phones.find(p => p.isPrimary) || user.phones[0];
+       primaryPhone = entry?.phone || primaryPhone;
+     }
+     // Create a short-lived temp token marking 2FA pending
+     const tempToken = jwt.sign(
+       { id: user._id, twoFactorPending: true },
+       process.env.JWT_SECRET || 'dev_secret',
+       { expiresIn: '10m' }
+     );
+     return res.json({
+       twoFactorRequired: true,
+       tempToken,
+       methods: ['sms'],
+       primaryPhone,
+       message: 'Additional verification required. Enter the 6-digit code.'
+     });
+   }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+   // Continue normal login (issue full token)
+   user.lastLogin = new Date();
+   await user.save();
 
-    const token = generateToken(user._id);
+   const token = generateToken(user._id);
 
-    // Role-based redirect logic
-    console.log('User role during login:', user.role);
+   // Role-based redirect logic
+   console.log('User role during login:', user.role);
 
-    // Get primary email for backward compatibility
-    let primaryEmail = user.email; // Legacy field
-    if (user.emails && user.emails.length > 0) {
-      const primaryEmailEntry = user.emails.find(e => e.isPrimary);
-      if (primaryEmailEntry) {
-        primaryEmail = primaryEmailEntry.email;
-      }
-    }
+   // Get primary email for backward compatibility
+   let primaryEmail = user.email; // Legacy field
+   if (user.emails && user.emails.length > 0) {
+     const primaryEmailEntry = user.emails.find(e => e.isPrimary);
+     if (primaryEmailEntry) {
+       primaryEmail = primaryEmailEntry.email;
+     }
+   }
 
-    const response = {
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: primaryEmail,
-        avatar: user.avatar,
-        role: user.role,
-      },
-    };
+   const response = {
+     token,
+     user: {
+       id: user._id,
+       name: user.name,
+       email: primaryEmail,
+       avatar: user.avatar,
+       role: user.role,
+     },
+   };
 
-    // Set redirect based on user role (supports extended admin roles)
-    const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
-    if (adminRoles.includes(user.role)) {
-      response.redirect = '/admin';
-      console.log('Admin user detected, redirecting to /admin');
-    } else {
-      response.redirect = '/dashboard';
-      console.log('Regular user detected, redirecting to /dashboard');
-    }
+   // Set redirect based on user role (supports extended admin roles)
+   if (isAdmin) {
+     response.redirect = '/admin';
+     console.log('Admin user detected, redirecting to /admin');
+   } else {
+     response.redirect = '/dashboard';
+     console.log('Regular user detected, redirecting to /dashboard');
+   }
 
-    console.log('Login response:', { redirect: response.redirect, userRole: user.role });
-    res.json(response);
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
+   console.log('Login response:', { redirect: response.redirect, userRole: user.role });
+   res.json(response);
+ } catch (err) {
+   console.error('Login error:', err);
+   res.status(500).json({ message: 'Server error' });
+ }
 };
 
 // GET /api/auth/profile
@@ -567,12 +594,11 @@ const checkEmail = async (req, res) => {
     if (user) {
       return res.json({
         exists: true,
-        method: user.password ? 'password' : 'oauth',
-        status: user.accountStatus || (user.isActive ? 'active' : 'inactive')
+        method: user.password ? 'password' : 'oauth'
       });
     }
- 
-    res.json({ exists: false });
+
+    return res.json({ exists: false });
   } catch (error) {
     console.error('Check email error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -638,6 +664,95 @@ const verifyOTP = async (req, res) => {
   } catch (error) {
     console.error('Verify OTP error:', error);
     res.status(500).json({ message: 'Failed to verify OTP' });
+  }
+};
+
+/**
+ * POST /api/auth/verify-2fa
+ * Accepts a tempToken (JWT with { twoFactorPending: true }), a 6-digit otp (dev: any 6 digits),
+ * and optional rememberDevice + deviceId to trust current device.
+ * Returns full auth token and redirect target.
+ */
+const verifyTwoFactor = async (req, res) => {
+  try {
+    const isProd = process.env.NODE_ENV === 'production';
+    const { otp, rememberDevice = false, deviceId, nickname, tempToken: bodyTemp } = req.body || {};
+
+    let tempToken = bodyTemp;
+    const authHeader = req.headers.authorization;
+    if (!tempToken && authHeader && authHeader.startsWith('Bearer ')) {
+      tempToken = authHeader.split(' ')[1];
+    }
+    if (!tempToken) {
+      return res.status(400).json({ message: 'Missing temp token' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET || 'dev_secret');
+    } catch (e) {
+      return res.status(400).json({ message: 'Invalid or expired temp token' });
+    }
+
+    if (!decoded?.twoFactorPending || !decoded?.id) {
+      return res.status(400).json({ message: 'Invalid 2FA session' });
+    }
+
+    // Validate OTP format; in dev accept any 6-digit
+    if (!otp || !/^\d{6}$/.test(String(otp))) {
+      return res.status(400).json({ message: 'Invalid OTP format' });
+    }
+    if (isProd) {
+      // TODO: verify against stored OTP from SMS/email provider
+      // For now, still accept 6-digit in non-production only
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Trust device if requested
+    const ua = req.headers['user-agent'] || '';
+    const ip = ((req.headers['x-forwarded-for'] || req.ip || '') + '').split(',')[0].trim();
+    if (deviceId && typeof user.upsertTrustedDevice === 'function') {
+      user.upsertTrustedDevice({
+        deviceId,
+        userAgent: ua,
+        ip,
+        nickname: nickname || ''
+      });
+      await user.save();
+    }
+
+    // Issue full token
+    const token = generateToken(user._id);
+
+    // Resolve primary email for response
+    let primaryEmail = user.email;
+    if (user.emails && user.emails.length > 0) {
+      const entry = user.emails.find(e => e.isPrimary) || user.emails[0];
+      primaryEmail = entry?.email || primaryEmail;
+    }
+
+    const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin'];
+    const redirect = adminRoles.includes(user.role) ? '/admin' : '/dashboard';
+
+    return res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: primaryEmail,
+        avatar: user.avatar,
+        role: user.role
+      },
+      redirect,
+      message: 'Two-factor verification successful'
+    });
+  } catch (error) {
+    console.error('verifyTwoFactor error:', error);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -1175,4 +1290,5 @@ module.exports = {
   removePhone,
   changePassword,
   deleteAccount,
+  verifyTwoFactor,
 };

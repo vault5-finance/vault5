@@ -879,5 +879,6 @@ module.exports = {
   transferToLinkedAccount,
   verifyRecipient,
   validateDepositPhone,
-  calculateFees
+  calculateFees,
+  transferExternal
 };

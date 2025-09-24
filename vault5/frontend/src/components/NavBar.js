@@ -12,7 +12,6 @@ const NavBar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   // Compliance banner state
   const [compliance, setCompliance] = useState(null);
@@ -31,9 +30,9 @@ const NavBar = () => {
       fetchNotifications();
       fetchCompliance();
     }
-  }, [token]);
+  }, [token, fetchNotifications, fetchCompliance]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!token) return;
     setLoadingNotifications(true);
     try {
@@ -44,7 +43,7 @@ const NavBar = () => {
     } finally {
       setLoadingNotifications(false);
     }
-  };
+  }, [token]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
@@ -72,7 +71,7 @@ const NavBar = () => {
       }
       return newState;
     });
-  }, [notifications.length]);
+  }, [notifications.length, fetchNotifications]);
 
 
   // Public navigation for landing page

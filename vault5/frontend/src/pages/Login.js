@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import PasswordInput from '../components/PasswordInput';
 import { useToast } from '../contexts/ToastContext';
+import TwoFactorModal from '../components/TwoFactorModal';
+import { getOrCreateDeviceId } from '../utils/device';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -10,23 +12,57 @@ const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
 
+  // 2FA state
+  const [twoFAOpen, setTwoFAOpen] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [primaryPhone, setPrimaryPhone] = useState('');
+  const [deviceId, setDeviceId] = useState('');
+
+  useEffect(() => {
+    try {
+      const id = getOrCreateDeviceId();
+      setDeviceId(id);
+      // Prefill email if redirected from verification link
+      const params = new URLSearchParams(window.location.search);
+      const emailPrefill = params.get('email');
+      if (emailPrefill) {
+        setForm(prev => ({ ...prev, email: emailPrefill }));
+      }
+    } catch {
+      // no-op
+    }
+  }, []);
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await api.post('/api/auth/login', form);
-      console.log('Login response:', res.data);
-      if (res.data && res.data.token) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+      // include deviceId in body (also added as header by interceptor)
+      const payload = { ...form, deviceId };
+      const res = await api.post('/api/auth/login', payload);
+      const data = res?.data || {};
+      console.log('Login response:', data);
+
+      // 2FA flow: show modal if required
+      if (data.twoFactorRequired && data.tempToken) {
+        setTempToken(data.tempToken);
+        setPrimaryPhone(data.primaryPhone || '');
+        setTwoFAOpen(true);
+        return; // stop here; modal will complete login
+      }
+
+      // Normal flow: token present
+      if (data.token && data.user) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
 
         // Client-side redirect: admins -> /admin (AdminIndex will route by role), users -> /dashboard
         const adminRoles = ['super_admin', 'system_admin', 'finance_admin', 'compliance_admin', 'support_admin', 'content_admin', 'account_admin'];
-        const isAdmin = adminRoles.includes(res.data.user?.role);
-        const safeRedirect = isAdmin ? '/admin' : '/dashboard';
-        console.log('Redirecting to:', safeRedirect, 'User role:', res.data.user?.role);
+        const isAdmin = adminRoles.includes(data.user?.role);
+        const safeRedirect = data.redirect || (isAdmin ? '/admin' : '/dashboard');
+        console.log('Redirecting to:', safeRedirect, 'User role:', data.user?.role);
         navigate(safeRedirect);
       } else {
         showError('Login failed: Invalid response');
@@ -35,6 +71,20 @@ const Login = () => {
       showError(err?.response?.data?.message || 'Login failed');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleTwoFASuccess = (result) => {
+    // result: { token, user, redirect }
+    try {
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('user', JSON.stringify(result.user));
+      const redirect = result.redirect || '/dashboard';
+      navigate(redirect);
+    } finally {
+      setTwoFAOpen(false);
+      setTempToken('');
+      setPrimaryPhone('');
     }
   };
 
@@ -84,6 +134,16 @@ const Login = () => {
           <Link to="/signup" className="text-blue-600 hover:underline">Sign Up</Link>
         </p>
       </div>
+
+      {/* 2FA Modal */}
+      <TwoFactorModal
+        isOpen={twoFAOpen}
+        onClose={() => setTwoFAOpen(false)}
+        tempToken={tempToken}
+        deviceId={deviceId}
+        primaryPhone={primaryPhone}
+        onSuccess={handleTwoFASuccess}
+      />
     </div>
   );
 };

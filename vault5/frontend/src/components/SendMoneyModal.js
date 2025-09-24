@@ -3,7 +3,7 @@ import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 
 const SendMoneyModal = ({ onClose, onSuccess }) => {
-  const { showError, showSuccess, showInfo } = useToast();
+  const { showError, showSuccess } = useToast();
 
   // Steps: 1: choose recipient, 2: amount/fees, 3: confirm
   const [step, setStep] = useState(1);
@@ -127,7 +127,7 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
     try {
       // Vault-to-Vault
       if (recipient.vaultUser) {
-        const response = await api.post('/api/transactions/transfer', {
+        await api.post('/api/transactions/transfer', {
           recipientEmail: mode === 'email' ? formData.recipientEmail : undefined,
           recipientPhone: mode === 'phone' ? formData.recipientPhone : undefined,
           amount: amountNumber,
@@ -140,7 +140,7 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
       }
 
       // External transfer via telco/bank rails
-      const response = await api.post('/api/transactions/transfer/external', {
+      await api.post('/api/transactions/transfer/external', {
         recipientPhone: formData.recipientPhone,
         amount: amountNumber,
         description: formData.description || 'P2P External',

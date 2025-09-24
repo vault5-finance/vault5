@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
@@ -32,9 +32,9 @@ const Profile = () => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
     loadProfile();
-  }, [navigate]);
+  }, [navigate, loadProfile]);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const response = await api.get('/api/auth/profile');
       const profileData = response.data;
@@ -50,7 +50,7 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   const handleBasicInfoUpdate = async (e) => {
     e.preventDefault();

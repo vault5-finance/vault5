@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getOrCreateDeviceId } from '../utils/device';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -11,11 +12,20 @@ const api = axios.create({
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and device id
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Attach stable device identifier for trusted device checks
+  try {
+    const deviceId = getOrCreateDeviceId();
+    if (deviceId) {
+      config.headers['X-Device-Id'] = deviceId;
+    }
+  } catch {
+    // no-op
   }
   return config;
 });

@@ -303,7 +303,16 @@ const userSchema = new mongoose.Schema({
   notifications: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Notification'
-  }]
+  }],
+  trustedDevices: [{
+    deviceId: { type: String, required: true },
+    userAgent: { type: String, default: '' },
+    ip: { type: String, default: '' },
+    nickname: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now },
+    lastUsedAt: { type: Date, default: Date.now }
+  }],
+  lastLogin: { type: Date }
 }, {
   timestamps: true
 });
@@ -421,7 +430,6 @@ userSchema.methods.hasLinkedAccount = function(accountType, accountNumber) {
    acc.accountType === accountType && acc.accountNumber === accountNumber
  );
 };
-
 userSchema.methods.updateLinkedAccountLastUsed = function(accountId) {
  const account = this.preferences.linkedAccounts.id(accountId);
  if (account) {
@@ -429,9 +437,37 @@ userSchema.methods.updateLinkedAccountLastUsed = function(accountId) {
  }
 };
 
+// Trusted devices helpers
+userSchema.methods.isDeviceTrusted = function(deviceId) {
+  if (!deviceId) return false;
+  return Array.isArray(this.trustedDevices) && this.trustedDevices.some(d => d.deviceId === deviceId);
+};
+
+userSchema.methods.upsertTrustedDevice = function({ deviceId, userAgent = '', ip = '', nickname = '' } = {}) {
+  if (!deviceId) return;
+  if (!Array.isArray(this.trustedDevices)) this.trustedDevices = [];
+  const existing = this.trustedDevices.find(d => d.deviceId === deviceId);
+  if (existing) {
+    existing.userAgent = userAgent || existing.userAgent;
+    existing.ip = ip || existing.ip;
+    existing.lastUsedAt = new Date();
+    if (nickname) existing.nickname = nickname;
+  } else {
+    this.trustedDevices.push({
+      deviceId,
+      userAgent,
+      ip,
+      nickname,
+      createdAt: new Date(),
+      lastUsedAt: new Date()
+    });
+  }
+};
+
 // Indexes for compliance queries
 userSchema.index({ limitationStatus: 1 });
 userSchema.index({ reserveReleaseAt: 1 });
 userSchema.index({ kycLevel: 1 });
+userSchema.index({ 'trustedDevices.deviceId': 1 });
 
 module.exports = mongoose.model('User', userSchema);
