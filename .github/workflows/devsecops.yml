@@ -53,6 +53,7 @@ jobs:
         docker_name: 'zaproxy/zap-stable'
         cmd_options: '-I'
         fail_action: false
+        allow_issue_writing: false
         
     - name: SonarQube Analysis
       uses: SonarSource/sonarqube-scan-action@master

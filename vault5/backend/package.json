@@ -4,8 +4,9 @@
   "description": "Vault5 Financial Freedom Platform Backend",
   "main": "server.js",
   "scripts": {
+    "predev": "node scripts/freePort.js 5000",
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "dev": "node scripts/freePort.js 5000 && nodemon server.js",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
     "seed": "node seed.js"
   },
