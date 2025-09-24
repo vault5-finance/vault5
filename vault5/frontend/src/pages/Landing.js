@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const Landing = () => {
   const navigate = useNavigate();
   const [counters, setCounters] = useState([0, 0, 0, 0]);
-  const targetCounts = [10000, 95, 24, 500];
+  const targetCounts = useMemo(() => [10000, 95, 24, 500], []);
   
   useEffect(() => {
     const duration = 3000;
@@ -19,37 +19,11 @@ const Landing = () => {
     }, 20);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [targetCounts]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800">
-      {/* Header */}
-      <header className="relative z-10 px-4 py-6">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="text-2xl font-bold text-white">Vault5</div>
-          <div className="hidden md:flex space-x-8">
-            <Link to="/personal" className="text-white hover:text-blue-200 transition">Personal</Link>
-            <Link to="/business" className="text-white hover:text-blue-200 transition">Business</Link>
-            <Link to="/developers" className="text-white hover:text-blue-200 transition">Developers</Link>
-            <Link to="/help" className="text-white hover:text-blue-200 transition">Help</Link>
-            <Link to="/contact" className="text-white hover:text-blue-200 transition">Contact</Link>
-          </div>
-          <div className="flex space-x-4">
-            <button
-              onClick={() => navigate('/login')}
-              className="text-white hover:text-blue-200 transition"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => navigate('/signup')}
-              className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition"
-            >
-              Sign Up
-            </button>
-          </div>
-        </nav>
-      </header>
+      {/* Header removed: Navigation is handled globally by NavBar */}
 
       {/* Hero Section */}
       <main className="relative z-10 px-4 py-20">
@@ -276,10 +250,10 @@ const Landing = () => {
               <div className="text-2xl font-bold text-white mb-4">Vault5</div>
               <p className="text-gray-300 mb-4">Financial freedom through discipline and automation.</p>
               <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white">📘</a>
-                <a href="#" className="text-gray-400 hover:text-white">🐦</a>
-                <a href="#" className="text-gray-400 hover:text-white">📷</a>
-                <a href="#" className="text-gray-400 hover:text-white">💼</a>
+                <button type="button" aria-label="Facebook" className="text-gray-400 hover:text-white">📘</button>
+                <button type="button" aria-label="Twitter" className="text-gray-400 hover:text-white">🐦</button>
+                <button type="button" aria-label="Instagram" className="text-gray-400 hover:text-white">📷</button>
+                <button type="button" aria-label="LinkedIn" className="text-gray-400 hover:text-white">💼</button>
               </div>
             </div>
             <div>

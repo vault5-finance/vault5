@@ -25,7 +25,7 @@ const NavBar = () => {
     [location.pathname]
   );
 
-  {/* moved below after function declarations to avoid TDZ */}
+  // moved below after function declarations to avoid TDZ
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
@@ -109,7 +109,7 @@ const NavBar = () => {
               <Link to="/privacy" className="text-gray-700 hover:text-blue-600">Privacy</Link>
             </div>
             <div className="hidden md:flex items-center space-x-4">
-              <Link to="/admin-login" className="text-gray-500 hover:text-blue-600 text-sm">Admin</Link>
+              {/* Admin link removed from public navbar */}
               <Link to="/login" className="text-gray-700 hover:text-blue-600">Login</Link>
               <Link to="/signup" className="text-white px-4 py-2 rounded-lg font-medium" style={{ background: 'var(--gradient-primary)' }}>
                 Get Started

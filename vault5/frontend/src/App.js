@@ -61,6 +61,7 @@ const LegalCenter = lazy(() => import('./pages/LegalCenter'));
 const PolicyUpdates = lazy(() => import('./pages/PolicyUpdates'));
 const ComplianceCenter = lazy(() => import('./pages/ComplianceCenter'));
 const AccountsCenter = lazy(() => import('./pages/AccountsCenter'));
+const ENABLE_ADMIN_PORTAL = process.env.REACT_APP_ENABLE_ADMIN_PORTAL === 'true';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -124,7 +125,7 @@ function App() {
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
         <Route path="/email-verified" element={<EmailVerificationStatus />} />
         <Route path="/verify-email/:token" element={<EmailVerificationStatus />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
+        {ENABLE_ADMIN_PORTAL && <Route path="/admin-login" element={<AdminLogin />} />}
 
         {/* Public Marketing Pages */}
         <Route
