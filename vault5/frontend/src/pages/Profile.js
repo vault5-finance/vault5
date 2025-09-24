@@ -28,11 +28,7 @@ const Profile = () => {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { navigate('/login'); return; }
-    loadProfile();
-  }, [navigate, loadProfile]);
+  // useEffect moved after loadProfile definition to avoid dependency issues
 
   const loadProfile = useCallback(async () => {
     try {
@@ -51,6 +47,12 @@ const Profile = () => {
       setLoading(false);
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) { navigate('/login'); return; }
+    loadProfile();
+  }, [navigate, loadProfile]);
 
   const handleBasicInfoUpdate = async (e) => {
     e.preventDefault();
