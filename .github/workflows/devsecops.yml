@@ -50,6 +50,7 @@ jobs:
       with:
         target: 'http://localhost:5000'
         rules_file_name: 'zap-baseline.conf'
+        docker_image: 'ghcr.io/zaproxy/zaproxy'
         
     - name: SonarQube Analysis
       uses: SonarSource/sonarqube-scan-action@master
