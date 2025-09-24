@@ -28,11 +28,42 @@ loadSecrets().then(secretsLoaded => {
     .map(s => s.trim())
     .filter(Boolean);
 
+  // Helper: match origin against patterns
+  // Supports:
+  //  - Exact match: https://vault5.vercel.app
+  //  - Wildcard subdomains: *.vercel.app or *.onrender.com
+  //  - Regex: regex:^https://.*\.vercel\.app$
+  const isOriginAllowed = (origin) => {
+    if (!origin) return true; // non-browser clients
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return true;
+
+    for (const pat of allowedOrigins) {
+      if (!pat) continue;
+      if (pat.startsWith('*.')) {
+        // wildcard subdomain match
+        const suffix = pat.slice(1); // ".vercel.app"
+        if (origin.endsWith(suffix)) return true;
+      } else if (pat.startsWith('regex:')) {
+        const rx = pat.slice(6);
+        try {
+          const re = new RegExp(rx);
+          if (re.test(origin)) return true;
+        } catch {
+          // ignore invalid regex
+        }
+      }
+    }
+    return false;
+  };
+
   const corsOptions = {
     origin: function (origin, callback) {
-      // Allow non-browser clients (no origin) and wildcard
-      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      if (isOriginAllowed(origin)) {
         return callback(null, true);
+      }
+      // lightweight diagnostic to help debug CORS in non-prod
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[CORS] Blocked origin:', origin, 'Allowed list:', allowedOrigins);
       }
       return callback(new Error('Not allowed by CORS'));
     },
