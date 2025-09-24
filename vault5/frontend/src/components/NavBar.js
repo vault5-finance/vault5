@@ -25,12 +25,7 @@ const NavBar = () => {
     [location.pathname]
   );
 
-  useEffect(() => {
-    if (token) {
-      fetchNotifications();
-      fetchCompliance();
-    }
-  }, [token, fetchNotifications, fetchCompliance]);
+  {/* moved below after function declarations to avoid TDZ */}
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
@@ -62,6 +57,14 @@ const NavBar = () => {
       setLoadingCompliance(false);
     }
   }, []);
+
+  // Initialize after functions are defined to avoid "before initialization" TDZ error
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+      fetchCompliance();
+    }
+  }, [token, fetchNotifications, fetchCompliance]);
 
   const toggleNotifications = useCallback(() => {
     setShowNotifications(prev => {

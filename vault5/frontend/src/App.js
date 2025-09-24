@@ -6,8 +6,8 @@ import './index.css';
 
 import NavBar from './components/NavBar';
 
-// Initialize performance monitoring
-const { trackComponentLoad, trackApiCall, trackRouteChange } = initializePerformanceMonitoring();
+ // Initialize performance monitoring
+ const { trackRouteChange } = initializePerformanceMonitoring();
 
 // Robust lazy loader to auto-recover from stale chunk errors during HMR/refresh
 const lazyWithRetry = (importer) => React.lazy(() =>
