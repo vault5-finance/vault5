@@ -12,6 +12,11 @@ Badges:
 - ![Year](https://img.shields.io/badge/year-2025-informational)
 - ![License](https://img.shields.io/badge/license-MIT-blue)
 
+## Plain Language Overview
+
+- Read how Vault5 works in simple terms → [PRODUCT_OVERVIEW.md](docs/PRODUCT_OVERVIEW.md:1)
+- See every document and status → [DOCUMENT_REGISTER.md](docs/DOCUMENT_REGISTER.md:1)
+
 ## Core Pillars
 
 - Authentication & RBAC: JWT-based auth, user/admin roles (super_admin, system_admin, finance_admin, compliance_admin, support_admin, content_admin, account_admin)
@@ -155,13 +160,15 @@ Security:
 
 ## Docs
 
-- [CHANGELOG](docs/CHANGELOG.md)
-- [FOUNDER](docs/FOUNDER.md)
-- [CREDITS](docs/CREDITS.md)
-- [SECURITY](docs/SECURITY.md)
-- [LEGAL-NOTES](docs/LEGAL-NOTES.md)
+- Product overview (plain language) → [PRODUCT_OVERVIEW.md](docs/PRODUCT_OVERVIEW.md:1)
+- Document register (all docs and status) → [DOCUMENT_REGISTER.md](docs/DOCUMENT_REGISTER.md:1)
+- Changelog → [CHANGELOG.md](docs/CHANGELOG.md:1)
+- Founder → [FOUNDER.md](docs/FOUNDER.md:1)
+- Credits → [CREDITS.md](docs/CREDITS.md:1)
+- Security policy → [SECURITY.md](docs/SECURITY.md:1)
+- Legal notes (brand references, non-infringement) → [LEGAL-NOTES.md](docs/LEGAL-NOTES.md:1)
 
-These documents will be kept current in 2025. No external copying claims are made; Vault5 is an original work.
+These documents will be kept current in 2025. Vault5 is an original work; see [LEGAL-NOTES.md](docs/LEGAL-NOTES.md:1).
 
 ## Founder
 
