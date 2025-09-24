@@ -69,7 +69,11 @@ loadSecrets().then(secretsLoaded => {
     },
     credentials: true
   };
-
+ 
+  // Trust proxy headers (required on Render/behind proxies) so rate-limit and IP detection work
+  // Fixes: express-rate-limit ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+  app.set('trust proxy', 1);
+ 
   app.use(helmet());
   app.use(compression());
   app.use(cors(corsOptions));
