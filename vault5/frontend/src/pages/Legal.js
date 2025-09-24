@@ -18,7 +18,7 @@ const Legal = () => {
             </p>
             <div className="mt-3 text-blue-600 text-sm font-medium">Read Terms →</div>
           </Link>
-
+ 
           <Link to="/privacy" className="block bg-white rounded-lg border p-6 shadow-sm hover:shadow-md transition">
             <h2 className="text-xl font-semibold text-gray-900">Privacy Policy</h2>
             <p className="text-gray-600 mt-2">
@@ -26,7 +26,7 @@ const Legal = () => {
             </p>
             <div className="mt-3 text-blue-600 text-sm font-medium">Read Privacy →</div>
           </Link>
-
+ 
           <div className="bg-white rounded-lg border p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900">Compliance & Risk</h2>
             <ul className="list-disc pl-6 mt-2 text-gray-700">
@@ -39,7 +39,7 @@ const Legal = () => {
               Region-specific disclosures (e.g., GDPR/CCPA/KDPA) can be added as we expand coverage.
             </p>
           </div>
-
+ 
           <div className="bg-white rounded-lg border p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900">Disclaimers</h2>
             <ul className="list-disc pl-6 mt-2 text-gray-700">
@@ -51,6 +51,23 @@ const Legal = () => {
               For clarifications, reach us at support@vault5.com
             </p>
           </div>
+
+          {/* Kenya-Specific Readiness */}
+          <Link to="/legal/policy-updates" className="block bg-white rounded-lg border p-6 shadow-sm hover:shadow-md transition">
+            <h2 className="text-xl font-semibold text-gray-900">Kenya Compliance Overview</h2>
+            <p className="text-gray-600 mt-2">
+              Summary of Kenya-specific laws and regulator guidance (CBK, ODPC, FRC) for launch readiness.
+            </p>
+            <div className="mt-3 text-blue-600 text-sm font-medium">Open Overview →</div>
+          </Link>
+
+          <Link to="/legal/policy-updates" className="block bg-white rounded-lg border p-6 shadow-sm hover:shadow-md transition">
+            <h2 className="text-xl font-semibold text-gray-900">Complaints Handling (Kenya)</h2>
+            <p className="text-gray-600 mt-2">
+              How to submit, timelines, outcomes, and escalation paths consistent with Kenyan consumer protection.
+            </p>
+            <div className="mt-3 text-blue-600 text-sm font-medium">See Process →</div>
+          </Link>
         </div>
 
         <div className="mt-10 bg-blue-50 border border-blue-200 rounded p-5">

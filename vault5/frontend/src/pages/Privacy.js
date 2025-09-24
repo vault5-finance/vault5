@@ -6,7 +6,7 @@ const Privacy = () => {
       <div className="max-w-4xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Vault5 Privacy Policy</h1>
         <p className="text-sm text-gray-500 mb-8">
-          Effective Date: [Insert Date] • Last Updated: [Insert Date]
+          Effective Date: [To be set at public launch] • Last Updated: September 2025
         </p>
 
         <p className="text-gray-700 mb-6">
@@ -154,15 +154,20 @@ const Privacy = () => {
             <h2 className="text-xl font-semibold text-gray-900">12. Contact Us</h2>
             <p className="text-gray-700">
               Vault5 — Privacy Office<br />
-              Email: [Insert Email Address]<br />
-              Address: [Insert Registered/Physical Address]
+              Email: privacy@vault5.com<br />
+              Address: [Insert Registered/Physical Address]<br />
+              Kenya: This policy will be read together with the Kenya Data Protection Act (2019) and applicable
+              Regulations. If you are located in Kenya, your data subject rights and complaint mechanisms under
+              the Office of the Data Protection Commissioner (ODPC) apply.
             </p>
           </div>
 
           <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded">
-            <strong className="text-green-900">Compliance Note:</strong>{' '}
-            We can tailor this policy to specific frameworks (e.g., GDPR, CCPA, Kenya Data Protection Act)
-            and add region-specific disclosures, Data Protection Officer details, and lawful bases upon deployment.
+            <strong className="text-green-900">Kenya Compliance Note:</strong>{' '}
+            Vault5 intends to align with the Kenya Data Protection Act (2019) and ODPC guidance. Prior to public
+            launch, we will confirm ODPC registration status (Controller/Processor), publish the designated contact,
+            and include lawful bases and data retention schedules specific to Kenya. For an overview, see our Kenya
+            compliance summary within the Legal Center.
           </div>
         </section>
       </div>

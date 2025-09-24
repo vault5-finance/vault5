@@ -33,13 +33,13 @@ Document Status Legend
   - Cookie Policy (template) → [legal/COOKIE_POLICY.md](./legal/COOKIE_POLICY.md)
   - Acceptable Use Policy (template) → [legal/ACCEPTABLE_USE.md](./legal/ACCEPTABLE_USE.md)
   - KYC/AML Policy (template) → [legal/KYC_AML_POLICY.md](./legal/KYC_AML_POLICY.md)
+  - Complaints Handling Policy (Kenya) → [legal/COMPLAINTS_POLICY.md](./legal/COMPLAINTS_POLICY.md)
   - PCI DSS Scope & Notes → [PCI_DSS_Compliance.md](./PCI_DSS_Compliance.md)
   - Policies (general, company) → [Policies.md](./Policies.md)
 - Planned (jurisdiction-specific counsel review required)
   - Data Processing Addendum (DPA) → ./legal/DATA_PROCESSING_ADDENDUM.md
   - Data Retention & Deletion Policy → ./legal/DATA_RETENTION_POLICY.md
   - IP and Trademark Policy → ./legal/IP_POLICY.md
-  - Complaints Handling Policy (Consumer Protection) → ./legal/COMPLAINTS_POLICY.md
   - Lending & Borrowing Policy → ./legal/LENDING_POLICY.md
   - Regulatory Disclosures (country-specific) → ./legal/DISCLOSURES.md
 
@@ -59,12 +59,12 @@ Document Status Legend
 4) People and HR
 - Created (templates)
   - Mutual NDA Template → [people/NDA_TEMPLATE.md](./people/NDA_TEMPLATE.md)
+  - Code of Conduct (Kenya-focused) → [people/CODE_OF_CONDUCT.md](./people/CODE_OF_CONDUCT.md)
 - Planned (templates; customize per jurisdiction)
   - Offer Letter Template → ./people/OFFER_LETTER_TEMPLATE.md
   - Employment Agreement Template → ./people/EMPLOYMENT_AGREEMENT_TEMPLATE.md
   - Contractor Agreement Template → ./people/CONTRACTOR_AGREEMENT_TEMPLATE.md
   - Advisor Agreement Template → ./people/ADVISOR_AGREEMENT_TEMPLATE.md
-  - Code of Conduct → ./people/CODE_OF_CONDUCT.md
   - Anti-Harassment and Equal Opportunity Policy → ./people/ANTI_HARASSMENT_EO_POLICY.md
   - Contributor License Agreement (CLA) → ./people/CONTRIBUTOR_LICENSE_AGREEMENT.md
   - Equity Grant Agreement (ESOP/Options) → ./people/EQUITY_GRANT_AGREEMENT_TEMPLATE.md
@@ -74,8 +74,8 @@ Document Status Legend
   - Adaptive Spend Control → [ADAPTIVE_SPEND_CONTROL.md](./ADAPTIVE_SPEND_CONTROL.md)
   - Accounts Rules → [ACCOUNTS_RULES.md](./ACCOUNTS_RULES.md)
   - Transfers & Payouts → [TRANSFERS_PAYOUTS.md](./TRANSFERS_PAYOUTS.md)
+  - Operations Manual (Kenya Launch) → [ops/OPERATIONS_MANUAL.md](./ops/OPERATIONS_MANUAL.md)
 - Planned
-  - Operations Manual (SOPs) → ./ops/OPERATIONS_MANUAL.md
   - Incident Response Plan → ./ops/INCIDENT_RESPONSE_PLAN.md
   - Business Continuity & Disaster Recovery → ./ops/BCDR_PLAN.md
   - Customer Support Playbook → ./ops/SUPPORT_PLAYBOOK.md
@@ -104,8 +104,9 @@ Document Status Legend
   - PR/Crisis Playbook → ./marketing/PR_CRISIS_PLAYBOOK.md
 
 8) Country/Region-Specific (as needed)
+- Created
+  - Kenya (CBK, ODPC, FRC) Compliance Overview → [regions/kenya/COMPLIANCE_OVERVIEW.md](./regions/kenya/COMPLIANCE_OVERVIEW.md)
 - Planned
-  - Kenya (CBK, Data Protection) → ./regions/kenya/COMPLIANCE_OVERVIEW.md
   - EU (GDPR) → ./regions/eu/COMPLIANCE_OVERVIEW.md
   - US (CCPA and others) → ./regions/us/COMPLIANCE_OVERVIEW.md
 

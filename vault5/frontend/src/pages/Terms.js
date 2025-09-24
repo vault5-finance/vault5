@@ -6,7 +6,7 @@ const Terms = () => {
       <div className="max-w-4xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Vault5 Terms of Service</h1>
         <p className="text-sm text-gray-500 mb-8">
-          Effective Date: [Insert Date] • Last Updated: [Insert Date]
+          Effective Date: [To be set at public launch] • Last Updated: September 2025
         </p>
 
         <p className="text-gray-700 mb-6">
@@ -144,7 +144,10 @@ const Terms = () => {
           <div>
             <h2 className="text-xl font-semibold text-gray-900">14. Governing Law</h2>
             <p className="text-gray-700">
-              These Terms are governed by the laws of [Insert Country/Jurisdiction].
+              These Terms are governed by the laws of the Republic of Kenya. Any dispute arising out of or relating
+              to these Terms shall be handled in accordance with applicable Kenyan law and procedures. Where arbitration
+              is elected and permitted, the seat and rules shall be communicated in the user’s specific agreement or
+              in a policy addendum published by Vault5 at the time of dispute resolution.
             </p>
           </div>
 
@@ -152,6 +155,9 @@ const Terms = () => {
             <h2 className="text-xl font-semibold text-gray-900">15. Contact</h2>
             <p className="text-gray-700">
               Email: support@vault5.com • Website: https://www.vault5.com
+              <br />
+              Kenya Regulatory Notices and Addenda (when applicable) will be published in the Legal Center and in
+              jurisdiction-specific documents, including Kenya’s Data Protection Act (ODPC) and CBK/NPS requirements.
             </p>
           </div>
 

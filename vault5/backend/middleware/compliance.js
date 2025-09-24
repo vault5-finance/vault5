@@ -54,8 +54,35 @@ async function geoGate(req, res, next) {
     }
     const country = (req.user?.country || '').toUpperCase();
     if (!country || !policy.countries.includes(country)) {
-      await logRiskEvent(req.user?._id, 'login_geo_block', 80, { country });
-      return res.status(451).json({ message: 'Service not available in your region' });
+      // Log risk and provide graceful degradation for read-only GET endpoints
+      await logRiskEvent(req.user?._id, 'login_geo_block', 80, { country, route: req.originalUrl });
+
+      // For idempotent reads (e.g., GET /api/compliance/status, GET /api/transactions),
+      // do not hard-block; attach a warning header and continue.
+      if (req.method === 'GET') {
+        try {
+          res.set('X-Policy-Warn', 'geo_block');
+          res.set('X-Policy-Gate', 'geo_allowlist');
+        } catch {}
+        req.policyWarnings = Object.assign({}, req.policyWarnings, {
+          geo: {
+            blocked: true,
+            countries: Array.isArray(policy.countries) ? policy.countries : [],
+            userCountry: country || null
+          }
+        });
+        return next();
+      }
+
+      // For state-changing requests, enforce block
+      return res.status(451).json({
+        message: 'Service not available in your region',
+        policy: {
+          gate: 'geo_allowlist',
+          mode: policy.mode,
+          countries: policy.countries || []
+        }
+      });
     }
     next();
   } catch (e) {
