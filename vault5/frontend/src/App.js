@@ -106,14 +106,13 @@ function App() {
     trackRouteChange(location.pathname);
   }, [location.pathname]);
 
-  const isLandingPage = React.useMemo(() => location.pathname === '/', [location.pathname]);
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-gray-100">
-        {!isLandingPage && <NavBar />}
-        <Suspense fallback={<div className="p-8">Loading...</div>}>
-          <Routes>
+     <div className="min-h-screen bg-gray-100">
+       <NavBar />
+       <Suspense fallback={<div className="p-8">Loading...</div>}>
+         <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/login" element={<Login />} />

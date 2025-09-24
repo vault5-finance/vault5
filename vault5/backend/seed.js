@@ -285,39 +285,98 @@ const seedAdminUsers = async () => {
       console.log(`Admin user ${adminData.email} created successfully`);
     }
 
-    // Seed test balance for Collins (existing user) - 10,000 to wallet, 10,000 auto-split to accounts
+    // Seed test user: Collins with funds (wallet + allocations)
     try {
-      const collins = await User.findOne({
+      // Look up by correct .com address (support legacy top-level and emails[])
+      let collins = await User.findOne({
         $or: [
-          { 'emails.email': 'collins@gmail.om' },
-          { email: 'collins@gmail.om' }
+          { 'emails.email': 'collins@gmail.com' },
+          { email: 'collins@gmail.com' }
         ]
       });
 
-      if (collins) {
-        // Ensure wallet and credit 10,000
-        let wallet = await Wallet.findOne({ user: collins._id });
-        if (!wallet) {
-          wallet = await Wallet.create({ user: collins._id, balance: 10000 });
-        } else {
-          wallet.balance = Number(wallet.balance || 0) + 10000;
-          await wallet.save();
-        }
+      if (!collins) {
+        // Create Collins if user not found
+        const salt = await bcrypt.genSalt(10);
+        const hashed = await bcrypt.hash('Openai2030*', salt);
 
-        // Allocate 10,000 across existing accounts by their percentage
-        const accounts = await Account.find({ user: collins._id });
-        if (accounts && accounts.length > 0) {
-          const alloc = 10000;
-          for (const acc of accounts) {
-            const inc = Math.round((alloc * Number(acc.percentage || 0)) / 100);
-            acc.balance = Number(acc.balance || 0) + inc;
-            await acc.save();
-          }
+        collins = new User({
+          name: 'Collins O',
+          email: 'collins@gmail.com', // legacy field
+          emails: [{
+            email: 'collins@gmail.com',
+            isPrimary: true,
+            isVerified: true
+          }],
+          phones: [{
+            phone: '+254700000001',
+            isPrimary: true,
+            isVerified: true
+          }],
+          password: hashed,
+          dob: new Date('1995-01-01'),
+          city: 'Nairobi',
+          avatar: 'https://ui-avatars.com/api/?name=Collins+O',
+          role: 'user',
+          isActive: true,
+          isVerified: true,
+          termsAccepted: true,
+          kycLevel: 'Tier0',
+          limitationStatus: 'none',
+          accountStatus: 'active'
+        });
+        await collins.save();
+
+        // Create 6 default accounts (50/10/20/10/5/5)
+        const defaults = [
+          { type: 'Daily', percentage: 50 },
+          { type: 'Emergency', percentage: 10 },
+          { type: 'Investment', percentage: 20 },
+          { type: 'LongTerm', percentage: 10 },
+          { type: 'Fun', percentage: 5 },
+          { type: 'Charity', percentage: 5 },
+        ];
+        const createdAccIds = [];
+        for (const d of defaults) {
+          const acc = new Account({
+            user: collins._id,
+            type: d.type,
+            percentage: d.percentage,
+            balance: 0,
+            target: 0,
+            status: 'green',
+            isWallet: d.type === 'Daily',
+            isAutoDistribute: true
+          });
+          await acc.save();
+          createdAccIds.push(acc._id);
         }
-        console.log('Seeded Collins test funds: 10,000 wallet + 10,000 auto-split');
-      } else {
-        console.log('Collins user not found, skipping test funds seed');
+        collins.accounts = createdAccIds;
+        await collins.save();
+
+        console.log('Created Collins test user with default accounts');
       }
+
+      // Ensure wallet and credit 10,000
+      let wallet = await Wallet.findOne({ user: collins._id });
+      if (!wallet) {
+        wallet = await Wallet.create({ user: collins._id, balance: 10000 });
+      } else {
+        wallet.balance = Number(wallet.balance || 0) + 10000;
+        await wallet.save();
+      }
+
+      // Allocate 10,000 across existing accounts by their percentage
+      const accounts = await Account.find({ user: collins._id });
+      if (accounts && accounts.length > 0) {
+        const alloc = 10000;
+        for (const acc of accounts) {
+          const inc = Math.round((alloc * Number(acc.percentage || 0)) / 100);
+          acc.balance = Number(acc.balance || 0) + inc;
+          await acc.save();
+        }
+      }
+      console.log('Seeded Collins funds: 10,000 wallet + 10,000 auto-split');
     } catch (e) {
       console.error('Seed Collins funds error:', e?.message || e);
     }

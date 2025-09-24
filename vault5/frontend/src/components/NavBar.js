@@ -74,15 +74,30 @@ const NavBar = () => {
   }, [notifications.length, fetchNotifications]);
 
 
-  // Public navigation for landing page
+  // Public navigation for landing page (PayPal-like, with mobile collapse)
   if (isLandingPage && !token) {
     return (
-      <nav className="bg-white shadow-lg">
+      <nav className="bg-white shadow-lg z-50 sticky top-0">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center py-4">
             <Link to="/" className="text-xl font-bold text-blue-600">
               Vault5
             </Link>
+
+            {/* Mobile menu button (always visible on mobile) */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="text-gray-700 hover:text-blue-600 p-2"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop links */}
             <div className="hidden md:flex space-x-8">
               <Link to="/about" className="text-gray-700 hover:text-blue-600">About</Link>
               <Link to="/blog" className="text-gray-700 hover:text-blue-600">Blog</Link>
@@ -93,12 +108,45 @@ const NavBar = () => {
             <div className="hidden md:flex items-center space-x-4">
               <Link to="/admin-login" className="text-gray-500 hover:text-blue-600 text-sm">Admin</Link>
               <Link to="/login" className="text-gray-700 hover:text-blue-600">Login</Link>
-              <Link to="/register" className="text-white px-4 py-2 rounded-lg font-medium" style={{ background: 'var(--gradient-primary)' }}>
+              <Link to="/signup" className="text-white px-4 py-2 rounded-lg font-medium" style={{ background: 'var(--gradient-primary)' }}>
                 Get Started
               </Link>
             </div>
           </div>
         </div>
+
+        {/* Mobile Side Drawer for public routes */}
+        {showMobileMenu && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div className="fixed inset-0 bg-black bg-opacity-25" onClick={() => setShowMobileMenu(false)}></div>
+            <div className="fixed right-0 top-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300">
+              <div className="p-4 border-b">
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="float-right text-gray-500 hover:text-gray-700"
+                  aria-label="Close menu"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <h2 className="text-lg font-semibold">Menu</h2>
+              </div>
+              <nav className="p-4">
+                <div className="space-y-2">
+                  <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>About</Link>
+                  <Link to="/blog" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Blog</Link>
+                  <Link to="/legal" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Legal</Link>
+                  <Link to="/terms" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Terms</Link>
+                  <Link to="/privacy" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Privacy</Link>
+                  <div className="h-px bg-gray-200 my-2" />
+                  <Link to="/login" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Login</Link>
+                  <Link to="/signup" className="block px-4 py-2 bg-blue-600 text-white text-center rounded-lg font-medium" onClick={() => setShowMobileMenu(false)}>Get Started</Link>
+                </div>
+              </nav>
+            </div>
+          </div>
+        )}
       </nav>
     );
   }
@@ -106,19 +154,20 @@ const NavBar = () => {
   // Authenticated navigation with collapsible side drawer
   return (
     <>
-      <nav className="bg-white shadow-lg border-b border-gray-100">
+      <nav className="bg-white shadow-lg border-b border-gray-100 z-50 sticky top-0">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center py-4">
             <Link to="/" className="text-xl font-bold emi-gradient-text">
               Vault5
             </Link>
 
-            {/* Mobile menu button */}
+            {/* Mobile menu button (authenticated) */}
             {token && (
               <div className="md:hidden">
                 <button
                   onClick={() => setShowMobileMenu(!showMobileMenu)}
                   className="text-gray-700 hover:text-blue-600 p-2"
+                  aria-label="Toggle menu"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -211,7 +260,7 @@ const NavBar = () => {
                       </div>
                     )}
                   </div>
-                  <button onClick={handleLogout} className="text-gray-700 hover:text-blue-600">
+                  <button onClick={handleLogout} className="text-gray-700 hover:text-blue-600" aria-label="Logout">
                     Logout
                   </button>
                 </>
