@@ -64,6 +64,8 @@ const Notifications = () => {
       navigate(`/lending`);
     } else if (notification.type === 'loan_due') {
       navigate(`/loans`);
+    } else if (notification.type === 'money_received' || notification.type === 'money_debited') {
+      navigate(`/transactions`);
     }
   };
 
@@ -101,6 +103,15 @@ const Notifications = () => {
                     )}
                   </div>
                   <p className="text-gray-700 mb-2">{notification.message}</p>
+                  {(notification.type === 'money_received' || notification.type === 'money_debited') && notification.meta && (
+                    <div className="text-xs text-gray-600 mb-1">
+                      <div>Amount: {notification.meta.currency} {Number(notification.meta.amount || 0).toFixed(2)}</div>
+                      {notification.meta.transactionCode && <div>Txn Code: {notification.meta.transactionCode}</div>}
+                      {typeof notification.meta.balanceAfter === 'number' && (
+                        <div>New Balance: {notification.meta.currency} {Number(notification.meta.balanceAfter).toFixed(2)}</div>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <span>{new Date(notification.createdAt).toLocaleString()}</span>
                     <span className={`px-2 py-1 rounded-full text-xs ${
@@ -125,7 +136,9 @@ const Notifications = () => {
                     notification.type === 'surplus_deposit' ||
                     notification.type === 'goal_achievement' ||
                     notification.type === 'lending_reminder' ||
-                    notification.type === 'loan_due') && (
+                    notification.type === 'loan_due' ||
+                    notification.type === 'money_received' ||
+                    notification.type === 'money_debited') && (
                     <button
                       onClick={() => handleActionClick(notification)}
                       className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"

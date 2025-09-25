@@ -8,7 +8,15 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['missed_deposit', 'surplus', 'goal_achieved', 'outstanding_lending', 'upcoming_loan_repayment'],
+    enum: [
+      'missed_deposit',
+      'surplus',
+      'goal_achieved',
+      'outstanding_lending',
+      'upcoming_loan_repayment',
+      'money_received',
+      'money_debited'
+    ],
     required: true
   },
   title: {
@@ -20,7 +28,7 @@ const notificationSchema = new mongoose.Schema({
     required: true
   },
   relatedId: {
-    type: mongoose.Schema.Types.ObjectId, // e.g., account, goal, loan, lending ID
+    type: mongoose.Schema.Types.ObjectId, // e.g., transaction, account, goal, loan, lending ID
     required: true
   },
   read: {
@@ -31,6 +39,11 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     enum: ['low', 'medium', 'high'],
     default: 'medium'
+  },
+  // Additional structured details for richer UI (amount, currency, txCode, balance, sender, etc.)
+  meta: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: true

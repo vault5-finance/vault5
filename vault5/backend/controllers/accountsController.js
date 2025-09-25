@@ -24,14 +24,16 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
         amount,
         type: 'income',
         description,
-        tag
+        tag,
+        currency: options.currency || 'KES',
+        transactionCode: options.transactionCode || undefined
       });
       await transaction.save();
       return { message: 'Tagged income logged without allocation', transaction };
     }
 
-    const target = options.target || 'auto';
-    const accountId = options.accountId;
+    // Destructure options with defaults, supports admin-provided transactionCode and currency
+    const { target = 'auto', accountId, transactionCode, currency = 'KES' } = options || {};
 
     // Direct deposit to wallet or a specific account
     if (target === 'wallet' || accountId) {
@@ -66,11 +68,19 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
         amount: amt,
         type: 'income',
         description: `${description} - deposited to ${targetAccount.type}`,
+        currency,
+        transactionCode: transactionCode || undefined,
         allocations: [{
           account: targetAccount._id,
           amount: amt
         }]
       });
+
+      // Compute balance after deposit
+      const allAccs = await Account.find({ user: userId }, 'balance');
+      const totalBalance = allAccs.reduce((s, a) => s + (a.balance || 0), 0);
+      walletTx.balanceAfter = totalBalance;
+
       await walletTx.save();
 
       // Link to account
@@ -80,7 +90,8 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
       return {
         message: 'Income deposited to wallet',
         allocations: [{ account: targetAccount._id, amount: amt }],
-        mainTransaction: walletTx
+        mainTransaction: walletTx,
+        currentBalance: totalBalance
       };
     }
 
@@ -152,17 +163,24 @@ const allocateIncome = async (userId, amount, description, tag = '', options = {
       allocations.push({ account: account._id, amount: splitAmount });
     }
 
+    // Compute total balance after allocations
+    const allAccs = await Account.find({ user: userId }, 'balance');
+    const totalBalance = allAccs.reduce((s, a) => s + (a.balance || 0), 0);
+
     // Main income transaction (summary)
     const mainTransaction = new Transaction({
       user: userId,
       amount,
       type: 'income',
       description,
+      currency,
+      transactionCode: transactionCode || undefined,
+      balanceAfter: totalBalance,
       allocations
     });
     await mainTransaction.save();
 
-    return { message: 'Income allocated successfully', allocations, mainTransaction };
+    return { message: 'Income allocated successfully', allocations, mainTransaction, currentBalance: totalBalance };
   } catch (error) {
     throw new Error(`Allocation failed: ${error.message}`);
   }

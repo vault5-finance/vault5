@@ -1,7 +1,8 @@
 const { Notification, User } = require('../models');
 
 // Generate notification (called from other controllers)
-const generateNotification = async (userId, type, title, message, relatedId, severity = 'medium') => {
+// extraMeta is optional object persisted to notification.meta
+const generateNotification = async (userId, type, title, message, relatedId, severity = 'medium', extraMeta = {}) => {
   try {
     const notification = new Notification({
       user: userId,
@@ -9,14 +10,17 @@ const generateNotification = async (userId, type, title, message, relatedId, sev
       title,
       message,
       relatedId,
-      severity
+      severity,
+      meta: extraMeta || {}
     });
     await notification.save();
 
     // Add to user notifications ref
     const user = await User.findById(userId);
-    user.notifications.push(notification._id);
-    await user.save();
+    if (user) {
+      user.notifications.push(notification._id);
+      await user.save();
+    }
 
     return notification;
   } catch (error) {
@@ -63,8 +67,10 @@ const deleteNotification = async (req, res) => {
 
     // Remove from user ref
     const user = await User.findById(req.user._id);
-    user.notifications = user.notifications.filter(nId => nId.toString() !== id);
-    await user.save();
+    if (user) {
+      user.notifications = user.notifications.filter(nId => nId.toString() !== id);
+      await user.save();
+    }
 
     res.json({ message: 'Notification deleted' });
   } catch (error) {

@@ -23,6 +23,17 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     default: '' // e.g., 'rent', 'debt_repayment' for special incomes
   },
+  currency: {
+    type: String,
+    default: 'KES'
+  },
+  transactionCode: {
+    type: String,
+    index: true // mpesa-style code (unique intent, but allow replays during migration)
+  },
+  balanceAfter: {
+    type: Number
+  },
   date: {
     type: Date,
     default: Date.now
@@ -53,5 +64,9 @@ const transactionSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Helpful compound indexes
+transactionSchema.index({ user: 1, createdAt: -1 });
+transactionSchema.index({ type: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

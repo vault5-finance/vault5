@@ -90,6 +90,14 @@ const Dashboard = () => {
   const [showSendMoneyModal, setShowSendMoneyModal] = useState(false);
   const navigate = useNavigate();
 
+  // Local-time greeting
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const firstName = (user?.name || '').split(' ')[0] || 'there';
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? 'Good morning' :
+    hour < 17 ? 'Good afternoon' : 'Good evening';
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -185,7 +193,10 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <div className="mb-6">
+        <div className="text-xl md:text-2xl font-semibold text-gray-800">{greeting}, {firstName}</div>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+      </div>
 
       {/* Primary Actions */}
       <div className="mb-8">
