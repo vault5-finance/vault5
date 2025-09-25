@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 
-const NavBar = () => {
+const NavBar = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
@@ -13,12 +13,8 @@ const NavBar = () => {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-// Desktop menu dropdown state
-const [showDesktopMenu, setShowDesktopMenu] = useState(false);
-const dropdownRef = useRef(null);
-const buttonRef = useRef(null);
-const notifDropdownRef = useRef(null);
-const notifButtonRef = useRef(null);
+  const notifDropdownRef = useRef(null);
+  const notifButtonRef = useRef(null);
 
 // Computed unread count
 const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
@@ -75,24 +71,6 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
       fetchCompliance();
     }
   }, [token, fetchNotifications, fetchCompliance]);
-
-  // Click outside handler for desktop menu dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setShowDesktopMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   // Click outside handler for notifications dropdown
   useEffect(() => {
@@ -238,10 +216,10 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
             </Link>
 
             {/* Mobile menu button (authenticated) */}
-            {token && (
+            {token && onMenuClick && (
               <div className="md:hidden">
                 <button
-                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  onClick={onMenuClick}
                   className="text-gray-700 hover:text-blue-600 p-2"
                   aria-label="Toggle menu"
                 >
@@ -252,87 +230,12 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
               </div>
             )}
 
-            {/* Desktop navigation */}
+            {/* Desktop navigation - simplified since sidebar handles main nav */}
             <div className="hidden md:flex items-center space-x-4">
               {token ? (
                 <>
-                  {/* EMI-style Quick Actions */}
-                  {!isAdminArea && (
-                    <div className="flex items-center space-x-2 mr-4">
-                      <Link
-                        to="/accounts"
-                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                      >
-                        💰 Accounts
-                      </Link>
-                      <Link
-                        to="/banking"
-                        className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                      >
-                        💳 Banking
-                      </Link>
-                      <Link
-                        to="/transactions"
-                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                      >
-                        📊 Transactions
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* Desktop menu items (admin vs user) */}
-                  {isAdminArea ? (
-                    <div className="flex space-x-6 mr-2 md:mr-4">
-                      <Link to="/admin" className="nav-link">Admin Dashboard</Link>
-                      <Link to="/admin/users" className="nav-link">Users</Link>
-                    </div>
-                  ) : (
-                    <div className="mr-2 md:mr-4" />
-                  )}
-
-                  {/* Desktop menu button (restores hamburger-like menu on desktop) */}
-                  <div className="relative" ref={buttonRef}>
-                    <button
-                      onClick={() => setShowDesktopMenu(v => !v)}
-                      className="px-3 py-2 rounded-md border text-gray-700 hover:text-blue-600 hover:border-blue-300 transition"
-                      title="Menu"
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                        <span className="hidden lg:inline">Menu</span>
-                      </span>
-                    </button>
-                    {showDesktopMenu && (
-                      <div ref={dropdownRef} className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg z-50 border">
-                        <nav className="p-2 max-h-96 overflow-y-auto">
-                          <div className="text-xs uppercase tracking-wide text-gray-500 px-2 py-1">Quick Links</div>
-                          <Link to="/dashboard" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Dashboard</Link>
-                          <Link to="/accounts" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Accounts</Link>
-                          <Link to="/banking" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Banking</Link>
-                          <Link to="/transactions" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Transactions</Link>
-                          <Link to="/reports" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Reports</Link>
-                          <div className="h-px bg-gray-200 my-1" />
-                          <Link to="/lending" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Lending</Link>
-                          <Link to="/loans" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Loans</Link>
-                          <Link to="/compliance" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Compliance</Link>
-                          <div className="h-px bg-gray-200 my-1" />
-                          <Link to="/blog" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Blog</Link>
-                          <Link to="/about" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">About</Link>
-                          <Link to="/legal" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Legal</Link>
-                          <Link to="/terms" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Terms</Link>
-                          <Link to="/privacy" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Privacy</Link>
-                          <div className="h-px bg-gray-200 my-1" />
-                          <Link to="/settings" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Settings</Link>
-                          <Link to="/profile" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Profile</Link>
-                          {adminRoles.includes(user.role) && (
-                            <Link to="/admin" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Admin</Link>
-                          )}
-                        </nav>
-                      </div>
-                    )}
-                  </div>
+                  {/* Spacer for alignment */}
+                  <div className="flex-1" />
 
                   {/* Notifications bell */}
                   <div className="relative dropdown-container" ref={notifButtonRef}>

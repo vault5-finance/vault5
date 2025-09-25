@@ -5,6 +5,8 @@ import initializePerformanceMonitoring from './utils/performance';
 import './index.css';
 
 import NavBar from './components/NavBar';
+import MainLayout from './components/MainLayout';
+import PublicLayout from './components/PublicLayout';
 
  // Initialize performance monitoring
  const { trackRouteChange } = initializePerformanceMonitoring();
@@ -110,12 +112,10 @@ function App() {
 
   return (
     <ToastProvider>
-     <div className="min-h-screen bg-gray-100">
-       <NavBar />
-       <Suspense fallback={<div className="p-8">Loading...</div>}>
-         <Routes>
+      <Suspense fallback={<div className="p-8">Loading...</div>}>
+        <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+        <Route path="/" element={<PublicRoute><PublicLayout><Landing /></PublicLayout></PublicRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<PublicRoute><SignupChoice /></PublicRoute>} />
         <Route path="/signup/email" element={<PublicRoute><SignupEmail /></PublicRoute>} />
@@ -263,21 +263,21 @@ function App() {
         <Route path="/legal/:doc" element={<LegalCenter />} />
 
         {/* Protected Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/accounts" element={<ProtectedRoute><AccountsCenter /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-        <Route path="/lending" element={<ProtectedRoute><Lending /></ProtectedRoute>} />
-        <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
-        <Route path="/investments" element={<ProtectedRoute><Investments /></ProtectedRoute>} />
-        <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><MainLayout><Dashboard /></MainLayout></ProtectedRoute>} />
+        <Route path="/accounts" element={<ProtectedRoute><MainLayout><AccountsCenter /></MainLayout></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><MainLayout><Reports /></MainLayout></ProtectedRoute>} />
+        <Route path="/lending" element={<ProtectedRoute><MainLayout><Lending /></MainLayout></ProtectedRoute>} />
+        <Route path="/loans" element={<ProtectedRoute><MainLayout><Loans /></MainLayout></ProtectedRoute>} />
+        <Route path="/investments" element={<ProtectedRoute><MainLayout><Investments /></MainLayout></ProtectedRoute>} />
+        <Route path="/transactions" element={<ProtectedRoute><MainLayout><Transactions /></MainLayout></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><MainLayout><Notifications /></MainLayout></ProtectedRoute>} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
-        <Route path="/banking" element={<ProtectedRoute><Banking /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/compliance" element={<ProtectedRoute><ComplianceCenter /></ProtectedRoute>} />
-        <Route path="/admin" element={<AdminProtectedRoute><AdminIndex /></AdminProtectedRoute>} />
+        <Route path="/banking" element={<ProtectedRoute><MainLayout><Banking /></MainLayout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><MainLayout><Settings /></MainLayout></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><MainLayout><Profile /></MainLayout></ProtectedRoute>} />
+        <Route path="/compliance" element={<ProtectedRoute><MainLayout><ComplianceCenter /></MainLayout></ProtectedRoute>} />
+        <Route path="/admin" element={<AdminProtectedRoute><MainLayout><AdminIndex /></MainLayout></AdminProtectedRoute>} />
         <Route path="/admin/super" element={<AdminProtectedRoute><AdminSuper /></AdminProtectedRoute>} />
         <Route path="/admin/finance" element={<AdminProtectedRoute><AdminFinance /></AdminProtectedRoute>} />
         <Route path="/admin/compliance" element={<AdminProtectedRoute><AdminCompliance /></AdminProtectedRoute>} />
@@ -296,7 +296,6 @@ function App() {
         <Route path="/send-request" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Send & Request Money</h1><p className="mt-4">Send money via Email, Phone, or VaultTag.</p></div></ProtectedRoute>} />
           </Routes>
         </Suspense>
-      </div>
     </ToastProvider>
   );
 }
