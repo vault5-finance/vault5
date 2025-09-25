@@ -525,7 +525,12 @@ const transferToUser = async (req, res) => {
         date: new Date(),
         currency: 'KES',
         transactionCode: txCode,
-        balanceAfter: senderWallet ? senderWallet.balance : undefined
+        balanceAfter: senderWallet ? senderWallet.balance : undefined,
+        metadata: {
+          counterpartyId: recipient._id,
+          source: senderWallet ? 'wallet' : (senderAccount ? senderAccount.type : 'account'),
+          transferKind: 'p2p'
+        }
       });
 
       // Recipient transaction
@@ -538,7 +543,12 @@ const transferToUser = async (req, res) => {
         date: new Date(),
         currency: 'KES',
         transactionCode: txCode,
-        balanceAfter: recipientWallet.balance
+        balanceAfter: recipientWallet.balance,
+        metadata: {
+          counterpartyId: senderId,
+          destination: 'wallet',
+          transferKind: 'p2p'
+        }
       });
 
       await senderTx.save({ session });
@@ -909,6 +919,141 @@ const transferExternal = async (req, res) => {
   }
 };
 
+const { creditWallet } = require('./walletController');
+
+// Request a reversal by transactionCode with business rules (<=25s auto, <=24h pending)
+const requestReversal = async (req, res) => {
+  try {
+    const { transactionCode } = req.body || {};
+    if (!transactionCode) {
+      return res.status(400).json({ message: 'transactionCode is required' });
+    }
+
+    // Find the sender transaction for this user
+    const senderTx = await Transaction.findOne({
+      user: req.user._id,
+      transactionCode
+    }).sort({ date: -1 });
+
+    if (!senderTx) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    if ((senderTx.metadata && senderTx.metadata.transferKind) !== 'p2p') {
+      return res.status(400).json({ message: 'Only P2P transfers are eligible for self-service reversal' });
+    }
+
+    // Find counterparty
+    const counterpartyId = senderTx.metadata?.counterpartyId;
+    if (!counterpartyId) {
+      return res.status(400).json({ message: 'Counterparty not linked on transaction' });
+    }
+
+    const recipientUser = await User.findById(counterpartyId);
+    if (!recipientUser) {
+      return res.status(404).json({ message: 'Recipient not found' });
+    }
+
+    // Time window checks
+    const now = Date.now();
+    const createdAt = (senderTx.date || senderTx.createdAt || new Date()).getTime();
+    const ageMs = now - createdAt;
+
+    // Locate recipient's mirror transaction
+    const recipientTx = await Transaction.findOne({
+      user: counterpartyId,
+      transactionCode
+    }).sort({ date: -1 });
+
+    if (!recipientTx) {
+      return res.status(404).json({ message: 'Recipient transaction not found' });
+    }
+
+    // Auto reverse if within 25 seconds and recipient is an individual
+    if (ageMs <= 25 * 1000 && !Boolean(recipientUser.isOrganization)) {
+      // Debit recipient wallet (use negativeBalance if insufficient), credit back to sender wallet
+      const recipientWallet = await ensureWallet(counterpartyId);
+      const amount = Number(recipientTx.amount || 0);
+
+      // Apply debit from recipient wallet, rolling into negativeBalance if needed
+      let deficit = 0;
+      if (Number(recipientWallet.balance || 0) >= amount) {
+        recipientWallet.balance = parseFloat((recipientWallet.balance - amount).toFixed(2));
+      } else {
+        deficit = parseFloat((amount - Number(recipientWallet.balance || 0)).toFixed(2));
+        recipientWallet.balance = 0;
+        recipientWallet.negativeBalance = parseFloat((Number(recipientWallet.negativeBalance || 0) + deficit).toFixed(2));
+      }
+      await recipientWallet.save();
+
+      // Credit sender wallet using wallet credit utility (handles any sender negativeBalance)
+      await creditWallet(req.user._id, amount, `Auto-reversal for ${transactionCode}`, { reversal: true }, 'KES');
+
+      // Mark transactions metadata
+      senderTx.metadata = Object.assign({}, senderTx.metadata, { reversalStatus: 'auto_reversed', reversalAt: new Date() });
+      recipientTx.metadata = Object.assign({}, recipientTx.metadata, { reversalStatus: 'auto_reversed', reversalAt: new Date(), deficitApplied: deficit });
+      await senderTx.save();
+      await recipientTx.save();
+
+      // Notify both parties
+      await generateNotification(
+        req.user._id,
+        'money_received',
+        'Reversal Completed',
+        `Your transfer ${transactionCode} was auto-reversed within 25s. Funds returned to your wallet.`,
+        senderTx._id,
+        'low',
+        { transactionCode, amount, kind: 'reversal' }
+      );
+
+      await generateNotification(
+        recipientUser._id,
+        'money_debited',
+        'Reversal Debit',
+        `A reversal for ${transactionCode} was processed. KES ${amount.toFixed(2)} debited. ${deficit > 0 ? 'Negative balance applied.' : ''}`,
+        recipientTx._id,
+        'medium',
+        { transactionCode, amount, deficitApplied: deficit, kind: 'reversal' }
+      );
+
+      return res.json({ success: true, autoReversed: true, transactionCode });
+    }
+
+    // Between 25s and 24h: create pending request, notify recipient to approve
+    if (ageMs <= 24 * 60 * 60 * 1000) {
+      senderTx.metadata = Object.assign({}, senderTx.metadata, {
+        reversalStatus: 'pending',
+        reversalRequestedAt: new Date()
+      });
+      recipientTx.metadata = Object.assign({}, recipientTx.metadata, {
+        reversalStatus: 'pending',
+        reversalRequestedAt: new Date()
+      });
+      await senderTx.save();
+      await recipientTx.save();
+
+      await generateNotification(
+        recipientUser._id,
+        'money_debited',
+        'Reversal Requested',
+        `A reversal was requested for ${transactionCode}. Please approve or deny this request within 24 hours.`,
+        recipientTx._id,
+        'medium',
+        { transactionCode, amount: Number(senderTx.amount || 0), actionRequired: true }
+      );
+
+      return res.json({ success: true, pending: true, transactionCode, message: 'Reversal request sent to recipient for approval' });
+    }
+
+    // >24h: support only
+    return res.status(400).json({ message: 'Reversal window expired. Contact support.' });
+
+  } catch (error) {
+    console.error('requestReversal error:', error);
+    return res.status(500).json({ message: 'Failed to request reversal' });
+  }
+};
+
 module.exports = {
   getTransactions,
   createTransaction,
@@ -920,5 +1065,6 @@ module.exports = {
   verifyRecipient,
   validateDepositPhone,
   calculateFees,
-  transferExternal
+  transferExternal,
+  requestReversal
 };

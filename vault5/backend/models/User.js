@@ -177,6 +177,10 @@ const userSchema = new mongoose.Schema({
       default: false
     }
   },
+  isOrganization: {
+    type: Boolean,
+    default: false
+  },
   city: {
     type: String
   },
@@ -469,5 +473,6 @@ userSchema.index({ limitationStatus: 1 });
 userSchema.index({ reserveReleaseAt: 1 });
 userSchema.index({ kycLevel: 1 });
 userSchema.index({ 'trustedDevices.deviceId': 1 });
+userSchema.index({ isOrganization: 1 });
 
 module.exports = mongoose.model('User', userSchema);

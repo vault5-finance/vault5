@@ -58,4 +58,8 @@ router.post('/transfer/external', limitationGateOutgoing, capsGate, velocityGate
 // Linked account transfer route - must pass all security gates
 router.post('/transfer/linked-account', limitationGateOutgoing, capsGate, velocityGate, transferToLinkedAccount);
 
+// Reversal request (self-service): auto-reverse ≤25s for individuals, pending otherwise
+const { requestReversal } = require('../controllers/transactionsController');
+router.post('/reversal/request', limitationGateOutgoing, capsGate, velocityGate, requestReversal);
+
 module.exports = router;

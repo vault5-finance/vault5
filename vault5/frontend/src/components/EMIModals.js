@@ -14,119 +14,54 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
   const [loading, setLoading] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [recipientVerified, setRecipientVerified] = useState(false);
+  const [password, setPassword] = useState(''); // confirmation for Vault-to-Vault
 
-  // Mock data for recipient search - shared between components
-  const mockResults = [
-    {
-      id: 1,
-      name: 'Bryson Nyatiti',
-      phone: '+254745959794',
-      email: 'bnyaliti@gmail.com',
-      vaultUser: true,
-      vaultUsername: '@bnyaliti',
-      avatar: '👨‍💼',
-      accountNumber: '12345678901',
-      bankName: 'KCB Bank'
-    },
-    {
-      id: 2,
-      name: 'Collins Oduya',
-      phone: '+254712345678',
-      email: 'collins@gmail.com',
-      vaultUser: true,
-      vaultUsername: '@collins',
-      avatar: '👨‍🔬',
-      accountNumber: '23456789012',
-      bankName: 'Equity Bank'
-    },
-    {
-      id: 3,
-      name: 'Sarah Wilson',
-      phone: '+254723456789',
-      email: 'sarah.wilson@email.com',
-      vaultUser: true,
-      vaultUsername: '@sarahw',
-      avatar: '👩‍💻',
-      accountNumber: '34567890123',
-      bankName: 'Co-operative Bank'
-    },
-    {
-      id: 4,
-      name: 'Mike Johnson',
-      phone: '+254734567890',
-      email: 'mike.j@email.com',
-      vaultUser: false,
-      avatar: '👨‍🔬',
-      accountNumber: '45678901234',
-      bankName: 'DTB Bank'
-    }
-  ];
+  // Real recipient verification (replaces mock list)
 
   if (!isOpen) return null;
 
-  // Mock recipient search - in real app, this would call an API
   const searchRecipients = async (query) => {
     setSearchLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Build payload to enforce single identifier
+      const mode = recipientType === 'email' ? 'email' : 'phone';
+      const payload = {
+        mode,
+        recipientEmail: mode === 'email' ? query : undefined,
+        recipientPhone: mode === 'phone' ? query : undefined,
+      };
+      const res = await api.post('/api/transactions/verify-recipient', payload);
 
-      // Mock search results with real accounts
-      const mockResults = [
-        {
-          id: 1,
-          name: 'Bryson Nyatiti',
-          phone: '+254745959794',
-          email: 'bnyaliti@gmail.com',
-          vaultUser: true,
-          vaultUsername: '@bnyaliti',
-          avatar: '👨‍💼',
-          accountNumber: '12345678901',
-          bankName: 'KCB Bank'
-        },
-        {
-          id: 2,
-          name: 'Collins Oduya',
-          phone: '+254712345678',
-          email: 'collins@gmail.com',
-          vaultUser: true,
-          vaultUsername: '@collins',
-          avatar: '👨‍🔬',
-          accountNumber: '23456789012',
-          bankName: 'Equity Bank'
-        },
-        {
-          id: 3,
-          name: 'Sarah Wilson',
-          phone: '+254723456789',
-          email: 'sarah.wilson@email.com',
-          vaultUser: true,
-          vaultUsername: '@sarahw',
-          avatar: '👩‍💻',
-          accountNumber: '34567890123',
-          bankName: 'Co-operative Bank'
-        },
-        {
-          id: 4,
-          name: 'Mike Johnson',
-          phone: '+254734567890',
-          email: 'mike.j@email.com',
-          vaultUser: false,
-          avatar: '👨‍🔬',
-          accountNumber: '45678901234',
-          bankName: 'DTB Bank'
-        }
-      ];
-
-      const filtered = mockResults.filter(result =>
-        result.name.toLowerCase().includes(query.toLowerCase()) ||
-        result.phone.includes(query) ||
-        result.email.toLowerCase().includes(query.toLowerCase())
-      );
-
-      setSearchResults(filtered);
+      if (res.data && res.data.verified) {
+        const r = res.data.recipient || {};
+        const normalized = {
+          id: r.id || r._id || 0,
+          name: r.name || (r.phone ? 'External Recipient' : 'Recipient'),
+          phone: r.phone || '',
+          email: r.email || '',
+          vaultUser: !!res.data.vaultUser,
+          avatar: r.avatar || '👤',
+          network: res.data.fees?.network || res.data.recipient?.network || null
+        };
+        setSearchResults([normalized]);
+      } else {
+        setSearchResults([]);
+      }
     } catch (error) {
-      showError('Failed to search recipients');
+      // If email not found for Vault user path, show explicit not-registered state
+      const message = error?.response?.data?.message || '';
+      if (recipientType === 'email' && /No Vault5 user/i.test(message)) {
+        setSearchResults([{
+          id: 0,
+          name: 'Not a registered Vault5 user',
+          email: query,
+          phone: '',
+          vaultUser: false,
+          avatar: '❌'
+        }]);
+      } else {
+        showError('Failed to verify recipient');
+      }
     } finally {
       setSearchLoading(false);
     }
@@ -143,27 +78,17 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
   };
 
   const selectTransferRecipient = (recipientData) => {
-    // Unmask the data for the selected recipient
-    const unmaskedData = {
-      ...recipientData,
-      email: recipientData.email.replace(/^\*{2}\*\*(.*)$/, (match, domain) => {
-        const originalEmail = mockResults.find(r => r.id === recipientData.id)?.email;
-        return originalEmail || recipientData.email;
-      }),
-      phone: recipientData.phone.replace(/^\*{3}(\d{4})$/, (match, digits) => {
-        const originalPhone = mockResults.find(r => r.id === recipientData.id)?.phone;
-        return originalPhone || recipientData.phone;
-      })
-    };
-
-    setRecipient(recipientType === 'phone' ? unmaskedData.phone : unmaskedData.email);
-    setRecipientDetails(unmaskedData);
+    const data = { ...recipientData };
+    setRecipient(recipientType === 'phone' ? data.phone : data.email);
+    setRecipientDetails(data);
     setShowRecipientSearch(false);
 
-    // For non-Vault5 users, show verification step
-    if (!unmaskedData.vaultUser) {
+    if (!data.vaultUser) {
+      // Not a Vault user; show explicit info and block P2P path
       setShowVerification(true);
+      setRecipientVerified(false);
     } else {
+      setShowVerification(false);
       setRecipientVerified(true);
     }
   };
@@ -173,96 +98,59 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
     setLoading(true);
 
     try {
-      // Validate required fields
       if (!amount || parseFloat(amount) <= 0) {
         showError('Please enter a valid amount');
         setLoading(false);
         return;
       }
 
-      if (!recipient && !recipientDetails) {
+      if (!recipientDetails) {
         showError('Please select a recipient');
         setLoading(false);
         return;
       }
 
-      // For non-Vault5 users, ensure verification is complete
-      if (showVerification && !recipientVerified) {
-        showError('Please verify the recipient before sending money');
-        setLoading(false);
+      if (type === 'Send to Vault User') {
+        if (!recipientDetails.vaultUser) {
+          showError('Recipient is not a registered Vault5 user');
+          setLoading(false);
+          return;
+        }
+        if (!password) {
+          showError('Enter your password to confirm');
+          setLoading(false);
+          return;
+        }
+
+        // P2P transfer from specific account
+        const response = await api.post('/api/transactions/transfer', {
+          recipientEmail: recipientType === 'email' ? recipientDetails.email : undefined,
+          recipientPhone: recipientType === 'phone' ? recipientDetails.phone : undefined,
+          amount: parseFloat(amount),
+          description: `P2P from ${account.type}`,
+          source: 'account',
+          fromAccountId: account._id,
+          password
+        });
+
+        showSuccess(`✅ Sent KES ${amount} to ${recipientDetails.name}`);
+        onClose();
         return;
       }
 
-      // Prepare transaction data removed (redundant)
-
-      // Real API call to process transaction
-      showInfo('Processing transaction...');
-
-      let apiEndpoint = '';
-      let requestData = {};
-
-      if (type === 'Send to Vault User' && recipientDetails?.email) {
-        // P2P transfer to another Vault5 user
-        apiEndpoint = '/api/transactions/transfer';
-        requestData = {
-          recipientEmail: recipientDetails.email,
-          amount: parseFloat(amount),
-          fromAccountId: account._id,
-          description: 'P2P Transfer'
-        };
-      } else {
-        // Other types of transfers (mock for now)
-        const processingTime = {
-          'Internal Transfer': 500,
-          'Bank Transfer': 2000,
-          'M-Pesa': 1500,
-          'Airtel Money': 1500
-        };
-
-        await new Promise(resolve => setTimeout(resolve, processingTime[type] || 1000));
-        const isSuccess = Math.random() > 0.05;
-
-        if (isSuccess) {
-          showSuccess(`✅ ${type} of KES ${amount} completed successfully!`, {
-            title: 'Transaction Successful',
-            duration: 5000
-          });
-
-          const recipientName = recipientDetails?.name || 'recipient';
-          showInfo(`💰 KES ${amount} sent to ${recipientName}`, {
-            title: 'Transaction Details',
-            duration: 3000
-          });
-
-          onClose();
-          return;
-        } else {
-          showError('❌ Transaction failed. Please try again or contact support.');
-          return;
-        }
-      }
-
-      // Make real API call for P2P transfers
-      const response = await api.post(apiEndpoint, requestData);
-
-      if (response.data) {
-        showSuccess(`✅ ${type} of KES ${amount} completed successfully!`, {
-          title: 'Transaction Successful',
-          duration: 5000
-        });
-
-        // Show transaction details
-        const recipientName = response.data.transfer?.recipient?.name || recipientDetails?.name || 'recipient';
-        showInfo(`💰 KES ${amount} sent to ${recipientName}`, {
-          title: 'Transaction Details',
-          duration: 3000
-        });
-
-        onClose();
-      }
+      // Other types (placeholders)
+      const processingTime = {
+        'Internal Transfer': 500,
+        'Bank Transfer': 2000,
+        'M-Pesa': 1500,
+        'Airtel Money': 1500
+      };
+      await new Promise(resolve => setTimeout(resolve, processingTime[type] || 1000));
+      showSuccess(`✅ ${type} of KES ${amount} completed successfully!`);
+      onClose();
     } catch (error) {
-      console.error('Transaction error:', error);
-      showError('Transaction failed. Please try again.');
+      const msg = error?.response?.data?.message || 'Transaction failed. Please try again.';
+      showError(msg);
     } finally {
       setLoading(false);
     }
@@ -489,76 +377,10 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
               )}
 
               {/* Kenyan-style Recipient Verification (Hakikisha) */}
-              {showVerification && recipientDetails && !recipientDetails.vaultUser && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl">
-                  <h4 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
-                    <span>🔍</span> Kenyan Recipient Verification
-                  </h4>
-                  <p className="text-sm text-amber-800 mb-4">
-                    For security, please verify the recipient's details before sending money.
-                  </p>
-
-                  <div className="space-y-3">
-                    <div className="bg-white p-3 rounded-lg border">
-                      <h5 className="font-medium text-gray-900 mb-2">Verification Methods</h5>
-                      <div className="space-y-2">
-                        <button
-                          onClick={verifyRecipient}
-                          className="w-full flex items-center gap-2 p-2 text-left hover:bg-gray-50 rounded"
-                        >
-                          <span className="text-green-600">✅</span>
-                          <div>
-                            <div className="font-medium text-sm">Verify with ID Number</div>
-                            <div className="text-xs text-gray-600">Cross-check with Kenyan databases</div>
-                          </div>
-                        </button>
-                        <button
-                          onClick={sendVerificationCode}
-                          className="w-full flex items-center gap-2 p-2 text-left hover:bg-gray-50 rounded"
-                        >
-                          <span className="text-blue-600">📱</span>
-                          <div>
-                            <div className="font-medium text-sm">Send Verification Code</div>
-                            <div className="text-xs text-gray-600">SMS code to recipient's phone</div>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <h5 className="font-medium text-blue-900 mb-2">Recipient Information</h5>
-                      <div className="text-sm space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Name:</span>
-                          <span className="font-medium">{recipientDetails.name}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Phone:</span>
-                          <span>{recipientDetails.phone}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Bank:</span>
-                          <span>{recipientDetails.bankName}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Account:</span>
-                          <span className="font-mono text-xs">{recipientDetails.accountNumber}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {recipientVerified && (
-                      <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
-                        <div className="flex items-center gap-2 text-green-800">
-                          <span className="text-green-600">✅</span>
-                          <span className="font-medium">Recipient Verified Successfully!</span>
-                        </div>
-                        <p className="text-sm text-green-700 mt-1">
-                          You can now proceed with the transaction safely.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+              {recipientDetails && !recipientDetails.vaultUser && (
+                <div className="bg-red-50 border border-red-200 p-4 rounded-xl">
+                  <div className="font-semibold text-red-800 mb-1">Not a registered Vault5 user</div>
+                  <div className="text-sm text-red-700">You can only use this flow to send to Vault users. Use External transfers for telco/bank payouts.</div>
                 </div>
               )}
             </div>
@@ -614,6 +436,23 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
           </div>
 
           {/* EMI-style Action Buttons */}
+          {/* Password confirmation for Vault-to-Vault */}
+          {type === 'Send to Vault User' && recipientDetails?.vaultUser && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm with Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter your password"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                For your security, confirm this transfer with your account password.
+              </p>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-4">
             <button
               type="button"
@@ -624,7 +463,7 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
             </button>
             <button
               type="submit"
-              disabled={loading || !amount || (showVerification && !recipientVerified)}
+              disabled={loading || !amount || (type === 'Send to Vault User' && (!recipientDetails?.vaultUser || !password))}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -632,8 +471,6 @@ export const EMITransferModal = ({ isOpen, onClose, account, type }) => {
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   Processing...
                 </div>
-              ) : showVerification && !recipientVerified ? (
-                'Verify Recipient First'
               ) : (
                 `Send KES ${amount || '0.00'}`
               )}

@@ -25,10 +25,24 @@ async function creditWallet(userId, amount, description = 'Wallet credit', meta 
 
   const wallet = await ensureWallet(userId);
 
-  // Update balance and stats
-  wallet.balance = parseFloat((wallet.balance + Number(amount)).toFixed(2));
-  if (typeof wallet.updateStats === 'function') {
-    wallet.updateStats(Number(amount), 'recharge');
+  // Apply negative balance first (auto-deduct logic)
+  const originalAmount = Number(amount);
+  const currentDebt = Number(wallet.negativeBalance || 0);
+  let appliedToDebt = 0;
+  let netCredit = originalAmount;
+
+  if (currentDebt > 0) {
+    appliedToDebt = Math.min(originalAmount, currentDebt);
+    wallet.negativeBalance = parseFloat((currentDebt - appliedToDebt).toFixed(2));
+    netCredit = parseFloat((originalAmount - appliedToDebt).toFixed(2));
+  }
+
+  // Update positive balance with remaining credit (if any)
+  if (netCredit > 0) {
+    wallet.balance = parseFloat((Number(wallet.balance || 0) + netCredit).toFixed(2));
+    if (typeof wallet.updateStats === 'function') {
+      wallet.updateStats(netCredit, 'recharge');
+    }
   }
   await wallet.save();
 
@@ -37,7 +51,7 @@ async function creditWallet(userId, amount, description = 'Wallet credit', meta 
   const transaction = new Transaction({
     user: userId,
     type: 'income',
-    amount: Number(amount),
+    amount: originalAmount,
     description: description,
     currency,
     transactionCode: txCode,
@@ -45,7 +59,12 @@ async function creditWallet(userId, amount, description = 'Wallet credit', meta 
     category: 'Wallet',
     allocations: [],
     fraudRisk: { riskScore: 0, isHighRisk: false, flags: [] },
-    metadata: Object.assign({}, meta, { source: 'wallet_credit' })
+    metadata: Object.assign({}, meta, {
+      source: 'wallet_credit',
+      appliedToDebt,
+      netCredit,
+      debtRemaining: Number(wallet.negativeBalance || 0)
+    })
   });
   await transaction.save();
 

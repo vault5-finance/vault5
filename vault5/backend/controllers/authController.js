@@ -5,6 +5,7 @@ const Wallet = require('../models/Wallet');
 const Notification = require('../models/Notification');
 const Lending = require('../models/Lending');
 const Loan = require('../models/Loan');
+const UserSession = require('../models/UserSession');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '30d' });
@@ -270,6 +271,26 @@ const login = async (req, res) => {
 
    const token = generateToken(user._id);
 
+   // Create/update session for concurrent session management
+   const sessionDeviceId = deviceId || (req.body && req.body.deviceId) || `unknown_${Math.random().toString(36).slice(2,8)}`;
+   const userAgent = headers['user-agent'] || '';
+   const ip = ((headers['x-forwarded-for'] || req.ip || '') + '').split(',')[0].trim();
+   let sessionDoc = await UserSession.findOne({ user: user._id, deviceId: sessionDeviceId, revoked: false });
+   if (!sessionDoc) {
+     sessionDoc = await UserSession.create({ user: user._id, deviceId: sessionDeviceId, userAgent, ip, nickname: '' });
+   } else {
+     sessionDoc.lastActiveAt = new Date();
+     sessionDoc.userAgent = userAgent || sessionDoc.userAgent;
+     sessionDoc.ip = ip || sessionDoc.ip;
+     await sessionDoc.save();
+   }
+   // Detect other active sessions
+   const otherActiveSessions = await UserSession.find({
+     user: user._id,
+     revoked: false,
+     deviceId: { $ne: sessionDeviceId }
+   }).sort({ lastActiveAt: -1 }).limit(5);
+
    // Role-based redirect logic
    console.log('User role during login:', user.role);
 
@@ -291,6 +312,8 @@ const login = async (req, res) => {
        avatar: user.avatar,
        role: user.role,
      },
+     sessionsWarning: otherActiveSessions.length > 0,
+     sessionsCount: otherActiveSessions.length
    };
 
    // Set redirect based on user role (supports extended admin roles)
@@ -302,7 +325,7 @@ const login = async (req, res) => {
      console.log('Regular user detected, redirecting to /dashboard');
    }
 
-   console.log('Login response:', { redirect: response.redirect, userRole: user.role });
+   console.log('Login response:', { redirect: response.redirect, userRole: user.role, sessionsWarning: response.sessionsWarning });
    res.json(response);
  } catch (err) {
    console.error('Login error:', err);
@@ -1307,6 +1330,39 @@ const verifyPassword = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/auth/sessions
+ * List active (non-revoked) sessions for the current user
+ */
+const getSessions = async (req, res) => {
+  try {
+    const sessions = await UserSession.find({ user: req.user._id, revoked: false })
+      .sort({ lastActiveAt: -1 })
+      .lean();
+    res.json({ sessions });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to list sessions' });
+  }
+};
+
+/**
+ * POST /api/auth/sessions/:id/revoke
+ * Revoke a session by id (current user only)
+ */
+const revokeSession = async (req, res) => {
+  try {
+    const { id } = req.params || {};
+    const session = await UserSession.findOne({ _id: id, user: req.user._id });
+    if (!session) return res.status(404).json({ message: 'Session not found' });
+    session.revoked = true;
+    session.revokedAt = new Date();
+    await session.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to revoke session' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -1334,4 +1390,6 @@ module.exports = {
   deleteAccount,
   verifyTwoFactor,
   verifyPassword,
+  getSessions,
+  revokeSession,
 };

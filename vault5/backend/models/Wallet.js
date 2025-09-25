@@ -12,6 +12,12 @@ const walletSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  // Amount owed due to reversals or adjustments; auto-deducted from future credits
+  negativeBalance: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   currency: {
     type: String,
     default: 'KES',
@@ -107,10 +113,12 @@ const walletSchema = new mongoose.Schema({
 walletSchema.index({ user: 1 });
 walletSchema.index({ status: 1 });
 walletSchema.index({ 'paymentMethods.type': 1 });
+walletSchema.index({ negativeBalance: 1 });
 
 // Virtual for available balance (considering pending transactions)
 walletSchema.virtual('availableBalance').get(function() {
-  return this.balance;
+  const neg = Number(this.negativeBalance || 0);
+  return Math.max(0, Number(this.balance || 0) - neg);
 });
 
 // Limits disabled by business decision

@@ -79,16 +79,20 @@ async function geoGate(req, res, next) {
         return next();
       }
 
-      // Soft-pass specific user-initiated verification endpoints even in production
+      // Always allow specific user-initiated verification endpoints even in production
       const urlPath = String(req.originalUrl || '').split('?')[0];
       const softPassPaths = new Set([
         '/api/transactions/verify-recipient',
         '/api/transactions/calculate-fees'
       ]);
-      if (softPass && softPassPaths.has(urlPath)) {
+      if (softPassPaths.has(urlPath)) {
         try {
           res.set('X-Policy-Warn', 'geo_block_soft_pass');
           res.set('X-Policy-Gate', 'geo_allowlist');
+        } catch {}
+        // Minimal diagnostics for verification soft-pass
+        try {
+          console.warn('[geoGate] soft-pass', { path: urlPath, userCountry: country, policy: policyCountries });
         } catch {}
         req.policyWarnings = Object.assign({}, req.policyWarnings, {
           geo: {
@@ -103,6 +107,9 @@ async function geoGate(req, res, next) {
       }
 
       // Otherwise block state-changing requests
+      try {
+        console.warn('[geoGate] blocked', { path: req.originalUrl, userCountry: country, policy: policyCountries });
+      } catch {}
       return res.status(451).json({
         message: 'Service not available in your region',
         policy: {

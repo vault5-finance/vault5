@@ -1,14 +1,16 @@
 const { User, Account, Transaction, Goal, Loan, Investment, Lending } = require('../models');
+const Wallet = require('../models/Wallet');
 
 // Dashboard data
 const getDashboard = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Net worth: accounts balance + investments - loans
+    // Net worth: accounts balance + wallet + investments - loans
     const accounts = await Account.find({ user: userId });
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-    const walletBalance = accounts.filter(acc => acc.isWallet === true).reduce((sum, acc) => sum + acc.balance, 0);
+    const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+    const walletDoc = await Wallet.findOne({ user: userId }).select('balance');
+    const walletBalance = walletDoc?.balance || 0;
 
     const investments = await Investment.find({ user: userId });
     const totalInvestments = investments.reduce((sum, inv) => sum + inv.currentValue, 0);
@@ -16,7 +18,7 @@ const getDashboard = async (req, res) => {
     const loans = await Loan.find({ user: userId, status: 'active' });
     const totalLoans = loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
 
-    const netWorth = totalBalance + totalInvestments - totalLoans;
+    const netWorth = totalBalance + walletBalance + totalInvestments - totalLoans;
 
     // Allocation compliance pie chart data
     const allocationData = accounts.map(acc => ({
@@ -30,12 +32,14 @@ const getDashboard = async (req, res) => {
     const goals = await Goal.find({ user: userId });
     const avgGoalProgress = goals.length > 0 ? goals.reduce((sum, g) => sum + (g.currentAmount / g.targetAmount * 100), 0) / goals.length : 0;
 
-    const avgCompliance = accounts.reduce((sum, acc) => {
-      let score = 50;
-      if (acc.status === 'green' || acc.status === 'blue') score = 100;
-      if (acc.status === 'red') score = 0;
-      return sum + score;
-    }, 0) / accounts.length;
+    const avgCompliance = accounts.length > 0
+      ? accounts.reduce((sum, acc) => {
+          let score = 50;
+          if (acc.status === 'green' || acc.status === 'blue') score = 100;
+          if (acc.status === 'red') score = 0;
+          return sum + score;
+        }, 0) / accounts.length
+      : 100;
 
     const lendings = await Lending.find({ user: userId });
     const repaidLendings = lendings.filter(l => l.status === 'repaid').length;
