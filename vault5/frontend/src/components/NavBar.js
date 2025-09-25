@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 
@@ -15,6 +15,8 @@ const NavBar = () => {
 
 // Desktop menu dropdown state
 const [showDesktopMenu, setShowDesktopMenu] = useState(false);
+const dropdownRef = useRef(null);
+const buttonRef = useRef(null);
   // Compliance banner state
   const [compliance, setCompliance] = useState(null);
   const [loadingCompliance, setLoadingCompliance] = useState(false);
@@ -67,6 +69,35 @@ const [showDesktopMenu, setShowDesktopMenu] = useState(false);
       fetchCompliance();
     }
   }, [token, fetchNotifications, fetchCompliance]);
+
+  // Click outside handler for desktop menu dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      console.log('Click outside handler triggered', {
+        target: event.target,
+        dropdownRef: dropdownRef.current,
+        buttonRef: buttonRef.current,
+        dropdownContains: dropdownRef.current ? dropdownRef.current.contains(event.target) : 'ref null',
+        buttonContains: buttonRef.current ? buttonRef.current.contains(event.target) : 'ref null',
+        showDesktopMenu
+      });
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        console.log('Closing dropdown');
+        setShowDesktopMenu(false);
+      }
+    };
+    console.log('Adding click outside listener');
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      console.log('Removing click outside listener');
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const toggleNotifications = useCallback(() => {
     setShowNotifications(prev => {
@@ -220,7 +251,7 @@ const [showDesktopMenu, setShowDesktopMenu] = useState(false);
                   )}
 
                   {/* Desktop menu button (restores hamburger-like menu on desktop) */}
-                  <div className="relative">
+                  <div className="relative" ref={buttonRef}>
                     <button
                       onClick={() => setShowDesktopMenu(v => !v)}
                       className="px-3 py-2 rounded-md border text-gray-700 hover:text-blue-600 hover:border-blue-300 transition"
@@ -234,8 +265,8 @@ const [showDesktopMenu, setShowDesktopMenu] = useState(false);
                       </span>
                     </button>
                     {showDesktopMenu && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg z-50 border">
-                        <nav className="p-2">
+                      <div ref={dropdownRef} className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg z-50 border">
+                        <nav className="p-2 max-h-96 overflow-y-auto">
                           <div className="text-xs uppercase tracking-wide text-gray-500 px-2 py-1">Quick Links</div>
                           <Link to="/dashboard" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Dashboard</Link>
                           <Link to="/accounts" onClick={() => setShowDesktopMenu(false)} className="block px-3 py-2 rounded hover:bg-gray-50">Accounts</Link>
