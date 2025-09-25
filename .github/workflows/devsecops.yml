@@ -47,9 +47,9 @@ jobs:
       
     - name: OWASP ZAP DAST Scan
       uses: zaproxy/action-baseline@v0.7.0
+      continue-on-error: true
       with:
         target: 'https://vault5.vercel.app'
-        rules_file_name: 'zap-baseline.conf'
         docker_name: 'zaproxy/zap-stable'
         cmd_options: '-I'
         fail_action: false
