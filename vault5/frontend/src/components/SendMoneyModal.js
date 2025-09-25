@@ -13,6 +13,9 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
   const [mode, setMode] = useState('email'); // 'email' | 'phone'
   const [recipient, setRecipient] = useState(null); // response.recipient + flags
   const [international, setInternational] = useState(false);
+  // Source of funds and security
+  const [source, setSource] = useState('wallet'); // 'wallet' | 'account' (future)
+  const [password, setPassword] = useState('');
 
   const [formData, setFormData] = useState({
     recipientEmail: '',
@@ -123,6 +126,11 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
       showError('Verify a recipient first');
       return;
     }
+    // Require password for Vault-to-Vault as an extra security step
+    if (recipient.vaultUser && !password) {
+      showError('Enter your password to confirm');
+      return;
+    }
     setLoading(true);
     try {
       // Vault-to-Vault
@@ -131,7 +139,9 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
           recipientEmail: mode === 'email' ? formData.recipientEmail : undefined,
           recipientPhone: mode === 'phone' ? formData.recipientPhone : undefined,
           amount: amountNumber,
-          description: formData.description || 'P2P Transfer'
+          description: formData.description || 'P2P Transfer',
+          source, // wallet by default
+          password
         });
         showSuccess('Transfer completed successfully!');
         onSuccess && onSuccess();
@@ -326,6 +336,30 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
                   placeholder="What's this for?"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Source</label>
+                <div className="flex items-center gap-4 text-sm">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      className="text-blue-600"
+                      checked={source === 'wallet'}
+                      onChange={() => setSource('wallet')}
+                    />
+                    <span className="ml-2">Vault Wallet (default)</span>
+                  </label>
+                  <label className="inline-flex items-center opacity-70 cursor-not-allowed" title="Send from Account coming soon">
+                    <input
+                      type="radio"
+                      className="text-blue-600"
+                      checked={source === 'account'}
+                      onChange={() => setSource('account')}
+                      disabled
+                    />
+                    <span className="ml-2">From Account</span>
+                  </label>
+                </div>
+              </div>
 
               {/* Fee Preview */}
               {amountNumber > 0 && (
@@ -413,6 +447,21 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
               </div>
             </div>
 
+            {/* Password confirmation for Vault-to-Vault */}
+            {recipient.vaultUser && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm with Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your password"
+                />
+              </div>
+            )}
             <div className="flex space-x-3">
               <button
                 onClick={() => setStep(2)}

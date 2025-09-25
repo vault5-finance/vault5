@@ -1282,6 +1282,31 @@ const deleteAccount = async (req, res) => {
   }
 };
 
+// POST /api/auth/verify-password
+const verifyPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+
+    res.json({ message: 'Password verified successfully' });
+  } catch (error) {
+    console.error('Verify password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -1308,4 +1333,5 @@ module.exports = {
   changePassword,
   deleteAccount,
   verifyTwoFactor,
+  verifyPassword,
 };

@@ -48,17 +48,22 @@ async function geoGate(req, res, next) {
     if (process.env.NODE_ENV !== 'production') {
       return next();
     }
+
+    const softPass = String(process.env.COMPLIANCE_GEO_SOFT_PASS || 'false').toLowerCase() === 'true';
     const policy = await GeoPolicy.findOne({});
     if (!policy || policy.mode !== 'allowlist' || !Array.isArray(policy.countries) || policy.countries.length === 0) {
       return next(); // no restriction configured
     }
-    const country = (req.user?.country || '').toUpperCase();
-    if (!country || !policy.countries.includes(country)) {
-      // Log risk and provide graceful degradation for read-only GET endpoints
+
+    // Normalize both sides to uppercase for consistent comparison
+    const policyCountries = (policy.countries || []).map(c => String(c).toUpperCase());
+    const country = String(req.user?.country || '').trim().toUpperCase();
+
+    if (!country || !policyCountries.includes(country)) {
+      // Log risk and provide graceful degradation for certain endpoints
       await logRiskEvent(req.user?._id, 'login_geo_block', 80, { country, route: req.originalUrl });
 
-      // For idempotent reads (e.g., GET /api/compliance/status, GET /api/transactions),
-      // do not hard-block; attach a warning header and continue.
+      // Allow read-only GETs with warning headers
       if (req.method === 'GET') {
         try {
           res.set('X-Policy-Warn', 'geo_block');
@@ -67,20 +72,43 @@ async function geoGate(req, res, next) {
         req.policyWarnings = Object.assign({}, req.policyWarnings, {
           geo: {
             blocked: true,
-            countries: Array.isArray(policy.countries) ? policy.countries : [],
+            countries: policyCountries,
             userCountry: country || null
           }
         });
         return next();
       }
 
-      // For state-changing requests, enforce block
+      // Soft-pass specific user-initiated verification endpoints even in production
+      const urlPath = String(req.originalUrl || '').split('?')[0];
+      const softPassPaths = new Set([
+        '/api/transactions/verify-recipient',
+        '/api/transactions/calculate-fees'
+      ]);
+      if (softPass && softPassPaths.has(urlPath)) {
+        try {
+          res.set('X-Policy-Warn', 'geo_block_soft_pass');
+          res.set('X-Policy-Gate', 'geo_allowlist');
+        } catch {}
+        req.policyWarnings = Object.assign({}, req.policyWarnings, {
+          geo: {
+            blocked: true,
+            softPass: true,
+            countries: policyCountries,
+            userCountry: country || null,
+            path: urlPath
+          }
+        });
+        return next();
+      }
+
+      // Otherwise block state-changing requests
       return res.status(451).json({
         message: 'Service not available in your region',
         policy: {
           gate: 'geo_allowlist',
           mode: policy.mode,
-          countries: policy.countries || []
+          countries: policyCountries
         }
       });
     }

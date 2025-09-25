@@ -1,6 +1,11 @@
 const { Transaction, User, Account } = require('../models');
+const Wallet = require('../models/Wallet');
+const bcrypt = require('bcryptjs');
 const { analyzeTransaction } = require('../services/fraudDetection');
 const { normalizePhoneNumber, arePhoneNumbersEqual, getNetworkProvider } = require('../utils/phoneUtils');
+const { generateNotification } = require('./notificationsController');
+const { generateUniqueTransactionCode } = require('../utils/txCode');
+const { ensureWallet } = require('./walletController');
 
 // Get all transactions for a user
 const getTransactions = async (req, res) => {
@@ -373,40 +378,34 @@ const verifyRecipient = async (req, res) => {
 // P2P Money Transfer between Vault5 users (supports linked accounts)
 const transferToUser = async (req, res) => {
   try {
-    const { recipientEmail, recipientPhone, amount, fromAccountId, description } = req.body;
+    const { recipientEmail, recipientPhone, amount, fromAccountId, description, source = 'wallet' } = req.body;
     const senderId = req.user._id;
 
-    // Allow defaulting fromAccountId to user's Daily account if not provided
     if ((!recipientEmail && !recipientPhone) || !amount) {
-      return res.status(400).json({
-        message: 'Recipient email or phone and amount are required'
-      });
+      return res.status(400).json({ message: 'Recipient email or phone and amount are required' });
     }
-
-    if (amount <= 0) {
+    const amt = Number(amount);
+    if (!(amt > 0)) {
       return res.status(400).json({ message: 'Amount must be greater than 0' });
     }
 
-    // Find recipient user (supports linked emails, phones, and linked accounts)
+    // Resolve recipient
     let recipient = null;
     let foundBy = '';
     let linkedAccountInfo = null;
 
     if (recipientEmail) {
-      // Try to find by primary email first
       recipient = await User.findOne({ 'emails.email': recipientEmail.toLowerCase() });
       if (recipient) foundBy = 'email';
     }
 
     if (!recipient && recipientPhone) {
-      // Try to find by phone
       recipient = await User.findOne({ 'phones.phone': recipientPhone });
       if (recipient) foundBy = 'phone';
     }
 
-    // If still not found, try to find by linked account information
+    // Linked accounts lookup (legacy support)
     if (!recipient) {
-      // Search through all users' linked accounts
       const usersWithLinkedAccounts = await User.find({
         'preferences.linkedAccounts': {
           $elemMatch: {
@@ -444,85 +443,124 @@ const transferToUser = async (req, res) => {
       });
     }
 
-    // Don't allow self-transfer
     if (recipient._id.toString() === senderId.toString()) {
       return res.status(400).json({ message: 'Cannot transfer to yourself' });
     }
 
-    // Find sender's account (default to Daily if fromAccountId is not provided)
+    // Optional password enforcement
+    const requirePassword = String(process.env.TRANSFER_REQUIRE_PASSWORD || 'true').toLowerCase() === 'true';
+    if (requirePassword) {
+      const provided = String(req.body.password || '');
+      if (!provided) {
+        return res.status(401).json({ message: 'Password required to complete transfer' });
+      }
+      const me = await User.findById(senderId).select('+password');
+      if (!me) return res.status(404).json({ message: 'User not found' });
+      const match = await bcrypt.compare(provided, me.password);
+      if (!match) {
+        return res.status(401).json({ message: 'Invalid password' });
+      }
+    }
+
+    // Prepare sender debit based on source
     let senderAccount = null;
-    if (fromAccountId) {
-      senderAccount = await Account.findOne({
-        _id: fromAccountId,
-        user: senderId
-      });
+    let senderWallet = null;
+
+    if (String(source) === 'account') {
+      if (fromAccountId) {
+        senderAccount = await Account.findOne({ _id: fromAccountId, user: senderId });
+      } else {
+        senderAccount = await Account.findOne({ user: senderId, type: 'Daily' });
+      }
+      if (!senderAccount) {
+        return res.status(404).json({ message: 'Sender account not found' });
+      }
+      if (senderAccount.balance < amt) {
+        return res.status(400).json({ message: 'Insufficient funds in selected account' });
+      }
     } else {
-      senderAccount = await Account.findOne({
-        user: senderId,
-        type: 'Daily'
-      });
+      // Default: wallet
+      senderWallet = await ensureWallet(senderId);
+      if (!senderWallet || senderWallet.status !== 'active') {
+        return res.status(400).json({ message: 'Wallet not available' });
+      }
+      if (senderWallet.balance < amt) {
+        return res.status(400).json({ message: 'Insufficient wallet balance' });
+      }
     }
 
-    if (!senderAccount) {
-      return res.status(404).json({ message: 'Sender account not found' });
-    }
+    // Recipient wallet (create if missing)
+    const recipientWallet = await ensureWallet(recipient._id);
 
-    if (senderAccount.balance < amount) {
-      return res.status(400).json({ message: 'Insufficient funds' });
-    }
-
-    // Find recipient's Daily account (default receiving account)
-    const recipientDailyAccount = await Account.findOne({
-      user: recipient._id,
-      type: 'Daily'
-    });
-
-    if (!recipientDailyAccount) {
-      return res.status(404).json({ message: 'Recipient Daily account not found' });
-    }
-
-    // Start transaction
+    // Start transaction session
     const session = await Account.startSession();
     session.startTransaction();
 
     try {
-      // Deduct from sender's account
-      senderAccount.balance -= amount;
-      await senderAccount.save({ session });
+      // Debit sender
+      if (senderWallet) {
+        senderWallet.balance = parseFloat((senderWallet.balance - amt).toFixed(2));
+        senderWallet.updateStats?.(amt, 'spend');
+        await senderWallet.save({ session });
+      } else {
+        senderAccount.balance = parseFloat((senderAccount.balance - amt).toFixed(2));
+        await senderAccount.save({ session });
+      }
 
-      // Add to recipient's account
-      recipientDailyAccount.balance += amount;
-      await recipientDailyAccount.save({ session });
+      // Credit recipient wallet
+      recipientWallet.balance = parseFloat((recipientWallet.balance + amt).toFixed(2));
+      recipientWallet.updateStats?.(amt, 'recharge');
+      await recipientWallet.save({ session });
 
-      // Create transaction records for both users
-      const senderTransaction = new Transaction({
+      // Transaction codes
+      const txCode = await generateUniqueTransactionCode(Transaction, 10);
+
+      // Sender transaction
+      const senderTx = new Transaction({
         user: senderId,
         type: 'expense',
-        amount: amount,
+        amount: amt,
         description: `Transfer to ${recipient.name} - ${description || 'P2P Transfer'}`,
         category: 'Transfer',
-        date: new Date()
+        date: new Date(),
+        currency: 'KES',
+        transactionCode: txCode,
+        balanceAfter: senderWallet ? senderWallet.balance : undefined
       });
 
-      const recipientTransaction = new Transaction({
+      // Recipient transaction
+      const recipientTx = new Transaction({
         user: recipient._id,
         type: 'income',
-        amount: amount,
+        amount: amt,
         description: `Transfer from ${req.user.name} - ${description || 'P2P Transfer'}`,
         category: 'Transfer',
-        date: new Date()
+        date: new Date(),
+        currency: 'KES',
+        transactionCode: txCode,
+        balanceAfter: recipientWallet.balance
       });
 
-      await senderTransaction.save({ session });
-      await recipientTransaction.save({ session });
+      await senderTx.save({ session });
+      await recipientTx.save({ session });
 
-      // Commit transaction
       await session.commitTransaction();
+
+      // Notify recipient
+      await generateNotification(
+        recipient._id,
+        'money_received',
+        'Funds Received',
+        `Congrats! You have received KES ${amt.toFixed(2)} from ${req.user.name}. New wallet balance: KES ${recipientWallet.balance.toFixed(2)}. Tx: ${txCode}.`,
+        recipientTx._id,
+        'low',
+        { amount: amt, currency: 'KES', transactionCode: txCode, balanceAfter: recipientWallet.balance, sender: req.user.name }
+      );
 
       res.status(200).json({
         message: 'Transfer completed successfully',
         transfer: {
-          amount,
+          amount: amt,
           recipient: {
             name: recipient.name,
             email: recipientEmail,
@@ -530,13 +568,15 @@ const transferToUser = async (req, res) => {
             foundBy: foundBy,
             linkedAccount: linkedAccountInfo || (foundBy === 'email' ? 'email' : 'phone')
           },
-          senderAccount: senderAccount.type,
-          recipientAccount: recipientDailyAccount.type,
+          source: senderWallet ? 'wallet' : 'account',
+          senderAccount: senderAccount ? senderAccount.type : 'Wallet',
+          recipientAccount: 'Wallet',
           linkedAccountInfo: linkedAccountInfo ? {
             accountType: linkedAccountInfo.accountType,
             accountNumber: linkedAccountInfo.accountNumber,
             accountName: linkedAccountInfo.accountName
-          } : null
+          } : null,
+          transactionCode: txCode
         }
       });
 

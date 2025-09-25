@@ -3,6 +3,7 @@ const { protect } = require('../middleware/auth');
 const { requireFinanceAdmin } = require('../middleware/rbac');
 const { Transaction, User, Account } = require('../models');
 const { allocateIncome } = require('../controllers/accountsController');
+const { creditWallet } = require('../controllers/walletController');
 const { generateNotification } = require('../controllers/notificationsController');
 const { generateUniqueTransactionCode } = require('../utils/txCode');
 
@@ -42,16 +43,9 @@ router.get('/users', async (req, res) => {
 });
 
 // POST /api/admin/finance/credit-income
-// Admin utility to credit income to a user by email and optionally run allocation engine.
-// Body: {
-//   email: string,
-//   amount: number,
-//   currency?: 'KES',
-//   description?: string,
-//   tag?: string,
-//   target?: 'auto' | 'wallet',
-//   accountId?: string
-// }
+// Admin utility to credit funds. DEFAULT: credit user's Wallet.
+// Optional: set allocate=true to run allocation engine instead of wallet credit.
+// Body: { email, amount, currency?, description?, allocate?: boolean, target?, accountId? }
 router.post('/credit-income', async (req, res) => {
   try {
     const {
@@ -59,7 +53,7 @@ router.post('/credit-income', async (req, res) => {
       amount,
       currency = 'KES',
       description = 'Admin credit via finance endpoint',
-      tag = 'admin_credit',
+      allocate = false,
       target = 'auto',
       accountId
     } = req.body || {};
@@ -79,22 +73,34 @@ router.post('/credit-income', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found by email' });
     }
 
-    // Generate M-Pesa-like transaction code
-    const txCode = await generateUniqueTransactionCode(Transaction, 10);
+    let txCode = null;
+    let balance = null;
+    let txId = null;
+    let allocations = [];
 
-    // Allocate income (auto or wallet/account)
-    const result = await allocateIncome(
-      user._id,
-      amt,
-      description,
-      tag,
-      { target, accountId, currency, transactionCode: txCode }
-    );
+    if (allocate) {
+      // Allocation path (legacy behavior)
+      txCode = await generateUniqueTransactionCode(Transaction, 10);
+      const result = await allocateIncome(
+        user._id,
+        amt,
+        description,
+        'admin_credit',
+        { target, accountId, currency, transactionCode: txCode }
+      );
+      const tx = result?.mainTransaction;
+      allocations = result?.allocations || [];
+      balance = result?.currentBalance ?? null;
+      txId = tx?._id || null;
+    } else {
+      // Wallet credit (default)
+      const result = await creditWallet(user._id, amt, description, { admin: req.user._id }, currency);
+      txCode = result.transactionCode;
+      balance = result.wallet.balance;
+      txId = result.transaction._id;
+    }
 
-    const tx = result?.mainTransaction;
-    const balance = result?.currentBalance;
-
-    // Compose notification "money received"
+    // Notification to recipient
     const senderName = req.user?.name || req.user?.email || 'Vault5 Finance';
     const message = `Congrats! You have received ${currency} ${amt.toFixed(2)} from ${senderName} on ${new Date().toLocaleString()}. New vault balance is ${currency} ${(balance ?? 0).toFixed(2)}. Transaction ID ${txCode}.`;
 
@@ -103,29 +109,21 @@ router.post('/credit-income', async (req, res) => {
       'money_received',
       'Funds Received',
       message,
-      tx?._id || user._id,
+      txId || user._id,
       'low',
-      {
-        amount: amt,
-        currency,
-        sender: senderName,
-        transactionCode: txCode,
-        balanceAfter: balance,
-        target,
-        accountId: accountId || null
-      }
+      { amount: amt, currency, sender: senderName, transactionCode: txCode, balanceAfter: balance, target, accountId: accountId || null }
     );
 
     return res.status(201).json({
       success: true,
-      message: 'Income credited and allocated successfully',
+      message: allocate ? 'Income credited and allocated successfully' : 'Wallet credited successfully',
       user: { id: user._id, email: emailLower, name: user.name },
-      transactionId: tx?._id || null,
+      transactionId: txId,
       transactionCode: txCode,
       amount: amt,
       currency,
       balanceAfter: balance,
-      allocations: result?.allocations || []
+      allocations
     });
   } catch (error) {
     console.error('Admin credit error:', error);
@@ -162,14 +160,11 @@ router.post('/debit', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found by email' });
     }
 
-    // Pick an account to debit: explicit accountId -> wallet -> Daily -> first
+    // Pick an account to debit: explicit accountId -> Daily fallback (Wallet debit would be separate util)
     let targetAccount = null;
     const userAccounts = await Account.find({ user: user._id });
     if (accountId) {
       targetAccount = userAccounts.find(a => String(a._id) === String(accountId));
-    }
-    if (!targetAccount) {
-      targetAccount = userAccounts.find(a => a.isWallet === true) || null;
     }
     if (!targetAccount) {
       targetAccount = userAccounts.find(a => a.type === 'Daily') || userAccounts[0] || null;
@@ -199,13 +194,13 @@ router.post('/debit', async (req, res) => {
       allocations: [{ account: targetAccount._id, amount: amt }]
     });
 
-    // Compute total balance after debit
+    // Compute balanceAfter across accounts (wallet balance not included in this simple total)
     const allAccs = await Account.find({ user: user._id }, 'balance');
     const totalBalance = allAccs.reduce((s, a) => s + (a.balance || 0), 0);
     expenseTx.balanceAfter = totalBalance;
     await expenseTx.save();
 
-    // Optional: notify user of debit (can be toggled later)
+    // Optional: notify user of debit
     await generateNotification(
       user._id,
       'money_debited',

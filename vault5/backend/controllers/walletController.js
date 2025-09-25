@@ -2,6 +2,55 @@ const Wallet = require('../models/Wallet');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
+const { generateUniqueTransactionCode } = require('../utils/txCode');
+
+// Internal: ensure a wallet exists for user
+async function ensureWallet(userId) {
+  let wallet = await Wallet.findOne({ user: userId });
+  if (!wallet) {
+    wallet = new Wallet({ user: userId, balance: 0 });
+    await wallet.save();
+  }
+  return wallet;
+}
+
+// Programmatic credit to a user's main wallet (admin/payout/system utility)
+// Returns { wallet, transaction, transactionCode }
+async function creditWallet(userId, amount, description = 'Wallet credit', meta = {}, currency = 'KES') {
+  if (!(Number(amount) > 0)) {
+    throw new Error('Amount must be positive');
+  }
+  const user = await User.findById(userId);
+  if (!user) throw new Error('User not found');
+
+  const wallet = await ensureWallet(userId);
+
+  // Update balance and stats
+  wallet.balance = parseFloat((wallet.balance + Number(amount)).toFixed(2));
+  if (typeof wallet.updateStats === 'function') {
+    wallet.updateStats(Number(amount), 'recharge');
+  }
+  await wallet.save();
+
+  // Create transaction record with mpesa-like code and balanceAfter
+  const txCode = await generateUniqueTransactionCode(Transaction, 10);
+  const transaction = new Transaction({
+    user: userId,
+    type: 'income',
+    amount: Number(amount),
+    description: description,
+    currency,
+    transactionCode: txCode,
+    balanceAfter: wallet.balance,
+    category: 'Wallet',
+    allocations: [],
+    fraudRisk: { riskScore: 0, isHighRisk: false, flags: [] },
+    metadata: Object.assign({}, meta, { source: 'wallet_credit' })
+  });
+  await transaction.save();
+
+  return { wallet, transaction, transactionCode: txCode };
+}
 
 // Get user's wallet
 const getWallet = async (req, res) => {
@@ -593,6 +642,11 @@ const processPayment = async (amount, paymentMethod, user, type) => {
   };
 
 module.exports = {
+  // Utility
+  creditWallet,
+  ensureWallet,
+
+  // HTTP handlers
   getWallet,
   createWallet,
   rechargeWallet,
