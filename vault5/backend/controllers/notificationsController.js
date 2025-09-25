@@ -56,6 +56,16 @@ const markAsRead = async (req, res) => {
   }
 };
 
+// Mark all notifications as read
+const markAllAsRead = async (req, res) => {
+  try {
+    await Notification.updateMany({ user: req.user._id, read: false }, { read: true });
+    res.json({ message: 'All notifications marked as read' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Delete notification
 const deleteNotification = async (req, res) => {
   try {
@@ -81,6 +91,7 @@ const deleteNotification = async (req, res) => {
 module.exports = {
   getNotifications,
   markAsRead,
+  markAllAsRead,
   deleteNotification,
   generateNotification // Export for use in other modules
 };

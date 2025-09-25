@@ -17,6 +17,12 @@ const NavBar = () => {
 const [showDesktopMenu, setShowDesktopMenu] = useState(false);
 const dropdownRef = useRef(null);
 const buttonRef = useRef(null);
+const notifDropdownRef = useRef(null);
+const notifButtonRef = useRef(null);
+
+// Computed unread count
+const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
+
   // Compliance banner state
   const [compliance, setCompliance] = useState(null);
   const [loadingCompliance, setLoadingCompliance] = useState(false);
@@ -73,28 +79,35 @@ const buttonRef = useRef(null);
   // Click outside handler for desktop menu dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      console.log('Click outside handler triggered', {
-        target: event.target,
-        dropdownRef: dropdownRef.current,
-        buttonRef: buttonRef.current,
-        dropdownContains: dropdownRef.current ? dropdownRef.current.contains(event.target) : 'ref null',
-        buttonContains: buttonRef.current ? buttonRef.current.contains(event.target) : 'ref null',
-        showDesktopMenu
-      });
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target) &&
         buttonRef.current &&
         !buttonRef.current.contains(event.target)
       ) {
-        console.log('Closing dropdown');
         setShowDesktopMenu(false);
       }
     };
-    console.log('Adding click outside listener');
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      console.log('Removing click outside listener');
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Click outside handler for notifications dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        notifDropdownRef.current &&
+        !notifDropdownRef.current.contains(event.target) &&
+        notifButtonRef.current &&
+        !notifButtonRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
@@ -108,6 +121,33 @@ const buttonRef = useRef(null);
       return newState;
     });
   }, [notifications.length, fetchNotifications]);
+
+  const markAsRead = async (id) => {
+    try {
+      await api.put(`/api/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.put('/api/notifications/mark-all-read');
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  const deleteNotif = async (id) => {
+    try {
+      await api.delete(`/api/notifications/${id}`);
+      setNotifications(prev => prev.filter(n => n._id !== id));
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
+  };
 
 
   // Public navigation for landing page (PayPal-like, with mobile collapse)
@@ -295,7 +335,7 @@ const buttonRef = useRef(null);
                   </div>
 
                   {/* Notifications bell */}
-                  <div className="relative dropdown-container">
+                  <div className="relative dropdown-container" ref={notifButtonRef}>
                     <button
                       onClick={toggleNotifications}
                       className="text-gray-700 hover:text-blue-600 relative p-2"
@@ -304,27 +344,39 @@ const buttonRef = useRef(null);
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11 6 0v-1m-6 0H9" />
                       </svg>
-                      {notifications.length > 0 && (
+                      {unreadCount > 0 && (
                         <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                          {notifications.length}
+                          {unreadCount}
                         </span>
                       )}
                     </button>
                     {showNotifications && (
-                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 border">
+                      <div ref={notifDropdownRef} className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 border">
                         <div className="px-4 py-2 border-b">
                           <h3 className="font-semibold">Notifications</h3>
+                          <p className="text-sm text-gray-500">You have {unreadCount} unread messages.</p>
                         </div>
                         <div className="max-h-60 overflow-y-auto">
                           {loadingNotifications ? (
                             <p className="px-4 py-2 text-gray-500">Loading...</p>
                           ) : notifications.length > 0 ? (
                             notifications.map((notif) => (
-                              <div key={notif._id} className="px-4 py-2 border-b last:border-b-0 hover:bg-gray-50">
-                                <p className={`text-sm ${notif.read ? 'text-gray-600' : 'font-medium'}`}>
-                                  {notif.message}
-                                </p>
-                                <p className="text-xs text-gray-500">{new Date(notif.createdAt).toLocaleString()}</p>
+                              <div key={notif._id} className="relative mx-auto flex w-full max-w-full md:pt-[unset] mb-6 px-4">
+                                <div className="w-2 h-2 mt-1 me-4 rounded-full bg-blue-500"></div>
+                                <div className="flex-1">
+                                  <p className="text-zinc-950 dark:text-white font-medium mb-1">
+                                    {notif.message}
+                                  </p>
+                                  <p className="text-zinc-500 dark:text-zinc-400 font-medium">
+                                    {new Date(notif.createdAt).toLocaleString()}
+                                  </p>
+                                </div>
+                                <div className="flex space-x-1 ml-2">
+                                  {!notif.read && (
+                                    <button onClick={() => markAsRead(notif._id)} className="text-xs text-blue-600 hover:underline">Read</button>
+                                  )}
+                                  <button onClick={() => deleteNotif(notif._id)} className="text-xs text-red-600 hover:underline">Delete</button>
+                                </div>
                               </div>
                             ))
                           ) : (
@@ -333,10 +385,10 @@ const buttonRef = useRef(null);
                         </div>
                         <div className="px-4 py-2 border-t">
                           <button
-                            onClick={fetchNotifications}
-                            className="text-blue-600 hover:underline text-sm"
+                            onClick={markAllAsRead}
+                            className="whitespace-nowrap bg-blue-600 text-white hover:bg-blue-700 flex w-full max-w-full items-center justify-center rounded-lg px-4 py-4 text-base font-medium"
                           >
-                            See all
+                            Mark all as read
                           </button>
                         </div>
                       </div>
