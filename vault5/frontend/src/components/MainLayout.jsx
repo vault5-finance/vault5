@@ -7,19 +7,13 @@ const MainLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Auto-collapse sidebar on tablet
+  // Drawer for <lg, sticky for lg+, close on Escape
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768 && window.innerWidth < 1024) {
-        setSidebarCollapsed(true);
-      } else if (window.innerWidth >= 1024) {
-        setSidebarCollapsed(false);
-      }
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
     };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -34,7 +28,7 @@ const MainLayout = ({ children }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden"
+            className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}

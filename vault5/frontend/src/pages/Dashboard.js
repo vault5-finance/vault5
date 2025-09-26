@@ -193,34 +193,34 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <div className="text-xl md:text-2xl font-semibold text-gray-800">{greeting}, {firstName}</div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-      </div>
-
-      {/* Primary Actions */}
-      <div className="mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={handleAddFunds}
-            className="p-4 md:p-5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow hover:from-green-600 hover:to-emerald-700 transition font-semibold text-base md:text-lg"
-          >
-            + Add Funds
-          </button>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <div className="text-xl md:text-2xl font-semibold text-gray-800">{greeting}, {firstName}</div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+        </div>
+        <div className="hidden md:flex items-center gap-3">
           <button
             onClick={handleSendMoney}
-            className="p-4 md:p-5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-lg shadow hover:from-indigo-600 hover:to-blue-700 transition font-semibold text-base md:text-lg"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
           >
-            ⇄ Send Money
+            Send Money
           </button>
           <button
             onClick={() => navigate('/accounts')}
-            className="p-4 md:p-5 bg-gradient-to-r from-slate-500 to-gray-600 text-white rounded-lg shadow hover:from-slate-600 hover:to-gray-700 transition font-semibold text-base md:text-lg"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
           >
-            Vault Accounts
+            Add Account
+          </button>
+          <button
+            onClick={() => navigate('/accounts#goals')}
+            className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
+          >
+            Create Goal
           </button>
         </div>
       </div>
+
+      {/* Primary Actions moved to header Quick Actions */}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -392,29 +392,7 @@ const Dashboard = () => {
             <p className="text-gray-500">No allocation data available</p>
           )}
         </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleSendMoney}
-              className="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium text-sm"
-            >
-              Send Money
-            </button>
-            <button
-              onClick={() => showInfo('Pay Bills feature coming soon!')}
-              className="p-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition duration-200 font-medium text-sm"
-            >
-              Pay Bills
-            </button>
-            <button
-              onClick={handleViewReports}
-              className="p-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 font-medium text-sm"
-            >
-              View History
-            </button>
-          </div>
-        </div>
+        {/* Quick Actions card removed as per new header placement */}
       </div>
 
       {/* Weekly Summary Chart */}

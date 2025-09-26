@@ -7,6 +7,7 @@ import './index.css';
 import NavBar from './components/NavBar';
 import MainLayout from './components/MainLayout';
 import PublicLayout from './components/PublicLayout';
+import { NotificationsProvider } from './contexts/NotificationsContext';
 
  // Initialize performance monitoring
  const { trackRouteChange } = initializePerformanceMonitoring();
@@ -112,8 +113,9 @@ function App() {
 
   return (
     <ToastProvider>
-      <Suspense fallback={<div className="p-8">Loading...</div>}>
-        <Routes>
+      <NotificationsProvider>
+        <Suspense fallback={<div className="p-8">Loading...</div>}>
+          <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicRoute><PublicLayout><Landing /></PublicLayout></PublicRoute>} />
         <Route path="/login" element={<Login />} />
@@ -296,8 +298,9 @@ function App() {
         <Route path="/send-request" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Send & Request Money</h1><p className="mt-4">Send money via Email, Phone, or VaultTag.</p></div></ProtectedRoute>} />
           </Routes>
         </Suspense>
-    </ToastProvider>
-  );
+    </NotificationsProvider>
+  </ToastProvider>
+);
 }
 
 export default App;

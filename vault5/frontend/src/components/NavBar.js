@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
+import { useNotifications } from '../contexts/NotificationsContext';
 
 const NavBar = ({ onMenuClick }) => {
   const navigate = useNavigate();
@@ -15,9 +16,13 @@ const NavBar = ({ onMenuClick }) => {
 
   const notifDropdownRef = useRef(null);
   const notifButtonRef = useRef(null);
+  const notifCtx = useNotifications();
 
-// Computed unread count
-const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
+// Computed unread count (prefer context if available)
+const unreadCount = useMemo(() => {
+  if (notifCtx?.unreadCount != null) return notifCtx.unreadCount;
+  return notifications.filter(n => !n.read).length;
+}, [notifCtx?.unreadCount, notifications]);
 
   // Compliance banner state
   const [compliance, setCompliance] = useState(null);
@@ -34,6 +39,10 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
   // moved below after function declarations to avoid TDZ
 
   const fetchNotifications = useCallback(async () => {
+    if (notifCtx?.refresh) {
+      await notifCtx.refresh();
+      return;
+    }
     if (!token) return;
     setLoadingNotifications(true);
     try {
@@ -44,7 +53,7 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
     } finally {
       setLoadingNotifications(false);
     }
-  }, [token]);
+  }, [token, notifCtx]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
@@ -93,7 +102,7 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
   const toggleNotifications = useCallback(() => {
     setShowNotifications(prev => {
       const newState = !prev;
-      if (newState && notifications.length === 0) {
+      if (newState && (notifCtx?.notifications?.length ?? notifications.length) === 0) {
         fetchNotifications();
       }
       return newState;
@@ -139,7 +148,7 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
             </Link>
 
             {/* Mobile menu button (always visible on mobile) */}
-            <div className="md:hidden">
+            <div className="lg:hidden">
               <button
                 onClick={() => setShowMobileMenu(!showMobileMenu)}
                 className="text-gray-700 hover:text-blue-600 p-2"
@@ -217,7 +226,7 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
 
             {/* Mobile menu button (authenticated) */}
             {token && onMenuClick && (
-              <div className="md:hidden">
+              <div className="lg:hidden">
                 <button
                   onClick={onMenuClick}
                   className="text-gray-700 hover:text-blue-600 p-2"
@@ -262,8 +271,8 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
                         <div className="max-h-60 overflow-y-auto">
                           {loadingNotifications ? (
                             <p className="px-4 py-2 text-gray-500">Loading...</p>
-                          ) : notifications.length > 0 ? (
-                            notifications.map((notif) => (
+                          ) : (notifCtx?.notifications ?? notifications).length > 0 ? (
+                            (notifCtx?.notifications ?? notifications).map((notif) => (
                               <div key={notif._id} className="relative mx-auto flex w-full max-w-full md:pt-[unset] mb-6 px-4">
                                 <div className="w-2 h-2 mt-1 me-4 rounded-full bg-blue-500"></div>
                                 <div className="flex-1">
@@ -276,9 +285,9 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
                                 </div>
                                 <div className="flex space-x-1 ml-2">
                                   {!notif.read && (
-                                    <button onClick={() => markAsRead(notif._id)} className="text-xs text-blue-600 hover:underline">Read</button>
+                                    <button onClick={() => (notifCtx?.markAsRead ? notifCtx.markAsRead(notif._id) : markAsRead(notif._id))} className="text-xs text-blue-600 hover:underline">Read</button>
                                   )}
-                                  <button onClick={() => deleteNotif(notif._id)} className="text-xs text-red-600 hover:underline">Delete</button>
+                                  <button onClick={() => (notifCtx?.deleteNotification ? notifCtx.deleteNotification(notif._id) : deleteNotif(notif._id))} className="text-xs text-red-600 hover:underline">Delete</button>
                                 </div>
                               </div>
                             ))
@@ -288,7 +297,7 @@ const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [no
                         </div>
                         <div className="px-4 py-2 border-t">
                           <button
-                            onClick={markAllAsRead}
+                            onClick={() => (notifCtx?.markAllAsRead ? notifCtx.markAllAsRead() : markAllAsRead())}
                             className="whitespace-nowrap bg-blue-600 text-white hover:bg-blue-700 flex w-full max-w-full items-center justify-center rounded-lg px-4 py-4 text-base font-medium"
                           >
                             Mark all as read
