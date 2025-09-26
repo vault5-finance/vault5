@@ -246,8 +246,8 @@ const unreadCount = useMemo(() => {
                   {/* Spacer for alignment */}
                   <div className="flex-1" />
 
-                  {/* Notifications bell */}
-                  <div className="relative dropdown-container" ref={notifButtonRef}>
+                  {/* Notifications bell removed from navbar; accessible via sidebar */}
+                  <div className="hidden" ref={notifButtonRef}>
                     <button
                       onClick={toggleNotifications}
                       className="text-gray-700 hover:text-blue-600 relative p-2"
@@ -306,7 +306,7 @@ const unreadCount = useMemo(() => {
                       </div>
                     )}
                   </div>
-                  <button onClick={handleLogout} className="text-gray-700 hover:text-blue-600" aria-label="Logout">
+                  <button onClick={handleLogout} className="hidden" aria-label="Logout">
                     Logout
                   </button>
                 </>

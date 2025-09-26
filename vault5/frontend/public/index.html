@@ -23,30 +23,23 @@
 
     <!-- Service Worker: disable in localhost (dev) to avoid stale chunk caching; unregister if previously registered -->
     <script>
+      // Disable service worker registration globally to prevent stale app and "old dashboard" issues.
+      // Also attempts to unregister any existing SW and clear caches in all environments.
       (function () {
         if (!('serviceWorker' in navigator)) return;
         window.addEventListener('load', async function () {
-          const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
           try {
-            if (isLocal) {
-              const regs = await navigator.serviceWorker.getRegistrations();
-              for (const reg of regs) {
-                await reg.unregister();
-              }
-              // Clear potential caches
-              if ('caches' in window) {
-                const keys = await caches.keys();
-                await Promise.all(keys.map((k) => caches.delete(k)));
-              }
-              console.log('ServiceWorker unregistered and caches cleared for dev.');
-              return; // Do not register in dev
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (const reg of regs) {
+              await reg.unregister();
             }
-            // Production registration
-            navigator.serviceWorker.register('/sw.js')
-              .then(function () { console.log('ServiceWorker registration successful'); })
-              .catch(function (error) { console.log('ServiceWorker registration failed: ', error); });
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((k) => caches.delete(k)));
+            }
+            console.log('ServiceWorker disabled, unregistered and caches cleared.');
           } catch (e) {
-            console.log('SW management error:', e);
+            console.log('SW disable error:', e);
           }
         });
       })();

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import api from '../services/api';
@@ -16,6 +16,7 @@ const Investments = () => {
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [form, setForm] = useState({ name: '', type: 'Custom', amount: '', expectedReturn: 0, maturityDate: '', accountSource: '' });
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -36,6 +37,14 @@ const Investments = () => {
       setLoading(false);
     });
   }, [navigate]);
+
+  // Scroll to in-page anchors when hash is present
+  React.useEffect(() => {
+    if (location.hash) {
+      const el = document.getElementById(location.hash.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.hash]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -108,6 +117,13 @@ const Investments = () => {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Investments</h1>
+      <section id="groupsavings" className="mt-4 mb-8 p-4 rounded-lg border border-teal-600/30 bg-teal-50">
+        <h2 className="text-xl font-semibold mb-2">Group Savings (Chamas)</h2>
+        <p className="text-gray-700">
+          Create or join pooled savings groups under Investments. Track contributions,
+          returns, and payouts with transparency for members.
+        </p>
+      </section>
 
       <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 mb-8">
         {showForm ? 'Cancel' : 'Add New Investment'}

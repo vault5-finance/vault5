@@ -1,7 +1,18 @@
 import axios from 'axios';
 import { getOrCreateDeviceId } from '../utils/device';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = (() => {
+  // Priority 1: Explicit env
+  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+
+  // Priority 2: In production on non-localhost, use relative base to enable reverse proxy/rewrite on host
+  if (typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost') {
+    return '';
+  }
+
+  // Fallback: local dev API
+  return 'http://localhost:5000';
+})();
 
 const api = axios.create({
   baseURL: API_BASE_URL,

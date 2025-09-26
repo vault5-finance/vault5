@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import CashFlowProjection from '../components/CashFlowProjection';
 import GamificationDashboard from '../components/GamificationDashboard';
@@ -9,6 +9,7 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('monthly');
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -29,6 +30,14 @@ const Reports = () => {
       setLoading(false);
     });
   }, [period, navigate]);
+
+  // Scroll to in-page anchors when hash is present
+  React.useEffect(() => {
+    if (location.hash) {
+      const el = document.getElementById(location.hash.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.hash]);
 
   const downloadPDF = () => {
     const base = (api.defaults && api.defaults.baseURL) || '';
@@ -68,6 +77,17 @@ const Reports = () => {
           <option value="yearly">Yearly</option>
         </select>
       </div>
+
+      {/* Anchored sections for sidebar deep-links */}
+      <section id="spending" className="mt-8">
+        <h2 className="text-2xl font-semibold mb-3">Spending</h2>
+        <p className="text-gray-600">Spending analytics will appear here. Use the period selector above to change scope.</p>
+      </section>
+
+      <section id="income" className="mt-10">
+        <h2 className="text-2xl font-semibold mb-3">Income</h2>
+        <p className="text-gray-600">Income trends and breakdowns will be shown here.</p>
+      </section>
 
       {report && (
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -126,7 +146,10 @@ const Reports = () => {
         </div>
       )}
 
-      <CashFlowProjection />
+      <section id="cashflow" className="mt-12">
+        <h2 className="text-2xl font-semibold mb-4">Cashflow</h2>
+        <CashFlowProjection />
+      </section>
 
       <GamificationDashboard />
     </div>
