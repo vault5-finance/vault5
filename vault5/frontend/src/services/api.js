@@ -5,14 +5,30 @@ const API_BASE_URL = (() => {
   // Priority 1: Explicit env
   if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
 
-  // Priority 2: In production on non-localhost, use relative base to enable reverse proxy/rewrite on host
-  if (typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost') {
-    return '';
+  // Priority 2: Host-aware defaults
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname;
+
+    // If frontend runs on Vercel, default to Render backend
+    if (host.endsWith('.vercel.app') || host === 'vault5.vercel.app') {
+      return 'https://vault5.onrender.com';
+    }
+
+    // In production on non-localhost (and not on Vercel), use relative base to allow reverse proxy/rewrite
+    if (host !== 'localhost') {
+      return '';
+    }
   }
 
   // Fallback: local dev API
   return 'http://localhost:5000';
 })();
+
+// Diagnostic: log resolved baseURL (helps verify Vercel -> Render wiring)
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line no-console
+  console.log('[Vault5] API baseURL:', API_BASE_URL);
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
