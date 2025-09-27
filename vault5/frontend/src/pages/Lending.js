@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
@@ -11,6 +11,18 @@ const Lending = () => {
   const [showModal, setShowModal] = useState(false);
   const [userAccounts, setUserAccounts] = useState([]);
   const navigate = useNavigate();
+  const [analytics, setAnalytics] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [overdueSummary, setOverdueSummary] = useState(null);
+  const [processingReminders, setProcessingReminders] = useState(false);
+
+  const filteredLendings = useMemo(() => {
+    if (filterStatus === 'all') return lendings;
+    if (filterStatus === 'written_off') {
+      return lendings.filter(l => l.status === 'written_off');
+    }
+    return lendings.filter(l => l.status === filterStatus);
+  }, [lendings, filterStatus]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -41,6 +53,20 @@ const Lending = () => {
     });
   }, [navigate]);
 
+  // Monthly analytics summary for top bar
+  useEffect(() => {
+    api.get('/api/lending/analytics', { params: { period: 'month' } })
+      .then(resp => setAnalytics(resp.data))
+      .catch(() => {});
+  }, [navigate]);
+
+  // Fetch overdue summary
+  useEffect(() => {
+    api.get('/api/scheduler/overdue-summary')
+      .then(resp => setOverdueSummary(resp.data.summary))
+      .catch(() => {});
+  }, [navigate]);
+
   const handleLoanRequest = async (loanData) => {
     try {
       const response = await api.post('/api/lending', loanData);
@@ -66,11 +92,84 @@ const Lending = () => {
     });
   };
 
+  const processOverdueReminders = async () => {
+    setProcessingReminders(true);
+    try {
+      const response = await api.post('/api/scheduler/process-user-overdue');
+      showSuccess(`Processed ${response.data.results.processed} overdue reminders`);
+      // Refresh data
+      window.location.reload();
+    } catch (error) {
+      console.error('Process reminders error:', error);
+      showError(error.response?.data?.message || 'Error processing reminders');
+    } finally {
+      setProcessingReminders(false);
+    }
+  };
+
   if (loading) return <div className="p-8">Loading lendings...</div>;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Lending & Borrowing</h1>
+      <h1 className="text-3xl font-bold mb-4">Lending & Borrowing</h1>
+
+      {/* Summary bar */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <div className="rounded-lg border bg-white p-4">
+          <div className="text-xs text-gray-500">Total Lendings</div>
+          <div className="text-xl font-semibold">{analytics?.totalLendings ?? 0}</div>
+        </div>
+        <div className="rounded-lg border bg-white p-4">
+          <div className="text-xs text-gray-500">Amount Lent (This Period)</div>
+          <div className="text-xl font-semibold">KES {Number(analytics?.totalAmountLent ?? 0).toLocaleString()}</div>
+        </div>
+        <div className="rounded-lg border bg-white p-4">
+          <div className="text-xs text-gray-500">Repaid</div>
+          <div className="text-xl font-semibold">{analytics?.repaidCount ?? 0}</div>
+        </div>
+        <div className="rounded-lg border bg-white p-4">
+          <div className="text-xs text-gray-500">Repayment Rate</div>
+          <div className="text-xl font-semibold">{analytics?.repaymentRate ?? 0}%</div>
+        </div>
+      </div>
+
+      {/* Overdue Summary Alert */}
+      {overdueSummary && overdueSummary.totalCount > 0 && (
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-6 mb-6">
+          <h3 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
+            <span>🚨</span> Overdue Reminders
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">{overdueSummary.totalCount}</div>
+              <div className="text-sm text-red-700">Overdue Items</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">KES {overdueSummary.totalAmount.toLocaleString()}</div>
+              <div className="text-sm text-red-700">Total Amount</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">
+                {Math.round(overdueSummary.lendings.reduce((sum, l) => sum + l.daysOverdue, 0) / overdueSummary.totalCount)} days
+              </div>
+              <div className="text-sm text-red-700">Avg Days Overdue</div>
+            </div>
+          </div>
+          <div className="text-sm text-red-700">
+            <strong>Recent overdue items:</strong>
+            <ul className="mt-2 space-y-1">
+              {overdueSummary.lendings.slice(0, 3).map((lending, index) => (
+                <li key={index} className="flex justify-between items-center">
+                  <span>{lending.borrowerName} - KES {lending.amount.toLocaleString()}</span>
+                  <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                    {lending.daysOverdue} days overdue
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6 mb-6">
         <h3 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
@@ -93,17 +192,50 @@ const Lending = () => {
         </div>
       </div>
 
-      <button
-        onClick={() => setShowModal(true)}
-        className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 mb-8 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-      >
-        🤝 Request Loan from Contact
-      </button>
+      <div className="flex gap-4 mb-8">
+        <button
+          onClick={() => setShowModal(true)}
+          className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+        >
+          🤝 Request Loan from Contact
+        </button>
+        <button
+          onClick={processOverdueReminders}
+          disabled={processingReminders}
+          className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-700 hover:to-red-700 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {processingReminders ? '⏳ Processing...' : '🚨 Check Overdue Reminders'}
+        </button>
+      </div>
 
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold mb-4">Lending History</h2>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'pending', label: 'Pending' },
+            { key: 'overdue', label: 'Overdue' },
+            { key: 'repaid', label: 'Repaid' },
+            { key: 'written_off', label: 'Written Off' }
+          ].map(chip => (
+            <button
+              key={chip.key}
+              onClick={() => setFilterStatus(chip.key)}
+              className={`px-3 py-1.5 rounded-full border transition ${
+                filterStatus === chip.key
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-4">
-          {lendings.map(lending => (
+          {filteredLendings.map(lending => (
             <div key={lending._id} className={`border p-4 rounded-lg ${lending.status === 'repaid' ? 'border-green-300 bg-green-50' : lending.status === 'overdue' ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}>
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -129,6 +261,14 @@ const Lending = () => {
                 </div>
                 <div>
                   <span className="font-medium">Expected Return:</span> {new Date(lending.expectedReturnDate).toLocaleDateString()}
+                  {lending.status === 'overdue' && (
+                    <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                      {(() => {
+                        const daysOverdue = Math.floor((new Date() - new Date(lending.expectedReturnDate)) / (1000 * 60 * 60 * 24));
+                        return `${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue`;
+                      })()}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -149,6 +289,21 @@ const Lending = () => {
                   <span className="font-medium">Security:</span> Trust Score {lending.securityChecks.trustScore}/100
                   {lending.securityChecks.mfaRequired && ' • MFA Required'}
                   {lending.securityChecks.escrowEnabled && ' • Escrow Protected'}
+                </div>
+              )}
+
+              {lending.status === 'overdue' && (
+                <div className="text-xs bg-red-50 p-2 rounded mb-3 border border-red-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-600">📧</span>
+                    <span className="font-medium text-red-800">Reminder Sent:</span>
+                    <span className="text-red-700">
+                      {(() => {
+                        const daysOverdue = Math.floor((new Date() - new Date(lending.expectedReturnDate)) / (1000 * 60 * 60 * 24));
+                        return `Overdue reminder sent ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago`;
+                      })()}
+                    </span>
+                  </div>
                 </div>
               )}
 

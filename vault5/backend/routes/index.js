@@ -21,6 +21,7 @@ const gamificationRoutes = require('./gamification');
 const receiptsRoutes = require('./receipts');
 const complianceRoutes = require('./compliance');
 const paymentsRoutes = require('./payments');
+const schedulerRoutes = require('./scheduler');
 
 // Export all routes
 module.exports = {
@@ -46,5 +47,6 @@ module.exports = {
   gamificationRoutes,
   receiptsRoutes,
   complianceRoutes,
-  paymentsRoutes
+  paymentsRoutes,
+  schedulerRoutes
 };

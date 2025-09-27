@@ -13,6 +13,31 @@ const Account = require('./models/Account');
 // Load environment variables first
 dotenv.config();
 
+/**
+ * Environment Variables Configuration for Deployment
+ *
+ * Required Environment Variables:
+ * - MONGO_URI: MongoDB connection string
+ *   - Local: mongodb://localhost:27017/vault5
+ *   - Production: MongoDB Atlas or hosted MongoDB URI
+ *
+ * - CORS_ALLOWED_ORIGINS: Allowed origins for CORS (see CORS section below)
+ *   - Production: "https://vault5.vercel.app,https://*.vercel.app"
+ *
+ * Optional Environment Variables:
+ * - PORT: Server port (defaults to 5000)
+ *   - Render: Automatically set by platform
+ *   - Local development: Can be overridden
+ *
+ * - NODE_ENV: Environment mode
+ *   - production: Enables production optimizations
+ *   - development: Enables verbose logging (default)
+ *
+ * Deployment Platform Variables:
+ * - Render: Automatically sets PORT and may require CORS_ALLOWED_ORIGINS
+ * - Vercel: Requires REACT_APP_API_URL to be set in dashboard
+ */
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -23,6 +48,25 @@ loadSecrets().then(secretsLoaded => {
   }
 
   // Middleware (security, compression, CORS)
+  /**
+   * CORS Configuration for Deployment Environments
+   *
+   * Environment Variables:
+   * - CORS_ALLOWED_ORIGINS: Comma-separated list of allowed origins
+   *   - Production: "https://vault5.vercel.app,https://*.vercel.app"
+   *   - Development: "*" (allows all origins)
+   *   - Custom domains: Add your domain(s) to the list
+   *
+   * Supported origin patterns:
+   * - Exact match: https://vault5.vercel.app
+   * - Wildcard subdomains: *.vercel.app (matches any subdomain)
+   * - Regex patterns: regex:^https://.*\.vercel\.app$ (advanced matching)
+   *
+   * For Render deployment, set CORS_ALLOWED_ORIGINS to include:
+   * - https://vault5.vercel.app (main production domain)
+   * - *.vercel.app (preview deployments)
+   * - Your custom domain (if using one)
+   */
   const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '*')
     .split(',')
     .map(s => s.trim())
@@ -172,6 +216,7 @@ const linkedAccountsRoutes = require('./routes/linkedAccounts');
 const walletRoutes = require('./routes/wallet');
 const otpRoutes = require('./routes/otp');
 const emailVerificationRoutes = require('./routes/emailVerification');
+const schedulerRoutes = require('./routes/scheduler');
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/compliance', adminComplianceRoutes);
@@ -200,6 +245,7 @@ app.use('/api/linked-accounts', linkedAccountsRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/email-verification', emailVerificationRoutes);
+app.use('/api/scheduler', schedulerRoutes);
 // Compliance & KYC routes
 app.use('/api/compliance', require('./routes').complianceRoutes);
 

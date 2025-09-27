@@ -68,8 +68,45 @@ const calculateSafeAmount = async (req, res) => {
       return res.status(400).json({ message: 'requestedAmount must be >= 0' });
     }
 
+    // Base safe amount calculation
     const result = await calculateSafeLendingAmount(req.user._id, amountNum, approvedEmergency);
-    return res.json(result);
+
+    // Enrich with policy insight: monthly cap usage and cool-off status
+    const userDoc = await User.findById(req.user._id);
+    const monthlyCap = (userDoc?.preferences?.lendingRules?.nonRepayCap ?? 3);
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextAllowedDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    // Non-repayable usage in current month
+    const capsUsed = await Lending.countDocuments({
+      user: req.user._id,
+      createdAt: { $gte: monthStart },
+      $or: [{ repayable: false }, { status: 'written_off' }]
+    });
+
+    // Cool-off computation from last 90 days non-repayables
+    const window90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const last90Count = await Lending.countDocuments({
+      user: req.user._id,
+      createdAt: { $gte: window90 },
+      $or: [{ repayable: false }, { status: 'written_off' }]
+    });
+    const coolOffDays = last90Count >= 3 ? 60 : (last90Count >= 2 ? 30 : 0);
+    const coolOffEndsAt = coolOffDays > 0 ? new Date(Date.now() + coolOffDays * 24 * 60 * 60 * 1000) : null;
+
+    return res.json({
+      ...result,
+      policy: {
+        monthlyCap,
+        capsUsed,
+        nextAllowedDate,
+        coolOffDays,
+        coolOffEndsAt,
+        last90NonRepayables: last90Count
+      }
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

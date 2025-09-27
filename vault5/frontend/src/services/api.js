@@ -1,26 +1,55 @@
 import axios from 'axios';
 import { getOrCreateDeviceId } from '../utils/device';
 
+/**
+ * API Base URL Configuration with Environment-Aware Fallback Logic
+ *
+ * Priority order for determining API base URL:
+ * 1. REACT_APP_API_URL environment variable (highest priority)
+ *    - Set this in Vercel dashboard for production deployments
+ *    - Allows overriding for different environments (staging, testing, etc.)
+ *
+ * 2. Host-aware automatic detection:
+ *    - Vercel deployments (*.vercel.app or vault5.vercel.app) → Render backend
+ *    - Production domains (non-localhost, non-Vercel) → relative path for reverse proxy
+ *    - Supports preview deployments and custom domains
+ *
+ * 3. Development fallback:
+ *    - Localhost defaults to http://localhost:5000 for local development
+ *
+ * This ensures seamless communication between frontend and backend across:
+ * - Local development (localhost)
+ * - Vercel production deployments
+ * - Vercel preview deployments
+ * - Custom production domains with reverse proxies
+ */
 const API_BASE_URL = (() => {
-  // Priority 1: Explicit env
-  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+  // Priority 1: Explicit environment variable override
+  if (process.env.REACT_APP_API_URL) {
+    console.log('[Vault5] Using REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+    return process.env.REACT_APP_API_URL;
+  }
 
-  // Priority 2: Host-aware defaults
+  // Priority 2: Host-aware automatic detection
   if (typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
+    const protocol = window.location.protocol;
 
-    // If frontend runs on Vercel, default to Render backend
+    // Vercel deployments (production and preview) → Render backend
     if (host.endsWith('.vercel.app') || host === 'vault5.vercel.app') {
+      console.log('[Vault5] Vercel deployment detected, using Render backend');
       return 'https://vault5.onrender.com';
     }
 
-    // In production on non-localhost (and not on Vercel), use relative base to allow reverse proxy/rewrite
-    if (host !== 'localhost') {
+    // Production domains (non-localhost, non-Vercel) → relative path for reverse proxy
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+      console.log('[Vault5] Production domain detected, using relative path for reverse proxy');
       return '';
     }
   }
 
-  // Fallback: local dev API
+  // Priority 3: Local development fallback
+  console.log('[Vault5] Local development mode, using localhost backend');
   return 'http://localhost:5000';
 })();
 

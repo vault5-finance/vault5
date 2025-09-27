@@ -114,7 +114,7 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
   const handleContactSelect = (contact) => {
     setSelectedContact(contact);
     setStep(2);
-
+  
     // Auto-fill form with contact details
     setForm(prev => ({
       ...prev,
@@ -123,9 +123,11 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
       borrowerEmail: contact.email,
       borrowerVaultTag: contact.vaultUsername
     }));
-
+  
     // Check security for this contact
     checkSecurityRequirements(contact);
+    // Fetch borrower trust score from history
+    fetchBorrowerScore(contact);
   };
 
   const checkSecurityRequirements = async (contact) => {
@@ -136,8 +138,11 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
         amount: parseFloat(form.amount) || 0,
         isVaultUser: contact.vaultUser
       });
-
-      setSecurityChecks(response.data);
+  
+      setSecurityChecks(prev => ({
+        ...prev,
+        ...response.data
+      }));
     } catch (error) {
       console.error('Security check failed:', error);
     }
@@ -151,6 +156,26 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
       setLendingRules(response.data);
     } catch (error) {
       console.error('Lending rules calculation failed:', error);
+    }
+  };
+  
+  // Fetch borrower Trust Score from backend history
+  const fetchBorrowerScore = async (contact) => {
+    try {
+      const resp = await api.get('/api/lending/score', {
+        params: { contact: contact.phone }
+      });
+      const score = resp?.data?.score ?? 0;
+      setSecurityChecks(prev => ({
+        ...prev,
+        isKnownContact: !!contact.vaultUser,
+        trustScore: score,
+        // Require MFA if score is low; keep any previous requirement
+        mfaRequired: prev.mfaRequired || score < 50
+      }));
+    } catch (e) {
+      // Non-blocking
+      console.warn('Borrower score fetch failed:', e?.message || e);
     }
   };
 
@@ -394,6 +419,21 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
                             </div>
                           )}
                         </div>
+                        {lendingRules.policy && (
+                          <div className="mt-2 text-xs">
+                            <div className="text-blue-700">
+                              Cap usage this month: {lendingRules.policy.capsUsed}/{lendingRules.policy.monthlyCap}
+                            </div>
+                            {lendingRules.policy.coolOffDays > 0 && (
+                              <div className="text-red-700">
+                                Cool-off active: {lendingRules.policy.coolOffDays} days
+                                {lendingRules.policy.coolOffEndsAt && (
+                                  <> • until {new Date(lendingRules.policy.coolOffEndsAt).toLocaleDateString()}</>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -497,7 +537,7 @@ const ContactBasedLendingModal = ({ isOpen, onClose, onSubmit, userAccounts = []
                   </div>
                   <div className="flex items-center text-blue-700">
                     <span className="mr-2">📊</span>
-                    Trust Score: {selectedContact.trustScore}/100
+                    Trust Score: {(securityChecks.trustScore || selectedContact.trustScore || 0)}/100
                   </div>
                   {form.escrowEnabled && (
                     <div className="flex items-center text-blue-700">
