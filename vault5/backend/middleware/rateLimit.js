@@ -22,4 +22,15 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { authLimiter, apiLimiter };
+// Lending-specific limiter
+const lendingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // limit each IP to 30 lending actions per window
+  message: {
+    message: 'Too many lending actions, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { authLimiter, apiLimiter, lendingLimiter };

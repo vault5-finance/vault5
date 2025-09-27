@@ -55,16 +55,154 @@ const calculateSafeLendingAmount = async (userId, requestedAmount, approvedEmerg
     throw new Error(`Rule engine error: ${error.message}`);
   }
 };
+// Expose safe amount calculation as an endpoint
+const calculateSafeAmount = async (req, res) => {
+  try {
+    const { requestedAmount, approvedEmergency = false } = req.body || {};
+    const amountNum = Number(requestedAmount);
+
+    if (requestedAmount === undefined || requestedAmount === null || Number.isNaN(amountNum)) {
+      return res.status(400).json({ message: 'requestedAmount is required and must be a number' });
+    }
+    if (amountNum < 0) {
+      return res.status(400).json({ message: 'requestedAmount must be >= 0' });
+    }
+
+    const result = await calculateSafeLendingAmount(req.user._id, amountNum, approvedEmergency);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Borrower Trust Score endpoint
+const getBorrowerScore = async (req, res) => {
+  try {
+    const { contact, name } = req.query || {};
+    if (!contact && !name) {
+      return res.status(400).json({ message: 'Provide contact or name query parameter' });
+    }
+
+    const match = {
+      user: req.user._id,
+      $or: []
+    };
+    if (contact) match.$or.push({ borrowerContact: contact });
+    if (name) match.$or.push({ borrowerName: name });
+
+    const lendings = await Lending.find(match).sort({ createdAt: 1 });
+    const total = lendings.length;
+    const repaid = lendings.filter(l => l.status === 'repaid').length;
+    const overdue = lendings.filter(l => l.status === 'overdue').length;
+    const writtenOff = lendings.filter(l => l.status === 'written_off').length;
+    const amounts = lendings.map(l => l.amount || 0);
+    const avgAmount = amounts.length ? amounts.reduce((a, b) => a + b, 0) / amounts.length : 0;
+
+    let monthsActive = 0;
+    if (total > 0) {
+      const first = lendings[0].createdAt;
+      const now = new Date();
+      monthsActive = Math.max(1, Math.round((now - first) / (1000 * 60 * 60 * 24 * 30)));
+    }
+
+    const repaymentRate = total > 0 ? repaid / total : 0;
+    const overdueFrac = total > 0 ? overdue / total : 0;
+    const historyFrac = Math.min(1, monthsActive / 12);
+    const activityFrac = Math.min(1, total / 10);
+
+    // Heuristic scoring 0-100
+    let raw =
+      60 * repaymentRate +     // reward paying back
+      20 * historyFrac +       // reward long history
+      10 * activityFrac -      // reward more data points
+      40 * overdueFrac;        // penalize overdue
+
+    raw = Math.max(0, Math.min(100, Math.round(raw)));
+
+    return res.json({
+      score: raw,
+      factors: {
+        total,
+        repaid,
+        overdue,
+        writtenOff,
+        avgAmount,
+        monthsActive,
+        repaymentRate: Number(repaymentRate.toFixed(2))
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 // Create lending request
 const createLending = async (req, res) => {
   try {
-    const { borrowerName, borrowerContact, amount, type, expectedReturnDate, notes, approvedEmergency = false } = req.body;
+    const {
+      borrowerName,
+      borrowerContact,
+      amount,
+      type = 'non-emergency',
+      expectedReturnDate,
+      notes,
+      approvedEmergency = false,
+      repayable = true
+    } = req.body || {};
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Valid amount is required' });
     }
 
+    const isNonRepayableRequest = (repayable === false) || (String(type).toLowerCase() === 'non-emergency');
+
+    // Load user for per-user lending rules
+    const userDoc = await User.findById(req.user._id);
+    const monthlyCap = (userDoc?.preferences?.lendingRules?.nonRepayCap ?? 3);
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextAllowedDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    // Enforce monthly cap for non-repayables
+    if (isNonRepayableRequest) {
+      const monthNonRepCount = await Lending.countDocuments({
+        user: req.user._id,
+        createdAt: { $gte: monthStart },
+        $or: [{ repayable: false }, { status: 'written_off' }]
+      });
+
+      if (monthNonRepCount >= monthlyCap) {
+        return res.status(400).json({
+          message: 'Exceeded non-repayable lending cap for this month',
+          capsUsed: monthNonRepCount,
+          monthlyCap,
+          nextAllowedDate
+        });
+      }
+    }
+
+    // Enforce cool-off windows based on last 90 days non-repayables
+    if (isNonRepayableRequest) {
+      const window90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const last90Count = await Lending.countDocuments({
+        user: req.user._id,
+        createdAt: { $gte: window90 },
+        $or: [{ repayable: false }, { status: 'written_off' }]
+      });
+      const coolOffDays = last90Count >= 3 ? 60 : (last90Count >= 2 ? 30 : 0);
+      if (coolOffDays > 0) {
+        const coolOffEndsAt = new Date(Date.now() + coolOffDays * 24 * 60 * 60 * 1000);
+        return res.status(429).json({
+          message: 'Cool-off period in effect for non-repayable lending',
+          last90NonRepayables: last90Count,
+          coolOffDays,
+          coolOffEndsAt
+        });
+      }
+    }
+
+    // Safe lending calculation and enforcement
     const safeLending = await calculateSafeLendingAmount(req.user._id, amount, approvedEmergency);
 
     if (amount > safeLending.recommendedAmount) {
@@ -75,6 +213,17 @@ const createLending = async (req, res) => {
       });
     }
 
+    // Resolve source accounts by type
+    const sourceEntries = Object.entries(safeLending.sourceBreakdown);
+    const resolvedSources = [];
+    for (const [accountType, amt] of sourceEntries) {
+      if (amt <= 0) continue;
+      const acc = await Account.findOne({ user: req.user._id, type: accountType });
+      if (acc) {
+        resolvedSources.push({ account: acc._id, amount: amt });
+      }
+    }
+
     // Create lending record
     const lending = new Lending({
       user: req.user._id,
@@ -82,12 +231,10 @@ const createLending = async (req, res) => {
       borrowerContact,
       amount,
       type,
+      repayable,
       expectedReturnDate,
       notes,
-      sourceAccounts: Object.entries(safeLending.sourceBreakdown).map(([accountType, amt]) => {
-        const account = req.user.accounts.find(acc => acc.type === accountType);
-        return { account: account._id, amount: amt };
-      })
+      sourceAccounts: resolvedSources
     });
     await lending.save();
 
@@ -109,18 +256,15 @@ const createLending = async (req, res) => {
       await account.save();
     }
 
-    // Check for cap on non-repayable (simple check, e.g., max 3 per month - implement user setting later)
-    const recentLendings = await Lending.countDocuments({
-      user: req.user._id,
-      type: 'non-emergency',
-      createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
-    });
-    if (recentLendings > 3 && type === 'non-emergency') {
-      return res.status(400).json({ message: 'Exceeded non-repayable lending cap for this period' });
-    }
-
     // Notify about outstanding lending debt
-    await generateNotification(req.user._id, 'lending_debt', 'Outstanding Lending Debt', `You have lent KES ${amount} to ${borrowerName}. Expected return: ${expectedReturnDate ? new Date(expectedReturnDate).toLocaleDateString() : 'N/A'}`, lending._id, 'medium');
+    await generateNotification(
+      req.user._id,
+      'lending_debt',
+      'Outstanding Lending Debt',
+      `You have lent KES ${amount} to ${borrowerName}. Expected return: ${expectedReturnDate ? new Date(expectedReturnDate).toLocaleDateString() : 'N/A'}`,
+      lending._id,
+      'medium'
+    );
 
     res.status(201).json(lending);
   } catch (error) {
@@ -241,5 +385,7 @@ module.exports = {
   updateLendingStatus,
   getLendingLedger,
   calculateSafeLendingAmount,
+  calculateSafeAmount,
+  getBorrowerScore,
   getLendingAnalytics
 };
