@@ -1,0 +1,240 @@
+/* EMI Design Tokens - Centralized brand variables and utilities */
+
+/* Brand Colors */
+:root {
+  /* Primary EMI Colors */
+  --emi-primary: rgb(15 76 140); /* Deep EMI blue */
+  --emi-primary-light: rgb(59 130 246);
+  --emi-primary-dark: rgb(30 58 138);
+  --emi-secondary: rgb(26 75 140); /* EMI deep blue */
+  --emi-accent: rgb(37 99 235);
+
+  /* EMI Status Colors */
+  --emi-success: rgb(5 150 105);
+  --emi-success-light: rgb(16 185 129);
+  --emi-warning: rgb(217 119 6);
+  --emi-warning-light: rgb(245 158 11);
+  --emi-danger: rgb(239 68 68);
+  --emi-danger-light: rgb(252 165 165);
+  --emi-info: rgb(8 145 178);
+  --emi-info-light: rgb(6 182 212);
+
+  /* EMI Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--emi-primary), var(--emi-secondary));
+  --gradient-secondary: linear-gradient(135deg, var(--emi-primary), var(--emi-primary-light));
+  --gradient-success: linear-gradient(135deg, var(--emi-success), var(--emi-success-light));
+  --gradient-warning: linear-gradient(135deg, var(--emi-warning), var(--emi-warning-light));
+  --gradient-danger: linear-gradient(135deg, var(--emi-danger), var(--emi-danger-light));
+  --gradient-info: linear-gradient(135deg, var(--emi-info), var(--emi-info-light));
+
+  /* EMI Shadows */
+  --shadow-emi-sm: 0 1px 2px 0 rgba(15, 76, 140, 0.05);
+  --shadow-emi-md: 0 4px 6px -1px rgba(15, 76, 140, 0.1), 0 2px 4px -1px rgba(15, 76, 140, 0.06);
+  --shadow-emi-lg: 0 10px 15px -3px rgba(15, 76, 140, 0.1), 0 4px 6px -2px rgba(15, 76, 140, 0.05);
+
+  /* EMI Border Radius */
+  --radius-emi-sm: 0.375rem;
+  --radius-emi-md: 0.5rem;
+  --radius-emi-lg: 0.75rem;
+  --radius-emi-xl: 1rem;
+
+  /* EMI Focus Ring */
+  --focus-ring-emi: 0 0 0 3px rgba(15, 76, 140, 0.1);
+}
+
+/* EMI Button Styles */
+.emi-btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-emi-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-emi-sm);
+}
+
+.emi-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-emi-md);
+}
+
+.emi-btn-primary:focus {
+  outline: none;
+  box-shadow: var(--focus-ring-emi);
+}
+
+.emi-btn-secondary {
+  background: var(--gradient-success);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-emi-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-emi-sm);
+}
+
+.emi-btn-secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-emi-md);
+}
+
+/* EMI Card Styles */
+.emi-card {
+  background: white;
+  border-radius: var(--radius-emi-xl);
+  box-shadow: var(--shadow-emi-md);
+  padding: 1.5rem;
+  border: 1px solid rgba(15, 76, 140, 0.1);
+  transition: all 0.3s ease;
+}
+
+.emi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-emi-lg);
+  border-color: rgba(15, 76, 140, 0.2);
+}
+
+/* EMI Status Indicators */
+.emi-status-green {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.05), rgba(16, 185, 129, 0.1));
+  color: var(--emi-success);
+  border-left: 4px solid var(--emi-success);
+}
+
+.emi-status-red {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.1));
+  color: var(--emi-danger);
+  border-left: 4px solid var(--emi-danger);
+}
+
+.emi-status-blue {
+  background: linear-gradient(135deg, rgba(15, 76, 140, 0.05), rgba(59, 130, 246, 0.1));
+  color: var(--emi-primary);
+  border-left: 4px solid var(--emi-primary);
+}
+
+/* EMI Loading Animation */
+.emi-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(15, 76, 140, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--emi-primary);
+  animation: emi-spin 1s ease-in-out infinite;
+}
+
+@keyframes emi-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* EMI Hover Effects */
+.emi-hover-lift {
+  transition: all 0.2s ease;
+}
+
+.emi-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-emi-md);
+}
+
+/* EMI Text Gradient */
+.emi-text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* EMI Focus States */
+.emi-focus-ring:focus {
+  outline: none;
+  box-shadow: var(--focus-ring-emi);
+}
+
+/* EMI Background Patterns */
+.emi-bg-pattern {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(15, 76, 140, 0.15) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+/* EMI Progress Bars */
+.emi-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(15, 76, 140, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.emi-progress-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* EMI Form Elements */
+.emi-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(15, 76, 140, 0.2);
+  border-radius: var(--radius-emi-md);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.emi-input:focus {
+  outline: none;
+  border-color: var(--emi-primary);
+  box-shadow: var(--focus-ring-emi);
+}
+
+/* EMI Navigation Styles */
+.emi-nav-link {
+  color: rgba(15, 76, 140, 0.7);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.emi-nav-link:hover {
+  color: var(--emi-primary);
+}
+
+.emi-nav-link.active {
+  color: var(--emi-primary);
+  font-weight: 600;
+}
+
+/* EMI Responsive Helpers */
+@media (max-width: 768px) {
+  .emi-card {
+    padding: 1rem;
+  }
+
+  .emi-btn-primary,
+  .emi-btn-secondary {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* EMI Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --shadow-emi-sm: 0 1px 2px 0 rgba(15, 76, 140, 0.1);
+    --shadow-emi-md: 0 4px 6px -1px rgba(15, 76, 140, 0.2), 0 2px 4px -1px rgba(15, 76, 140, 0.12);
+    --shadow-emi-lg: 0 10px 15px -3px rgba(15, 76, 140, 0.2), 0 4px 6px -2px rgba(15, 76, 140, 0.1);
+  }
+
+  .emi-card {
+    background: rgb(30, 30, 30);
+    border-color: rgba(15, 76, 140, 0.2);
+  }
+}

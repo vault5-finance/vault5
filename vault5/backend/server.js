@@ -21,8 +21,9 @@ dotenv.config();
  *   - Local: mongodb://localhost:27017/vault5
  *   - Production: MongoDB Atlas or hosted MongoDB URI
  *
- * - CORS_ALLOWED_ORIGINS: Allowed origins for CORS (see CORS section below)
- *   - Production: "https://vault5.vercel.app,https://*.vercel.app"
+ * - CORS_ALLOWED_ORIGINS: Comma-separated list of allowed origins for CORS
+ *   - Render deployment: "https://vault5.vercel.app,https://*.vercel.app"
+ *   - Include main production domain and all preview deployments
  *
  * Optional Environment Variables:
  * - PORT: Server port (defaults to 5000)
@@ -53,7 +54,7 @@ loadSecrets().then(secretsLoaded => {
    *
    * Environment Variables:
    * - CORS_ALLOWED_ORIGINS: Comma-separated list of allowed origins
-   *   - Production: "https://vault5.vercel.app,https://*.vercel.app"
+   *   - Render deployment: "https://vault5.vercel.app,https://*.vercel.app"
    *   - Development: "*" (allows all origins)
    *   - Custom domains: Add your domain(s) to the list
    *

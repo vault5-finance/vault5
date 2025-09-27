@@ -7,6 +7,11 @@ import AddFundsModal from '../components/AddFundsModal';
 import SendMoneyModal from '../components/SendMoneyModal';
 import { useToast } from '../contexts/ToastContext';
 
+import { motion } from 'framer-motion';
+import CountUp from 'react-countup';
+import { PaperAirplaneIcon, PlusCircleIcon, FlagIcon, ArrowTrendingUpIcon, ArrowDownCircleIcon, BanknotesIcon } from '@heroicons/react/24/solid';
+import { InformationCircleIcon } from '@heroicons/react/24/outline';
+import DashboardSkeleton from '../components/DashboardSkeleton';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement);
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -132,13 +137,23 @@ const Dashboard = () => {
     fetchData();
   }, [navigate]);
 
-  if (loading) return <div className="p-8">Loading dashboard...</div>;
+  if (loading) return <DashboardSkeleton />;
 
   const pieData = {
     labels: data.allocationData.map(acc => acc.type),
     datasets: [{
       data: data.allocationData.map(acc => acc.balance),
-      backgroundColor: data.allocationData.map(acc => acc.status === 'red' ? '#ef4444' : acc.status === 'green' ? '#10b981' : '#3b82f6'),
+      backgroundColor: data.allocationData.map(acc =>
+        acc.status === 'red' ? 'rgb(239 68 68)' :
+        acc.status === 'green' ? 'rgb(5 150 105)' :
+        'rgb(15 76 140)'
+      ),
+      borderColor: data.allocationData.map(acc =>
+        acc.status === 'red' ? 'rgb(220 38 38)' :
+        acc.status === 'green' ? 'rgb(5 150 105)' :
+        'rgb(15 76 140)'
+      ),
+      borderWidth: 2,
     }]
   };
 
@@ -193,48 +208,79 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
+      <motion.div
+        className="mb-6 flex items-center justify-between"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+      >
         <div>
-          <div className="text-xl md:text-2xl font-semibold text-gray-800">{greeting}, {firstName}</div>
+          <div className="text-xl md:text-2xl font-semibold text-gray-800">
+            {greeting}, <span className="text-indigo-600">{firstName}</span>
+          </div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
         </div>
         <div className="hidden md:flex items-center gap-3">
           <button
             onClick={handleSendMoney}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            className="px-4 py-2 bg-gradient-primary text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 inline-flex items-center gap-2 font-medium"
+            style={{ background: 'var(--gradient-primary)' }}
           >
-            Send Money
+            <PaperAirplaneIcon className="h-5 w-5" />
+            <span>Send Money</span>
           </button>
           <button
             onClick={() => navigate('/accounts')}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+            className="px-4 py-2 bg-gradient-success text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 inline-flex items-center gap-2 font-medium"
+            style={{ background: 'var(--gradient-success)' }}
           >
-            Add Account
+            <PlusCircleIcon className="h-5 w-5" />
+            <span>Add Account</span>
           </button>
           <button
             onClick={() => navigate('/accounts#goals')}
-            className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
+            className="px-4 py-2 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 inline-flex items-center gap-2 font-medium"
+            style={{ background: 'var(--gradient-secondary)' }}
           >
-            Create Goal
+            <FlagIcon className="h-5 w-5" />
+            <span>Create Goal</span>
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Primary Actions moved to header Quick Actions */}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Vault Wallet</h2>
-          <p className="text-2xl text-indigo-600">KES {data.walletBalance?.toFixed(2) || '0.00'}</p>
+        <div className="relative bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 hover:border-emi-blue/20 group">
+          <div className="absolute right-4 top-4 w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
+            <BanknotesIcon className="h-5 w-5 text-emi-blue" />
+          </div>
+          <h2 className="text-sm font-medium text-gray-500 mb-2">Vault Wallet</h2>
+          <p className="text-3xl font-bold text-emi-blue">
+            KES <CountUp end={Number(data.walletBalance || 0)} duration={1.5} decimals={2} separator="," />
+          </p>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-primary rounded-b-xl transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Health Score</h2>
-          <p className="text-2xl text-purple-600">{data.healthScore || 0}%</p>
+        <div className="relative bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 hover:border-emi-teal/20 group">
+          <div className="absolute right-4 top-4 w-10 h-10 bg-gradient-info rounded-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
+            <ArrowTrendingUpIcon className="h-5 w-5 text-emi-teal" />
+          </div>
+          <h2 className="text-sm font-medium text-gray-500 mb-2">Health Score</h2>
+          <p className="text-3xl font-bold text-emi-teal">
+            <CountUp end={Number(data.healthScore || 0)} duration={1.5} suffix="%" />
+          </p>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-info rounded-b-xl transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Active Accounts</h2>
-          <p className="text-2xl text-green-600">{accounts.length}</p>
+        <div className="relative bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 hover:border-emi-green/20 group">
+          <div className="absolute right-4 top-4 w-10 h-10 bg-gradient-success rounded-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
+            <ArrowDownCircleIcon className="h-5 w-5 text-emi-green" />
+          </div>
+          <h2 className="text-sm font-medium text-gray-500 mb-2">Active Accounts</h2>
+          <p className="text-3xl font-bold text-emi-green">
+            <CountUp end={Number(accounts.length || 0)} duration={1} />
+          </p>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-success rounded-b-xl transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
         </div>
       </div>
 
@@ -244,20 +290,28 @@ const Dashboard = () => {
           <h2 className="text-2xl font-semibold mb-6">AI Insights</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {insights.map((insight, index) => (
-              <div key={index} className={`p-4 rounded-lg shadow ${
-                insight.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-400' :
-                insight.type === 'success' ? 'bg-green-50 border-l-4 border-green-400' :
-                insight.type === 'danger' ? 'bg-red-50 border-l-4 border-red-400' :
-                'bg-blue-50 border-l-4 border-blue-400'
-              }`}>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={`p-4 rounded-xl shadow ${
+                  insight.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-400' :
+                  insight.type === 'success' ? 'bg-green-50 border-l-4 border-green-400' :
+                  insight.type === 'danger' ? 'bg-red-50 border-l-4 border-red-400' :
+                  'bg-blue-50 border-l-4 border-blue-400'
+                }`}
+              >
                 <div className="flex items-start">
-                  <span className="text-2xl mr-3">{insight.icon}</span>
+                  <div className="bg-white p-2 rounded-full shadow mr-3">
+                    <span className="text-xl">{insight.icon}</span>
+                  </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">{insight.title}</h3>
                     <p className="text-sm text-gray-700">{insight.message}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -267,43 +321,52 @@ const Dashboard = () => {
       <div className="mb-8">
         <h2 className="text-2xl font-semibold mb-6">AI-Powered Features</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg shadow border-l-4 border-blue-500">
-            <div className="flex items-center mb-4">
-              <span className="text-3xl mr-3">📊</span>
-              <h3 className="text-lg font-semibold">Cash Flow Forecasting</h3>
+          <div className="group relative p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1" style={{ background: 'linear-gradient(135deg, rgba(15,76,140,0.05), rgba(59,130,246,0.1))' }}>
+            <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center opacity-20 group-hover:opacity-30 transition-opacity">
+              <span className="text-lg">📊</span>
             </div>
-            <p className="text-gray-600 mb-4">AI-powered predictions for your future cash flow based on spending patterns.</p>
+            <div className="flex items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Cash Flow Forecasting</h3>
+            </div>
+            <p className="text-gray-600 mb-4 text-sm leading-relaxed">AI-powered predictions for your future cash flow based on spending patterns.</p>
             <button
               onClick={() => navigate('/reports')}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              className="w-full md:w-auto px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+              style={{ background: 'var(--gradient-primary)' }}
             >
               View Forecasts
             </button>
           </div>
 
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg shadow border-l-4 border-green-500">
-            <div className="flex items-center mb-4">
-              <span className="text-3xl mr-3">🎯</span>
-              <h3 className="text-lg font-semibold">Smart Recommendations</h3>
+          <div className="group relative p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1" style={{ background: 'linear-gradient(135deg, rgba(5,150,105,0.05), rgba(16,185,129,0.1))' }}>
+            <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-success rounded-full flex items-center justify-center opacity-20 group-hover:opacity-30 transition-opacity">
+              <span className="text-lg">🎯</span>
             </div>
-            <p className="text-gray-600 mb-4">Personalized budget optimization and debt reduction strategies.</p>
+            <div className="flex items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Smart Recommendations</h3>
+            </div>
+            <p className="text-gray-600 mb-4 text-sm leading-relaxed">Personalized budget optimization and debt reduction strategies.</p>
             <button
               onClick={() => navigate('/reports')}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+              className="w-full md:w-auto px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+              style={{ background: 'var(--gradient-success)' }}
             >
               Get Recommendations
             </button>
           </div>
 
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg shadow border-l-4 border-purple-500">
-            <div className="flex items-center mb-4">
-              <span className="text-3xl mr-3">🏆</span>
-              <h3 className="text-lg font-semibold">Financial Wellness</h3>
+          <div className="group relative p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1" style={{ background: 'linear-gradient(135deg, rgba(8,145,178,0.05), rgba(6,182,212,0.1))' }}>
+            <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-info rounded-full flex items-center justify-center opacity-20 group-hover:opacity-30 transition-opacity">
+              <span className="text-lg">🏆</span>
             </div>
-            <p className="text-gray-600 mb-4">Track your financial health score and earn achievements.</p>
+            <div className="flex items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Financial Wellness</h3>
+            </div>
+            <p className="text-gray-600 mb-4 text-sm leading-relaxed">Track your financial health score and earn achievements.</p>
             <button
               onClick={() => navigate('/reports')}
-              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
+              className="w-full md:w-auto px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+              style={{ background: 'var(--gradient-info)' }}
             >
               View Dashboard
             </button>
@@ -316,12 +379,6 @@ const Dashboard = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Recent Transactions</h2>
-            <button
-              onClick={() => navigate('/transactions')}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              View All →
-            </button>
           </div>
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
@@ -336,18 +393,25 @@ const Dashboard = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {recentTransactions.map((transaction) => (
-                    <tr key={transaction._id} className="hover:bg-gray-50">
+                    <tr key={transaction._id} className="odd:bg-gray-50 hover:bg-gray-100">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(transaction.date).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          transaction.type === 'income'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {transaction.type}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {transaction.type === 'income' ? (
+                            <ArrowTrendingUpIcon className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <ArrowDownCircleIcon className="h-4 w-4 text-red-600" />
+                          )}
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            transaction.type === 'income'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {transaction.type}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         {transaction.description}
@@ -361,6 +425,15 @@ const Dashboard = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="px-4 py-3 border-t">
+              <button
+                onClick={() => navigate('/transactions')}
+                className="w-full inline-flex items-center justify-center px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                style={{ background: 'var(--gradient-primary)' }}
+              >
+                See More
+              </button>
             </div>
           </div>
         </div>
@@ -385,7 +458,10 @@ const Dashboard = () => {
       {/* Charts and Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Allocation Compliance</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Allocation Compliance</h2>
+            <InformationCircleIcon className="h-5 w-5 text-gray-400" title="Distribution across accounts with status colors" />
+          </div>
           {data.allocationData && data.allocationData.length > 0 ? (
             <Pie data={pieData} />
           ) : (
@@ -397,7 +473,10 @@ const Dashboard = () => {
 
       {/* Weekly Summary Chart */}
       <div className="bg-white p-6 rounded-lg shadow mb-8">
-        <h2 className="text-xl font-semibold mb-4">Weekly Summary</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Weekly Summary</h2>
+          <InformationCircleIcon className="h-5 w-5 text-gray-400" title="Income vs Expenses by day" />
+        </div>
         {recentTransactions.length > 0 ? (
           <div className="h-64">
             <Bar
@@ -406,17 +485,21 @@ const Dashboard = () => {
                 datasets: [
                   {
                     label: 'Income',
-                    data: [1200, 0, 800, 0, 1500, 0, 0], // Mock data - would be calculated from actual transactions
-                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                    borderColor: 'rgba(34, 197, 94, 1)',
-                    borderWidth: 1,
+                    data: [1200, 0, 800, 0, 1500, 0, 0],
+                    backgroundColor: 'rgba(5, 150, 105, 0.8)',
+                    borderColor: 'rgba(5, 150, 105, 1)',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
                   },
                   {
                     label: 'Expenses',
-                    data: [200, 150, 300, 100, 400, 250, 180], // Mock data - would be calculated from actual transactions
+                    data: [200, 150, 300, 100, 400, 250, 180],
                     backgroundColor: 'rgba(239, 68, 68, 0.8)',
                     borderColor: 'rgba(239, 68, 68, 1)',
-                    borderWidth: 1,
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
                   },
                 ],
               }}
@@ -424,8 +507,12 @@ const Dashboard = () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
+                  x: {
+                    grid: { color: '#f3f4f6' }
+                  },
                   y: {
                     beginAtZero: true,
+                    grid: { color: '#f3f4f6' },
                     ticks: {
                       callback: function(value) {
                         return 'KES ' + value;

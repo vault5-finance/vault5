@@ -70,6 +70,9 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
         className="fixed left-0 top-0 z-50 h-full w-64 bg-gray-900 text-gray-200 dark:bg-gray-950 shadow-lg lg:hidden overflow-y-auto"
       >
         <div className="flex h-full flex-col">
+          <div className="p-4 border-b border-gray-800">
+            <ProfileDropdown onItemClick={onClose} isCollapsed={false} />
+          </div>
           <nav className="flex-1 p-4">
             <ul className="space-y-1">
               {menuItems.map((item) => {
@@ -163,9 +166,6 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
               })}
             </ul>
           </nav>
-          <div className="p-4 border-t border-gray-800">
-            <ProfileDropdown onItemClick={onClose} isCollapsed={false} />
-          </div>
         </div>
       </motion.div>
 
@@ -175,6 +175,9 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
         variants={desktopVariants}
         className="fixed left-0 top-0 z-40 hidden h-screen bg-gray-900 text-gray-200 dark:bg-gray-950 shadow-lg lg:flex lg:flex-col overflow-y-auto"
       >
+        <div className="p-4 border-b border-gray-800">
+          <ProfileDropdown onItemClick={() => {}} isCollapsed={isCollapsed} />
+        </div>
         <nav className="flex-1 p-4">
           <ul className="space-y-1">
             {menuItems.map((item) => {
@@ -274,9 +277,6 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
             >
               {isCollapsed ? '➡ Expand' : '⬅ Collapse'}
             </button>
-          </div>
-          <div className="mt-3">
-            <ProfileDropdown onItemClick={() => {}} isCollapsed={isCollapsed} />
           </div>
         </div>
       </motion.div>

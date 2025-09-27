@@ -1,4 +1,5 @@
 @import './styles/theme.css';
+@import './styles/emi-tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -35,6 +36,6 @@ select:-webkit-autofill {
 /* Accessible focus outline for inputs */
 input:focus, textarea:focus, select:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* Tailwind ring-blue-500 */
+  box-shadow: 0 0 0 2px rgba(15, 76, 140, 0.5); /* EMI brand focus ring */
   border-color: transparent;
 }

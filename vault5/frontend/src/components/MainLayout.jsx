@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
 import NavBar from './NavBar';
+import MobileBottomNav from './MobileBottomNav';
 
 const MainLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -52,9 +53,13 @@ const MainLayout = ({ children }) => {
         }`}
       >
         <NavBar onMenuClick={toggleSidebar} />
-        <main className="p-4 md:p-6 lg:p-8">
+        <main className="p-4 pb-20 md:pb-6 lg:pb-8 md:p-6 lg:p-8">
           {children}
         </main>
+        {/* Mobile bottom navigation */}
+        <div className="md:hidden">
+          <MobileBottomNav />
+        </div>
       </div>
     </div>
   );
