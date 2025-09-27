@@ -2,9 +2,10 @@
 
 ## REST API Reference for Developers
 
-**Version:** 1.0.0
+**Version:** 2.0.0 - Enhanced with Advanced Lending & EMI Branding
 **Base URL:** `https://api.vault5.com/v1`
 **Date:** September 2025
+**Brand Identity:** EMI (Enhanced Microfinance Interface)
 
 ---
 
