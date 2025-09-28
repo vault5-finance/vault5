@@ -3966,3 +3966,169 @@ const troubleshooting = {
 ---
 
 *This document is confidential and proprietary to Vault5. Unauthorized distribution is prohibited.*
+---
+
+# Loans v2 Module Architecture
+
+This section defines the privacy-first P2P Loans module layered on existing Vault5 services. It introduces eligibility checks, escrow holds, flexible repayment schedules, auto-deduction with retries, and immutable audit trails.
+
+A. Components and responsibilities
+- Loans API
+  - Endpoints for create, list, detail, approve, decline, repay, reschedule, writeoff, eligibility-check
+  - Enforces 75 percent rule, daily limits, one-loan-per-lender, KYC gates, idempotency
+- Eligibility Engine
+  - Privacy-preserving computation that returns maxBorrowableForThisPair and suggestedAmount without exposing balances
+- Escrow Service
+  - Places holds on lender funds and disburses to borrower on approval or scheduled release
+- Scheduler Worker
+  - Executes auto-deduction attempts on due dates with backoff and retry windows
+- Notification Service
+  - Sends in-app, email, and SMS for request, approval, repayment, failures
+- Audit and Ledger
+  - Atomic journal entries with immutable audit records for holds, disbursements, repayments, refunds
+
+B. Service interfaces
+- REST
+  - See Loans v2 endpoints in [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
+- Background workers
+  - Deduction task queue with exponential backoff and idempotency keys
+- Security
+  - Password re-auth for approval
+  - 2FA for approvals over threshold
+  - Role and KYC policy checks on every money movement
+
+C. Sequence diagrams
+
+Eligibility check
+```mermaid
+sequenceDiagram
+  autonumber
+  participant UI as Client
+  participant API as Loans API
+  participant ENG as Eligibility Engine
+  participant NOT as Notification
+
+  UI->>API: POST lending eligibility-check targetContact
+  API->>ENG: computeEligibility borrowerId target
+  ENG-->>API: eligibility maxBorrowable suggestedAmount protectionScore
+  API-->>UI: 200 eligibility payload
+```
+
+Create request
+```mermaid
+sequenceDiagram
+  autonumber
+  participant UI as Client
+  participant API as Loans API
+  participant POL as Policy Guard
+  participant LED as Ledger Audit
+  participant NOT as Notification
+
+  UI->>API: POST loans body contact amount schedule purpose
+  API->>POL: validate 75pct dailyLimit oneLoanPerLender kyc
+  POL-->>API: ok
+  API->>LED: journal create pending request audit
+  LED-->>API: ok
+  API->>NOT: notify lender request received
+  API-->>UI: 201 pending_approval with eligibilitySummary
+```
+
+Approval with escrow
+```mermaid
+sequenceDiagram
+  autonumber
+  participant LUI as Lender Client
+  participant API as Loans API
+  participant AUTH as Auth 2FA
+  participant ESC as Escrow
+  participant LED as Ledger Audit
+  participant NOT as Notification
+
+  LUI->>API: POST loans id approve password twoFactor disburseImmediately
+  API->>AUTH: verify password and 2fa
+  AUTH-->>API: verified
+  API->>ESC: placeHold lenderId amount
+  ESC-->>API: holdId
+  API->>LED: journal hold and approval
+  LED-->>API: ok
+  API->>ESC: disburse if immediate
+  ESC-->>API: disburseTxId
+  API->>NOT: notify borrower approved
+  API-->>LUI: 200 approved escrowTxId disbursementTxId
+```
+
+Auto-deduction and retries
+```mermaid
+sequenceDiagram
+  autonumber
+  participant SCH as Scheduler
+  participant API as Loans API
+  participant ACC as Accounts
+  participant LED as Ledger Audit
+  participant NOT as Notification
+
+  SCH->>API: due repayments batch
+  API->>ACC: attempt debit borrower account amount idempotencyKey
+  ACC-->>API: success or fail
+  alt success
+    API->>LED: journal repayment and credit lender
+    API->>NOT: notify repayment success
+  else fail
+    API->>NOT: notify failure and schedule retry
+  end
+```
+
+D. Data models
+
+Loan document
+- id, createdAt, createdBy, lenderId, borrowerId
+- principal, interestRate, totalAmount, currency
+- status pending_approval approved funded active overdue repaid defaulted written_off
+- repaymentSchedule list of items dueDate amount paid paidDate method transactionId
+- remainingAmount, nextPaymentDate, nextPaymentAmount
+- escrowId, escrowStatus
+- autoDeduct, accountDeductionId
+- purpose, notes, attachments
+- protectionScore, riskFlags
+- borrowerCreditScoreAtRequest
+- lenderLimitAtApproval, borrowerLimitAtApproval
+- auditTrail ref
+- coolingOffExpiry
+
+Escrow document
+- id, loanId, amountHeld, holdStatus held released refunded
+- holderAccount, disbursementTxId, refundTxId
+- createdAt, releasedAt
+- protectionDetails
+
+E. Constraints and policies
+- 75 percent rule enforced server side
+- Daily borrowing limit and one-loan-per-lender
+- Cooling off window before approval
+- Idempotency required for create approve repay reschedule writeoff
+- UTC storage for dates and schedule
+
+F. Observability and SLOs
+- Metrics
+  - loan_request_time ms
+  - approval_to_hold_latency ms
+  - auto_deduction_success_rate
+  - repayment_retry_count
+  - default_rate
+- Traces
+  - create request
+  - approve and place hold
+  - disburse
+  - repayment attempt sequence
+- Logs
+  - include requestId sessionId userId loanId in structured logs
+
+G. Failure and recovery
+- If hold fails at approval time due to insufficient funds, return failure and keep loan as pending_approval
+- If disbursement fails after hold, provide refund path from escrow and notify both parties
+- On partial repayment, recompute next schedule and allow optional re-amortization
+
+H. Rollout and migration
+- Closed beta with instrumented logging
+- Daily reconciliation of ledger against escrow and accounts
+- Feature flags for 2FA threshold and automatic disbursement behavior

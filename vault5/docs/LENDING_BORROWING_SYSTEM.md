@@ -852,3 +852,142 @@ const LendingDashboard = () => {
 This comprehensive lending system transforms Vault5 from a personal finance tracker into a full-featured financial ecosystem. The implementation balances innovation with security, user experience with regulatory compliance, and growth potential with risk management.
 
 The system is designed to scale from individual P2P loans to institutional lending partnerships while maintaining the core values of financial inclusion, privacy protection, and user empowerment.
+---
+
+# Loans v2 Addendum — P2P Lending Blueprint (MVP Scope)
+
+This addendum formalizes Vault5’s one-to-one P2P lending model with privacy-preserving eligibility checks, escrow-based approvals, flexible repayments, auto-deductions, and complete auditability. It aligns with the product blueprint provided and extends the existing lending logic with a dedicated Loans module.
+
+1. Principles and goals
+- One-to-one P2P loans only
+- Flexible schedules: one-off or installments; support partial prepayments
+- Privacy-first: return only eligibility summaries; never expose counterparty balances
+- Vault5 acts as escrow and risk manager; fee revenue captured via origination and repayment fees
+- Fast UX: clear warnings, reversible until approval; receipts and notifications at all stages
+
+2. User journeys (summary)
+- Borrower
+  - Request Loan → pick contact (email/phone) → eligibility summary → amount + schedule → submit
+  - System enforces 75% rule, daily/cooldown limits, and one-loan-per-lender
+  - After lender approval and escrow hold, disbursement occurs (immediate or scheduled)
+  - Repayments processed per schedule; auto-deduct attempts first; retries on failure
+- Lender
+  - Receives request → sees redacted eligibility → approve with password (+ 2FA over threshold) or decline
+  - Approval places funds on escrow hold; repayment credits flow to lender
+
+3. UX: key pages and components
+- Lending page
+  - Header and CTAs: Request from Contact, Request by Email/Phone
+  - Summary cards: Borrowing Power, VaultScore, Active Requests, Pending Approvals, Next Payment
+  - Tabs: Borrow, Lend, All
+  - List cards: borrower/lender, masked contact, amount, status, due date, protection score
+  - Empty states and skeletons; framer-motion transitions
+- Request Loan wizard (borrower)
+  - Step 1: Contact selection (save contact opt-in)
+  - Step 2: Eligibility fetch with skeleton; return maxBorrowable, recommendedAmount, riskNotes
+  - Step 3: Amount + schedule (one-off or installments; frequency; first payment; auto-deduct); preview totalRepayable and fees
+  - Step 4: Confirm + cooling-off note; submit request
+- Lender approval modal
+  - Redacted profile and eligibility; no raw balances
+  - Approve (immediate disbursement or scheduled), or Decline
+  - Security: password; 2FA if over threshold
+- Loans page
+  - Combined borrower/lender view; progress bars, next due, status badges
+  - Expand to see schedule, history, audit trail, make repayment
+  - Repayment calendar with manual payment entry
+
+4. API contracts (behavioral summary)
+- GET /api/loans
+  - Returns { borrowed[], lent[], summary }, each loan includes: id, role, counterpartyId, counterpartyMaskedContact, principal, interestRate, totalAmount, status, createdAt, nextPaymentDate, nextPaymentAmount, remainingAmount, repaymentSchedule, escrowStatus, protectionScore, metadata, loanRestrictions, and privacy-safe maxAllowed or lenderSpecificLimit. No counterpartyExactBalance.
+- POST /api/loans
+  - Body: { contact, amount, schedule, purpose, autoApprove? }
+  - Validates 75% rule, daily limits, one-loan-per-lender, KYC tier; returns loanId, status: pending_approval, eligibilitySummary, estimatedRepayment
+- GET /api/loans/:id
+  - Full detail for borrower/lender; schedule entries and history; redacted fields enforced
+- POST /api/loans/:id/approve
+  - Body: { password, twoFactorCode?, disburseImmediately?, disburseAt? }
+  - Verifies credentials, 2FA threshold; places escrow hold; optional immediate disbursement
+  - Response: escrowTxId, disbursementTxId?, next steps
+- POST /api/loans/:id/decline
+  - Marks declined and notifies borrower
+- POST /api/loans/:id/repay
+  - Body: { amount, paymentMethod, autoPay? } → returns updated remainingAmount, nextPaymentDate, creditScoreDelta, rewards
+- POST /api/loans/:id/reschedule
+  - Proposes new schedule; lender approval required
+- POST /api/loans/:id/writeoff
+  - Admin/lender special flow; audited
+- POST /api/lending/eligibility-check
+  - Body: { targetContact } → returns maxBorrowableForThisPair, suggestedAmount, lenderResponseTimeHint, lenderProtectionScore, requiredVerification. Strictly privacy-preserving.
+
+Idempotency:
+- All create/approve/repay endpoints accept Idempotency-Key header; repeated calls must be safe.
+
+5. Data model (descriptive)
+- Loan
+  - id, createdAt, createdBy (borrowerId), lenderId, borrowerId
+  - principal, interestRate, totalAmount, currency
+  - status: pending_approval | approved | funded | active | overdue | repaid | defaulted | written_off
+  - repaymentSchedule: [{ dueDate, amount, paid, paidDate, method, transactionId }]
+  - remainingAmount, nextPaymentDate, nextPaymentAmount
+  - escrowId, escrowStatus
+  - autoDeduct, accountDeductionId
+  - purpose, notes, attachments
+  - protectionScore, riskFlags[], borrowerCreditScoreAtRequest
+  - lenderLimitAtApproval, borrowerLimitAtApproval (snapshots)
+  - auditTrail ref, coolingOffExpiry
+- Escrow
+  - id, loanId, amountHeld, holdStatus: held | released | refunded, holderAccount, disbursementTxId, refundTxId, createdAt, releasedAt, protectionDetails
+- Notification
+  - id, userId, loanId, type, channels, sentAt, readAt, payload
+- User financial profile snapshot
+  - userId, savingsBalanceSnapshot, availableBalanceSnapshot, vaultScore, kycTier, dailyBorrowCount, loanHistory
+
+6. Privacy and verification
+- Never expose raw balances
+- Mask contact (john•••@example.com, +2547•••5678)
+- Require password and 2FA (configurable threshold) on approvals
+- Encrypt PII at rest; TLS in transit
+- Immutable audit trail; signed ledger entries
+
+7. Escrow and money flow
+- Approval → escrow hold → disbursement (immediate or scheduled)
+- Repayments: autoDeduct attempts on due dates (idempotent); retries with backoff; notifications on success/failure
+- Default: after grace period and retries; trigger recovery workflow and notifications
+
+8. Business rules and fees
+- 75% rule: systemMax = min(borrower.savings * 0.75, lender.available * 0.75)
+- Daily borrow limit: default 1; adaptive based on history
+- One-loan-per-lender until prior loan is repaid/written_off
+- Fees: origination fee (borrower), per-repayment platform fee (from interest or split), late fee (capped)
+- Cooling off: borrower can cancel pending request within 48h before lender approval
+
+9. Notifications and copy (examples)
+- Borrower: Request sent, Approved, Repayment due, Auto deduction failed, Repaid
+- Lender: Request received with eligibility Y, Funds reserved, Repayment credited
+- Always link to Loans page and detail view
+
+10. Edge cases
+- Concurrent approvals: re-check hold availability at approval time; fail safely
+- Duplicate repayments: Idempotency-Key protects from double processing
+- Partial payments: support; update remaining schedule; re-amortize if selected
+- Cross-timezone: store UTC; present localized
+
+11. KPIs and monitoring
+- Business: volume, approval time, repayment rate, platform fees
+- Risk: flagged loans, time to default, days overdue
+- Ops: auto-deduction success, retries, failed holds, API error rate
+- UX: conversion rate, post-failure churn
+
+12. MVP acceptance criteria
+- Eligibility engine privacy preserved
+- Escrow hold + disburse atomic
+- Approvals require password + 2FA (over threshold)
+- Auto-deduction worker with retry and notifications
+- Responsive UI and accessible components
+- Basic analytics and monitoring in place
+
+References
+- Detailed API: See Loans v2 Endpoints appended in [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
+- Architecture sequences: See Loans v2 Module in [SYSTEM_DESIGN_DOCUMENT.md](SYSTEM_DESIGN_DOCUMENT.md)
+- Implementation plan: See “Loans MVP Implementation Plan” appended in [ITERATION_GUIDE.md](ITERATION_GUIDE.md)
+- UI component spec: See “Loans & Lending UI Components” appended in [REACT_DESIGN_SYSTEM.md](REACT_DESIGN_SYSTEM.md)

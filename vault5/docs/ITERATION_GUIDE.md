@@ -238,3 +238,162 @@ Where to Ask Questions in Code
 Keep this Guide Current
 - If you change a process or add an area, update this guide.
 - When updating docs, also update [DOCUMENT_REGISTER.md](./DOCUMENT_REGISTER.md).
+---
+
+# Loans MVP Implementation Plan — P2P Lending v2
+
+Scope
+- Deliver privacy-first one-to-one P2P loans with eligibility checks, escrow-based approvals, flexible schedules, auto-deductions, and immutable audit trails.
+- Align with APIs added in [API_DOCUMENTATION.md](vault5/docs/API_DOCUMENTATION.md) and architecture in [SYSTEM_DESIGN_DOCUMENT.md](vault5/docs/SYSTEM_DESIGN_DOCUMENT.md).
+
+A. Backend implementation blueprint
+
+1) Data models (Mongo/Mongoose)
+- Loan model (new)
+  - Fields: borrowerId, lenderId, principal, interestRate, currency, status, totalAmount, remainingAmount, nextPaymentDate, nextPaymentAmount, repaymentSchedule[], autoDeduct, accountDeductionId, purpose, notes, protectionScore, riskFlags[], borrowerCreditScoreAtRequest, lenderLimitAtApproval, borrowerLimitAtApproval, escrowId, escrowStatus, coolingOffExpiry, auditTrailRef, createdAt, updatedAt.
+  - Indexes: borrowerId+status, lenderId+status, nextPaymentDate, createdAt.
+- Escrow model (new)
+  - loanId, amountHeld, holdStatus, holderAccount, disbursementTxId, refundTxId, createdAt, releasedAt, protectionDetails.
+  - Indexes: loanId, holdStatus.
+- Eligibility snapshots (optional collection) to cache last computed pair eligibility keyed by borrowerId+lenderKey with TTL.
+
+2) Services and middleware
+- EligibilityEngine service
+  - Input: borrowerId, target contact or user lookup, amount?
+  - Output: { maxBorrowableForThisPair, suggestedAmount, protectionScore, requiredVerification[], responseTimeHint }
+  - Enforce privacy: never query or return raw balances; rely on server-side computed caps only.
+- EscrowService
+  - placeHold(lenderId, amount) -> { escrowId, journalEntryId }
+  - disburse(escrowId, borrowerId) -> { disbursementTxId }
+  - refund(escrowId) -> { refundTxId }
+  - All money moves must create atomic journal entries in ledger.
+- Idempotency middleware
+  - Read Idempotency-Key from header for POST create, approve, repay, reschedule, writeoff. Store request hash and result keyed by userId+route+idempotencyKey for 24h.
+- Re-auth and 2FA guard
+  - Password verification on approvals; 2FA if amount ≥ configured threshold (ENV: LOANS_2FA_THRESHOLD).
+- KYC and policy guard
+  - Validate KYC tier against requested principal; enforce 75 percent rule, daily borrow limit, one-loan-per-lender, cooling-off rules.
+
+3) Routes (loans module)
+- Loans routes (new file): [backend/routes/loans.js](vault5/backend/routes/loans.js)
+  - GET /api/loans → list borrowed[], lent[], summary
+  - POST /api/loans → create request
+  - GET /api/loans/:id → get details (role-aware redaction)
+  - POST /api/loans/:id/approve → lender approval (password + 2FA)
+  - POST /api/loans/:id/decline → lender decline
+  - POST /api/loans/:id/repay → borrower repayment
+  - POST /api/loans/:id/reschedule → propose new schedule (approval flow)
+  - POST /api/loans/:id/writeoff → admin/lender special mode
+  - POST /api/lending/eligibility-check → privacy-safe eligibility
+- Controllers: [backend/controllers/loansController.js](vault5/backend/controllers/loansController.js)
+  - Implement handlers per route; all POST routes wrapped by idempotency middleware.
+- Middleware
+  - [backend/middleware/idempotency.js](vault5/backend/middleware/idempotency.js)
+  - [backend/middleware/reAuth2FA.js](vault5/backend/middleware/reAuth2FA.js)
+  - [backend/middleware/policyGuard.js](vault5/backend/middleware/policyGuard.js)
+
+4) Ledger and audit
+- Reuse journal functions in [audit.js](vault5/backend/utils/audit.js) or extend to support types: loan_hold, loan_disburse, loan_repay, loan_refund, loan_writeoff.
+- All money movement is atomic: DB transaction boundary includes loan update + ledger entry + escrow doc update.
+
+5) Scheduler worker
+- File: [backend/scripts/loans-auto-deduct.js](vault5/backend/scripts/loans-auto-deduct.js)
+- Runs every hour (or cron at 06:00): query due loans (status active, nextPaymentDate ≤ now, autoDeduct true).
+- Attempt debit from borrower account (Daily by default or configured account). Use idempotency key loanId+dueDate.
+- If success: create repayment ledger entries; credit lender; update schedule; compute nextPayment.
+- If fail: schedule retries (e.g., 3 attempts over 72h) with exponential backoff; mark overdue if threshold exceeded; notify borrower and lender.
+
+6) Notifications (templates and triggers)
+- Types:
+  - LOAN_REQUESTED, LOAN_APPROVED, LOAN_DECLINED, LOAN_DISBURSED, REPAYMENT_DUE, REPAYMENT_SUCCESS, AUTO_DEDUCTION_FAILED, LOAN_REPAID, LOAN_DEFAULTED
+- Trigger points:
+  - Request creation, approval/decline, disbursement done, 3 days before due, after deduction success/failure, when repaid/defaulted.
+- Channel selection via preferences; in-app always, email/sms optional.
+
+7) Security and privacy
+- Never include any counterparty balance in payloads. Instead, include { maxAllowed, lenderSpecificLimit } as numeric caps.
+- Masked contacts for counterparty fields.
+- 2FA enforcement tied to LOANS_2FA_THRESHOLD; configurable per environment.
+- Rate-limit approvals and repayments endpoints.
+
+8) Configuration (ENV)
+- LOANS_2FA_THRESHOLD (e.g., 10000 KES)
+- LOANS_DAILY_LIMIT (default 1)
+- LOANS_COOLING_HOURS (48)
+- LOANS_MAX_RETRY (3)
+- LOANS_RETRY_BACKOFF (e.g., 12h)
+- IDEMPOTENCY_TTL_HOURS (24)
+
+B. Frontend implementation blueprint
+
+1) Pages and components
+- Loans & Lending page: [frontend/src/pages/Loans.js](vault5/frontend/src/pages/Loans.js) & [frontend/src/pages/Lending.js](vault5/frontend/src/pages/Lending.js)
+  - Tabs Borrow/Lend/All; summary cards; list cards; filters; skeletons.
+- LoanRequestWizard: multi-step modal
+  - Step 1: contact entry/selector
+  - Step 2: eligibility skeleton + summary (maxBorrowable, recommended, risk factors)
+  - Step 3: amount + schedule; show repayment preview and fees
+  - Step 4: confirm and submit (cooling-off copy)
+- LenderApprovalModal
+  - Redacted profile, eligibility summary, password + 2FA, options for immediate or scheduled disbursement.
+- LoanDetail view with repayment calendar and history; MakeRepaymentModal.
+- Reusable chips/pills: EligibilityBadge, ProtectionScore, EscrowStatus pill, FeeBreakdown.
+
+2) State and API integration
+- Services: [frontend/src/services/api.js](vault5/frontend/src/services/api.js)
+  - Implement methods: loans.list, loans.create, loans.get, loans.approve, loans.decline, loans.repay, loans.reschedule, loans.writeoff, lending.eligibilityCheck.
+  - Always pass Idempotency-Key header for POST calls (UUIDv4).
+- UX policies
+  - Do not render raw balances; only use server-provided caps.
+  - Mask contact strings in UI where counterparty is displayed.
+
+3) Accessibility and mobile
+- Components use ARIA labels and keyboard flow
+- Mobile-first layouts; drawer modals; bottom CTA visibility
+- Motion reduces for prefers-reduced-motion
+
+C. Testing strategy
+
+1) Unit/Integration (backend)
+- Eligibility engine (caps and one-loan-per-lender)
+- Idempotency middleware (replay returns same response)
+- Approval 2FA paths and failures
+- Escrow hold then disburse atomicity
+- Repayment update of schedule and nextPayment calculation
+- Overdue and default transitions
+
+2) E2E happy path
+- Borrower requests → lender approves → escrow hold → immediate disbursal → repayments succeed → loan repaid
+- Negative path: approval fails due to insufficient funds; ensure clean rollback and notification
+
+3) Load and reliability
+- Auto-deduction worker handles batch of N loans efficiently; retry backoff is respected
+
+D. Rollout plan
+- Enable feature flag for Loans v2 in staging
+- Seed QA users (borrower, lender) and demo contacts; provide fixed OTP for test 2FA
+- Daily reconciliation of ledger vs. escrow totals
+- Post-release SLOs: approval_to_hold_latency ≤ 2s p95, auto_deduction_success_rate ≥ 95 percent
+
+E. Work breakdown structure (WBS)
+
+Backend
+- Models: Loan, Escrow
+- Middleware: idempotency, reAuth2FA, policyGuard
+- Services: EligibilityEngine, EscrowService, Ledger
+- Routes/Controllers: loans CRUD+actions, eligibility-check
+- Worker: loans-auto-deduct
+- Notifications: templates, triggers, tests
+
+Frontend
+- Pages: Loans, Lending
+- Modals: LoanRequestWizard, LenderApprovalModal, MakeRepaymentModal
+- Components: LoanCard, RepaymentCalendar, badges/pills, FeeBreakdown
+- Services: loans, eligibility
+- QA: storybook entries, unit tests for wizard state and modal validation
+
+Acceptance criteria (MVP)
+- All endpoints deployed and documented
+- UX flows for request, approve, repay are functional on mobile and desktop
+- Privacy rules validated in payloads and UI
+- Audit/ledger entries recorded for all money moves

@@ -169,6 +169,242 @@ Authorization: Bearer <your_jwt_token>
 }
 ```
 
+## Loans v2 P2P Module
+
+Privacy-first one-to-one loans with escrow, flexible schedules, auto-deductions, and full auditability. These endpoints are distinct from simple Lending records and power the borrower↔lender loan flow.
+
+Headers
+- Authorization: Bearer &lt;jwt&gt;
+- Idempotency-Key: UUIDv4 (required for POST create, approve, repay, reschedule, writeoff)
+
+### List Loans
+GET `/api/loans`
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "borrowed": [
+      {
+        "id": "loan_123",
+        "role": "borrower",
+        "counterpartyId": "user_456",
+        "counterpartyMaskedContact": "john•••@example.com",
+        "principal": 5000,
+        "interestRate": 0.05,
+        "totalAmount": 5250,
+        "status": "active",
+        "createdAt": "2025-09-20T10:00:00Z",
+        "nextPaymentDate": "2025-10-01T00:00:00Z",
+        "nextPaymentAmount": 1050,
+        "remainingAmount": 4200,
+        "repaymentSchedule": [
+          { "dueDate": "2025-10-01", "amount": 1050, "paid": false }
+        ],
+        "escrowStatus": "disbursed",
+        "protectionScore": 0.92,
+        "metadata": { "purpose": "Emergency medical" },
+        "loanRestrictions": {
+          "oneLoanPerPerson": true,
+          "dailyBorrowLimitHit": false
+        },
+        "maxAllowed": 7500
+      }
+    ],
+    "lent": [],
+    "summary": {
+      "activeLoans": 1,
+      "pendingApprovals": 0,
+      "overdueAmount": 0
+    }
+  }
+}
+```
+
+Notes:
+- Privacy: never return counterpartyExactBalance. Use `maxAllowed` or `lenderSpecificLimit`.
+
+### Create Loan Request
+POST `/api/loans`
+Body:
+```json
+{
+  "contact": { "email": "lender@example.com" },
+  "amount": 3000,
+  "schedule": {
+    "type": "installments",
+    "frequency": "weekly",
+    "installments": 5,
+    "firstPaymentDate": "2025-10-05",
+    "autoDeduct": true
+  },
+  "purpose": "Laptop repair",
+  "autoApprove": false
+}
+```
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "loanId": "loan_abc123",
+    "status": "pending_approval",
+    "eligibilitySummary": {
+      "maxBorrowable": 7500,
+      "borrowerLimit": 8000,
+      "lenderLimit": 7500,
+      "borrowerCreditScore": 680,
+      "riskFactors": ["first_time_with_lender"]
+    },
+    "estimatedRepayment": {
+      "installmentAmount": 1050,
+      "totalAmount": 5250,
+      "firstPaymentDate": "2025-10-05"
+    }
+  }
+}
+```
+Validation:
+- 75% rule (min of borrower.savings*0.75, lender.available*0.75)
+- Daily borrow limit and one-loan-per-lender
+- KYC tier gating
+
+### Get Loan Detail
+GET `/api/loans/:id`
+Response includes full repayment schedule, history, escrow state, and privacy-safe fields when viewed by counterparty.
+
+### Approve Loan (Lender)
+POST `/api/loans/:id/approve`
+Headers: Idempotency-Key
+Body:
+```json
+{
+  "password": "user_password",
+  "twoFactorCode": "123456",
+  "disburseImmediately": true,
+  "disburseAt": null
+}
+```
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "loanId": "loan_abc123",
+    "status": "approved",
+    "escrowTxId": "escrow_789",
+    "disbursementTxId": "tx_101",
+    "nextSteps": [
+      "Funds held in escrow",
+      "Disbursement executed",
+      "First repayment scheduled 2025-10-05"
+    ],
+    "securityInfo": {
+      "escrowProtected": true,
+      "twoFactorRequired": true,
+      "lenderProtectionScore": 0.95
+    }
+  }
+}
+```
+Security:
+- Re-auth with password; 2FA required if amount exceeds threshold
+
+### Decline Loan (Lender)
+POST `/api/loans/:id/decline`
+Response: `{ "success": true, "data": { "status": "declined" } }`
+
+### Repay Loan (Borrower)
+POST `/api/loans/:id/repay`
+Headers: Idempotency-Key
+Body:
+```json
+{
+  "amount": 1050,
+  "paymentMethod": "wallet",
+  "autoPay": false
+}
+```
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "transactionId": "repay_456",
+    "remainingAmount": 3150,
+    "nextPaymentDate": "2025-10-12",
+    "nextPaymentAmount": 1050,
+    "creditScoreDelta": 5,
+    "rewards": { "bonusPoints": 50 }
+  }
+}
+```
+
+### Reschedule Request
+POST `/api/loans/:id/reschedule`
+Headers: Idempotency-Key
+Body:
+```json
+{
+  "proposedSchedule": {
+    "type": "installments",
+    "frequency": "biweekly",
+    "installments": 3,
+    "firstPaymentDate": "2025-10-10"
+  },
+  "reason": "salary date changed"
+}
+```
+Response: lender must approve; returns pending change request details.
+
+### Write-off (Admin or Lender special mode)
+POST `/api/loans/:id/writeoff`
+Headers: Idempotency-Key
+Body:
+```json
+{
+  "reason": "hardship",
+  "evidenceUrl": null
+}
+```
+Response: audited status change to `written_off`.
+
+### Eligibility Check (Privacy-Preserving)
+POST `/api/lending/eligibility-check`
+Body:
+```json
+{
+  "targetContact": { "phone": "+2547XXXXXXX" }
+}
+```
+Response:
+```json
+{
+  "eligibility": {
+    "maxBorrowableForThisPair": 7200,
+    "suggestedAmount": 5000,
+    "lenderResponseTimeHint": "usually within 2 hours",
+    "lenderProtectionScore": 0.9,
+    "requiredVerification": ["password", "2fa_if_over_threshold"]
+  }
+}
+```
+Notes:
+- Never reveals balances; values are derived aggregates
+
+### Errors and Enforcement
+- 400: Validation errors (limit exceeded, schedule invalid, missing fields)
+- 401/403: Auth or KYC gating
+- 409: Concurrency (existing active loan with lender)
+- 422: Business rule violation (daily limit, cooling-off)
+- 429: Rate limit
+- 500: Server error
+
+Lending-specific error examples:
+```json
+{ "code": "LIMIT_EXCEEDED", "message": "Requested amount exceeds 75 percent cap" }
+```
+
 ---
 
 ## Lending Intelligence

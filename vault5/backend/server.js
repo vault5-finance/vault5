@@ -202,6 +202,7 @@ const {
   lendingRoutes,
   reportsRoutes,
   loansRoutes,
+  p2pLoansRoutes,
   investmentsRoutes,
   transactionsRoutes,
   settingsRoutes,
@@ -232,6 +233,7 @@ app.use('/api/goals', goalsRoutes);
 app.use('/api/lending', lendingRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/loans', loansRoutes);
+app.use('/api/p2p-loans', p2pLoansRoutes);
 app.use('/api/investments', investmentsRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api/settings', settingsRoutes);

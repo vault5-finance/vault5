@@ -12,6 +12,7 @@ const goalsRoutes = require('./goals');
 const lendingRoutes = require('./lending');
 const reportsRoutes = require('./reports');
 const loansRoutes = require('./loans');
+const p2pLoansRoutes = require('./p2pLoans');
 const investmentsRoutes = require('./investments');
 const transactionsRoutes = require('./transactions');
 const settingsRoutes = require('./settings');
@@ -39,6 +40,7 @@ module.exports = {
   lendingRoutes,
   reportsRoutes,
   loansRoutes,
+  p2pLoansRoutes,
   investmentsRoutes,
   transactionsRoutes,
   settingsRoutes,
