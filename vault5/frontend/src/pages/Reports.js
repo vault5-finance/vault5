@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import api from '../services/api';
+import AdvancedAnalyticsDashboard from '../components/AdvancedAnalyticsDashboard';
 import CashFlowProjection from '../components/CashFlowProjection';
 import GamificationDashboard from '../components/GamificationDashboard';
 
@@ -63,20 +65,48 @@ const Reports = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Reports</h1>
+      <motion.div
+        className="mb-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h1 className="text-3xl font-bold mb-2">
+          Advanced <span style={{ color: 'var(--emi-blue)' }}>Reports</span>
+        </h1>
+        <p className="text-gray-600">
+          Comprehensive financial analytics and AI-powered insights
+        </p>
+      </motion.div>
 
-      <div className="mb-6">
-        <label className="mr-4 text-sm font-medium">Period:</label>
-        <select 
-          value={period} 
-          onChange={(e) => setPeriod(e.target.value)} 
-          className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-      </div>
+      {/* Advanced Analytics Section */}
+      <motion.div
+        className="mb-12"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <AdvancedAnalyticsDashboard />
+      </motion.div>
+
+      {/* Traditional Reports Section */}
+      <motion.div
+        className="space-y-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <div className="mb-6">
+          <label className="mr-4 text-sm font-medium">Report Period:</label>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emi-blue"
+          >
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
 
       {/* Anchored sections for sidebar deep-links */}
       <section id="spending" className="mt-8">
@@ -130,15 +160,17 @@ const Reports = () => {
           )}
 
           <div className="flex space-x-4">
-            <button 
-              onClick={downloadPDF} 
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+            <button
+              onClick={downloadPDF}
+              className="px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+              style={{ background: 'var(--gradient-danger)' }}
             >
               Download PDF
             </button>
-            <button 
-              onClick={downloadExcel} 
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+            <button
+              onClick={downloadExcel}
+              className="px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+              style={{ background: 'var(--gradient-success)' }}
             >
               Download Excel
             </button>
@@ -152,6 +184,7 @@ const Reports = () => {
       </section>
 
       <GamificationDashboard />
+      </motion.div>
     </div>
   );
 };

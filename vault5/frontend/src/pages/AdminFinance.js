@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';

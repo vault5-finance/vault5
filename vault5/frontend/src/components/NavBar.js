@@ -107,7 +107,7 @@ const unreadCount = useMemo(() => {
       }
       return newState;
     });
-  }, [notifications.length, fetchNotifications]);
+  }, [notifications.length, notifCtx?.notifications?.length, fetchNotifications]);
 
   const markAsRead = async (id) => {
     try {

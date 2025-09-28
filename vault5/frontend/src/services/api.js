@@ -33,7 +33,6 @@ const API_BASE_URL = (() => {
   // Priority 2: Host-aware automatic detection
   if (typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
-    const protocol = window.location.protocol;
 
     // Vercel deployments (production and preview) → Render backend
     if (host.endsWith('.vercel.app') || host === 'vault5.vercel.app') {

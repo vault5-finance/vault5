@@ -5,7 +5,6 @@ import { Pie, Bar } from 'react-chartjs-2';
 import api from '../services/api';
 import AddFundsModal from '../components/AddFundsModal';
 import SendMoneyModal from '../components/SendMoneyModal';
-import { useToast } from '../contexts/ToastContext';
 
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
@@ -85,7 +84,6 @@ const generateInsights = (dashboardData, accounts, transactions) => {
 };
 
 const Dashboard = () => {
-  const { showInfo } = useToast();
   const [data, setData] = useState({ allocationData: [], healthScore: 0, totalBalance: 0 });
   const [accounts, setAccounts] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
@@ -103,39 +101,46 @@ const Dashboard = () => {
     hour < 12 ? 'Good morning' :
     hour < 17 ? 'Good afternoon' : 'Good evening';
 
+  const fetchDashboardData = React.useCallback(async () => {
+    try {
+      const [dashboardRes, accountsRes, transactionsRes] = await Promise.all([
+        api.get('/api/reports/dashboard'),
+        api.get('/api/accounts'),
+        api.get('/api/transactions?limit=5')
+      ]);
+
+      setData(dashboardRes.data);
+      setAccounts(accountsRes.data);
+      setRecentTransactions(transactionsRes.data);
+
+      // Generate AI insights
+      const generated = generateInsights(dashboardRes.data, accountsRes.data, transactionsRes.data);
+      setInsights(generated);
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Dashboard data error:', error);
+      if (error.response?.status === 401) navigate('/login');
+      setLoading(false);
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
       return;
     }
+    fetchDashboardData();
+  }, [navigate, fetchDashboardData]);
 
-    const fetchData = async () => {
-      try {
-        const [dashboardRes, accountsRes, transactionsRes] = await Promise.all([
-          api.get('/api/reports/dashboard'),
-          api.get('/api/accounts'),
-          api.get('/api/transactions?limit=5')
-        ]);
+  const handleIncomeSuccess = () => {
+    fetchDashboardData();
+  };
 
-        setData(dashboardRes.data);
-        setAccounts(accountsRes.data);
-        setRecentTransactions(transactionsRes.data);
-
-        // Generate AI insights
-        const insights = generateInsights(dashboardRes.data, accountsRes.data, transactionsRes.data);
-        setInsights(insights);
-
-        setLoading(false);
-      } catch (error) {
-        console.error('Dashboard data error:', error);
-        if (error.response?.status === 401) navigate('/login');
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [navigate]);
+  const handleSendMoneySuccess = () => {
+    fetchDashboardData();
+  };
 
   if (loading) return <DashboardSkeleton />;
 
@@ -159,50 +164,8 @@ const Dashboard = () => {
 
 
 
-  const handleAddFunds = () => {
-    setShowAddFundsModal(true);
-  };
-
-  const handleIncomeSuccess = () => {
-    // Refresh dashboard data
-    const fetchData = async () => {
-      try {
-        const [dashboardRes, accountsRes] = await Promise.all([
-          api.get('/api/reports/dashboard'),
-          api.get('/api/accounts')
-        ]);
-        setData(dashboardRes.data);
-        setAccounts(accountsRes.data);
-      } catch (error) {
-        console.error('Failed to refresh data:', error);
-      }
-    };
-    fetchData();
-  };
-
   const handleSendMoney = () => {
     setShowSendMoneyModal(true);
-  };
-
-  const handleSendMoneySuccess = () => {
-    // Refresh dashboard data after successful transfer
-    const fetchData = async () => {
-      try {
-        const [dashboardRes, accountsRes] = await Promise.all([
-          api.get('/api/reports/dashboard'),
-          api.get('/api/accounts')
-        ]);
-        setData(dashboardRes.data);
-        setAccounts(accountsRes.data);
-      } catch (error) {
-        console.error('Failed to refresh data:', error);
-      }
-    };
-    fetchData();
-  };
-
-  const handleViewReports = () => {
-    navigate('/reports');
   };
 
 
