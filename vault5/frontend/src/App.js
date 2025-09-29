@@ -49,7 +49,7 @@ const AboutUs = lazy(() => import('./pages/AboutUs'));
 
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
-const Banking = lazy(() => import('./pages/Banking'));
+const PaymentsCards = lazy(() => import('./pages/PaymentsCards'));
 const Investments = lazy(() => import('./pages/Investments'));
 const AdminIndex = lazy(() => import('./pages/AdminIndex'));
 const AdminSuper = lazy(() => import('./pages/AdminSuper'));
@@ -277,7 +277,9 @@ function App() {
         <Route path="/notifications" element={<ProtectedRoute><MainLayout><Notifications /></MainLayout></ProtectedRoute>} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
-        <Route path="/banking" element={<ProtectedRoute><MainLayout><Banking /></MainLayout></ProtectedRoute>} />
+        <Route path="/payments-cards" element={<ProtectedRoute><MainLayout><PaymentsCards /></MainLayout></ProtectedRoute>} />
+        {/* Backwards compatibility: redirect old Banking route */}
+        <Route path="/banking" element={<Navigate to="/payments-cards" replace />} />
         <Route path="/settings" element={<ProtectedRoute><MainLayout><Settings /></MainLayout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><MainLayout><Profile /></MainLayout></ProtectedRoute>} />
         <Route path="/compliance" element={<ProtectedRoute><MainLayout><ComplianceCenter /></MainLayout></ProtectedRoute>} />
