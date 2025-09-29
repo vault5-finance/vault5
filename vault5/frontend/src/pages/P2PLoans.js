@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { p2pLoansAPI, makeIdemKey } from '../services/api';
 import LenderApprovalModal from '../components/LenderApprovalModal';
@@ -26,6 +26,9 @@ const Card = ({ children }) => (
 
 export default function P2PLoans() {
   const { showError, showSuccess } = useToast();
+  const showErrorRef = useRef(showError);
+  useEffect(() => { showErrorRef.current = showError; }, [showError]);
+
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState({ borrowed: [], lent: [], summary: { activeLoans: 0, pendingApprovals: 0, overdueAmount: 0 } });
   const [tab, setTab] = useState('borrowed'); // 'borrowed' | 'lent'
@@ -41,11 +44,11 @@ export default function P2PLoans() {
       const resp = await p2pLoansAPI.list();
       setList(resp.data?.data || { borrowed: [], lent: [], summary: { activeLoans: 0, pendingApprovals: 0, overdueAmount: 0 } });
     } catch (e) {
-      showError(e?.response?.data?.message || 'Failed to load P2P loans');
+      showErrorRef.current(e?.response?.data?.message || 'Failed to load P2P loans');
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, []);
 
   useEffect(() => {
     reload();

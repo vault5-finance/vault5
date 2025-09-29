@@ -167,6 +167,11 @@ export const p2pLoansAPI = {
     return api.get(`/api/p2p-loans/${id}`);
   },
 
+  // GET /api/p2p-loans/:id/capacity-preview
+  capacityPreview: async (id) => {
+    return api.get(`/api/p2p-loans/${id}/capacity-preview`);
+  },
+
   // POST /api/p2p-loans/:id/approve
   approve: async (id, { password, twoFactorCode, disburseImmediately = true, disburseAt = null } = {}, idemKey) => {
     return api.post(

@@ -321,19 +321,57 @@ async function getLoan(req, res) {
   }
 }
 
+// GET /api/p2p-loans/:id/capacity-preview
+async function getCapacityPreview(req, res) {
+  try {
+    const loan = await P2PLoan.findById(req.params.id);
+    if (!loan) return res.status(404).json({ message: 'Loan not found' });
+
+    const uid = String(req.user._id);
+    if (String(loan.lenderId) !== uid) {
+      return res.status(403).json({ message: 'Only lender can preview capacity for this loan' });
+    }
+
+    // Compute current lending capacity for this lender
+    const { plan, totalAvailable } = await escrowService.computePullPlan(loan.lenderId, loan.principal);
+    const sumPlan = plan.reduce((s, p) => s + p.amount, 0);
+
+    console.log(`[P2P Capacity Preview] Loan ${loan._id}: required ${loan.principal}, available ${totalAvailable}, allowed ${sumPlan}`, { plan });
+
+    return res.json({
+      success: true,
+      data: {
+        loanId: loan._id,
+        principal: loan.principal,
+        totalAvailable,
+        allowedAmount: sumPlan,
+        canApprove: sumPlan >= loan.principal,
+        shortfall: Math.max(0, loan.principal - sumPlan),
+        plan: plan.map(p => ({ accountType: p.account.type, available: p.account.balance, willUse: p.amount }))
+      }
+    });
+  } catch (err) {
+    console.error('getCapacityPreview error:', err);
+    return res.status(500).json({ message: err.message });
+  }
+}
+
 // POST /api/p2p-loans/:id/approve
 async function approveLoan(req, res) {
   try {
     const { disburseImmediately = true, disburseAt = null } = req.body || {};
     const loan = req.loan || await P2PLoan.findById(req.params.id);
     if (!loan) return res.status(404).json({ message: 'Loan not found' });
- 
+
     if (String(loan.lenderId) !== String(req.user._id)) {
       return res.status(403).json({ message: 'Only lender can approve this loan' });
     }
     if (loan.status !== 'pending_approval') {
       return res.status(400).json({ message: 'Loan is not pending approval' });
     }
+
+    // Debug: Log approval attempt details
+    console.log(`[P2P Approve] User ${req.user._id} approving loan ${loan._id} for principal ${loan.principal}. Checking lending capacity...`);
  
     // If re-auth middleware didn't run, verify here (fallback)
     if (!req.reAuthOk) {
@@ -371,12 +409,15 @@ async function approveLoan(req, res) {
  
     // Hold funds from lender accounts (atomic)
     try {
+      console.log(`[P2P Approve] Calling holdFunds for loan ${loan._id}, principal ${loan.principal}`);
       await escrowService.holdFunds(loan);
+      console.log(`[P2P Approve] Funds held successfully for loan ${loan._id}`);
     } catch (e) {
       // Rollback visible state if hold failed
       loan.status = 'pending_approval';
       loan.escrowStatus = 'none';
       await loan.save();
+      console.error(`[P2P Approve] Hold funds failed for loan ${loan._id}: ${e.message}`, { code: e.code, totalAvailable: e.totalAvailable, required: loan.principal });
       return res.status(422).json({
         message: e.message || 'Unable to hold funds for escrow',
         code: e.code || 'ESCROW_HOLD_FAILED',
@@ -655,6 +696,7 @@ module.exports = {
   listLoans,
   createLoanRequest,
   getLoan,
+  getCapacityPreview,
   approveLoan,
   declineLoan,
   repayLoan,
