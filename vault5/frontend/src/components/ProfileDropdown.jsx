@@ -8,6 +8,9 @@ const ProfileDropdown = ({ onItemClick, isCollapsed = false }) => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+  // Ref for dropdown container (used for outside-click detection)
+  const dropdownRef = useRef(null);
+
   const toggleDarkMode = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
