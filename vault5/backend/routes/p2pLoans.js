@@ -25,6 +25,10 @@ router.post('/', idempotency(), p2pLoansController.createLoanRequest);
 // GET /api/p2p-loans/:id
 router.get('/:id', p2pLoansController.getLoan);
 
+// Get lending capacity preview for lender (before approval)
+// GET /api/p2p-loans/:id/capacity-preview
+router.get('/:id/capacity-preview', p2pLoansController.getCapacityPreview);
+
 // Lender actions
 // POST /api/p2p-loans/:id/approve
 router.post('/:id/approve', reAuth2FAP2PLoan, idempotency(), p2pLoansController.approveLoan);

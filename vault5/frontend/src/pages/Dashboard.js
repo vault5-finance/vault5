@@ -342,6 +342,12 @@ const Dashboard = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Recent Transactions</h2>
+            <button
+              onClick={() => navigate('/transactions')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+            >
+              View My Activity →
+            </button>
           </div>
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
@@ -395,7 +401,7 @@ const Dashboard = () => {
                 className="w-full inline-flex items-center justify-center px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
                 style={{ background: 'var(--gradient-primary)' }}
               >
-                See More
+                View My Activity →
               </button>
             </div>
           </div>

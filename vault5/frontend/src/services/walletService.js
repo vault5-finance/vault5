@@ -61,6 +61,19 @@ class WalletService {
     }
   }
 
+  // Transfer money to another Vault user (goes to their main wallet first)
+  async transferToVaultUser(transferData) {
+    try {
+      const response = await this.api.post('/transactions/transfer', {
+        ...transferData,
+        transferToWallet: true // Explicit flag to ensure wallet-first for Vault users
+      });
+      return response.data;
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
   // Get wallet transaction history
   async getWalletHistory(params = {}) {
     try {

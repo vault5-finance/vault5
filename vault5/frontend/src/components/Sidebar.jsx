@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, Link } from 'react-router-dom';
-import ProfileDropdown from './ProfileDropdown';
 import SidebarItem from './SidebarItem';
 import { useNotifications } from '../contexts/NotificationsContext';
 
@@ -25,12 +24,10 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
     { path: '/accounts', label: 'Accounts', icon: '💳' },
     { path: '/wallet', label: 'Wallet', icon: '👛' },
     { path: '/banking', label: 'Banking', icon: '🏦' },
-    { path: '/transactions', label: 'Transactions', icon: '🔄' },
-    { type: 'group', key: 'reports', label: 'Reports & Insights', icon: '📈' },
+    { path: '/transactions', label: 'My Activity', icon: '🔄' },
     { type: 'group', key: 'investments', label: 'Investments', icon: '📊' },
     { path: '/lending', label: 'Lending', icon: '🤝' },
     { path: '/p2p-loans', label: 'P2P Loans', icon: '🧩' },
-    { path: '/loans', label: 'My Loans', icon: '📄' },
     { path: '/notifications', label: 'Notifications', icon: '🔔', badge: unreadCount },
     ...(showCompliance ? [{ path: '/compliance', label: 'Compliance', icon: '🛡️' }] : []),
   ];
@@ -73,7 +70,7 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
       >
         <div className="flex h-full flex-col">
           <div className="p-4 border-b border-gray-800">
-            <ProfileDropdown onItemClick={onClose} isCollapsed={false} />
+            {/* Profile moved to navbar */}
           </div>
           <nav className="flex-1 p-4">
             <ul className="space-y-1">
@@ -178,7 +175,7 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
         className="fixed left-0 top-0 z-40 hidden h-screen bg-gray-900 text-gray-200 dark:bg-gray-950 shadow-lg lg:flex lg:flex-col overflow-y-auto"
       >
         <div className="p-4 border-b border-gray-800">
-          <ProfileDropdown onItemClick={() => {}} isCollapsed={isCollapsed} />
+          {/* Profile moved to navbar */}
         </div>
         <nav className="flex-1 p-4">
           <ul className="space-y-1">

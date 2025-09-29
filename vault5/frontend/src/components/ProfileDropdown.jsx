@@ -30,6 +30,23 @@ const ProfileDropdown = ({ onItemClick, isCollapsed = false }) => {
     { label: 'Privacy', path: '/privacy' },
   ];
 
+  // Click outside handler to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
   if (isCollapsed) {
     return (
       <div className="p-4 border-b">
@@ -66,6 +83,7 @@ const ProfileDropdown = ({ onItemClick, isCollapsed = false }) => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={dropdownRef}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}

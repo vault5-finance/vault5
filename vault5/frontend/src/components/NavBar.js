@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useNotifications } from '../contexts/NotificationsContext';
+import ProfileDropdown from './ProfileDropdown';
 
 const NavBar = ({ onMenuClick }) => {
   const navigate = useNavigate();
@@ -13,9 +14,12 @@ const NavBar = ({ onMenuClick }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   const notifDropdownRef = useRef(null);
   const notifButtonRef = useRef(null);
+  const profileDropdownRef = useRef(null);
+  const profileButtonRef = useRef(null);
   const notifCtx = useNotifications();
 
 // Computed unread count (prefer context if available)
@@ -81,9 +85,10 @@ const unreadCount = useMemo(() => {
     }
   }, [token, fetchNotifications, fetchCompliance]);
 
-  // Click outside handler for notifications dropdown
+  // Click outside handler for notifications and profile dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Close notifications dropdown
       if (
         notifDropdownRef.current &&
         !notifDropdownRef.current.contains(event.target) &&
@@ -91,6 +96,16 @@ const unreadCount = useMemo(() => {
         !notifButtonRef.current.contains(event.target)
       ) {
         setShowNotifications(false);
+      }
+
+      // Close profile dropdown
+      if (
+        profileDropdownRef.current &&
+        !profileDropdownRef.current.contains(event.target) &&
+        profileButtonRef.current &&
+        !profileButtonRef.current.contains(event.target)
+      ) {
+        setShowProfileDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -245,6 +260,34 @@ const unreadCount = useMemo(() => {
                 <>
                   {/* Spacer for alignment */}
                   <div className="flex-1" />
+
+                  {/* Profile Dropdown */}
+                  <div className="relative" ref={profileButtonRef}>
+
+                    <button
+                      onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                      className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 p-2 rounded-lg hover:bg-gray-100"
+                    >
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        {user.name?.charAt(0) || 'U'}
+                      </div>
+                      <span className="hidden lg:block text-sm font-medium">{user.name || 'User'}</span>
+                      <svg
+                        className={`w-4 h-4 transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {showProfileDropdown && (
+                      <div ref={profileDropdownRef} className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-50 border">
+                        <ProfileDropdown onItemClick={() => setShowProfileDropdown(false)} />
+                      </div>
+                    )}
+                  </div>
 
                   {/* Notifications bell removed from navbar; accessible via sidebar */}
                   <div className="hidden" ref={notifButtonRef}>
@@ -490,7 +533,6 @@ const unreadCount = useMemo(() => {
 
                     <Link to="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Dashboard</Link>
                     <Link to="/lending" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Lending</Link>
-                    <Link to="/loans" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Loans</Link>
                     <Link to="/compliance" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Compliance</Link>
                     <Link to="/blog" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>Blog</Link>
                     <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded" onClick={() => setShowMobileMenu(false)}>About</Link>

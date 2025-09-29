@@ -133,7 +133,7 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
     }
     setLoading(true);
     try {
-      // Vault-to-Vault
+      // Vault-to-Vault - money goes to recipient's main wallet first
       if (recipient.vaultUser) {
         await api.post('/api/transactions/transfer', {
           recipientEmail: mode === 'email' ? formData.recipientEmail : undefined,
@@ -141,9 +141,10 @@ const SendMoneyModal = ({ onClose, onSuccess }) => {
           amount: amountNumber,
           description: formData.description || 'P2P Transfer',
           source, // wallet by default
-          password
+          password,
+          transferToWallet: true // Ensure funds go to main wallet first
         });
-        showSuccess('Transfer completed successfully!');
+        showSuccess('Transfer completed! Funds deposited to recipient\'s main wallet.');
         onSuccess && onSuccess();
         onClose();
         return;
