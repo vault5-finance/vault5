@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 
-const ProfileDropdown = ({ onItemClick, isCollapsed = false }) => {
+const ProfileDropdown = ({ onItemClick, isCollapsed = false, menuOnly = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const navigate = useNavigate();
@@ -33,8 +33,10 @@ const ProfileDropdown = ({ onItemClick, isCollapsed = false }) => {
     { label: 'Privacy', path: '/privacy' },
   ];
 
-  // Click outside handler to close dropdown
+  // Click outside handler to close dropdown (disabled in menuOnly mode; NavBar handles outside-click)
   useEffect(() => {
+    if (menuOnly) return;
+
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -48,7 +50,39 @@ const ProfileDropdown = ({ onItemClick, isCollapsed = false }) => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, menuOnly]);
+
+  // Render-only menu content when used inside NavBar dropdown to avoid duplicate avatar/header
+  if (menuOnly) {
+    return (
+      <div ref={dropdownRef} className="py-2">
+        {menuItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            onClick={onItemClick}
+            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            {item.label}
+          </Link>
+        ))}
+        <div className="border-t my-2" />
+        <button
+          onClick={toggleDarkMode}
+          className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          {isDark ? 'Light Mode' : 'Dark Mode'}
+        </button>
+        <div className="border-t my-2" />
+        <button
+          onClick={handleLogout}
+          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          Logout
+        </button>
+      </div>
+    );
+  }
 
   if (isCollapsed) {
     return (

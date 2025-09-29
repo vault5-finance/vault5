@@ -283,10 +283,10 @@ const unreadCount = useMemo(() => {
                     </button>
 
                     {showProfileDropdown && (
-                      <div ref={profileDropdownRef} className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-50 border">
-                        <ProfileDropdown onItemClick={() => setShowProfileDropdown(false)} />
-                      </div>
-                    )}
+                    <div ref={profileDropdownRef} className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-50 border">
+                      <ProfileDropdown menuOnly onItemClick={() => setShowProfileDropdown(false)} />
+                    </div>
+                  )}
                   </div>
 
                   {/* Notifications bell removed from navbar; accessible via sidebar */}
