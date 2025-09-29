@@ -28,7 +28,9 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
     { path: '/transactions', label: 'Transactions', icon: '🔄' },
     { type: 'group', key: 'reports', label: 'Reports & Insights', icon: '📈' },
     { type: 'group', key: 'investments', label: 'Investments', icon: '📊' },
-    { path: '/lending', label: 'Lending & Loans', icon: '🤝' },
+    { path: '/lending', label: 'Lending', icon: '🤝' },
+    { path: '/p2p-loans', label: 'P2P Loans', icon: '🧩' },
+    { path: '/loans', label: 'My Loans', icon: '📄' },
     { path: '/notifications', label: 'Notifications', icon: '🔔', badge: unreadCount },
     ...(showCompliance ? [{ path: '/compliance', label: 'Compliance', icon: '🛡️' }] : []),
   ];

@@ -39,6 +39,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Lending = lazy(() => import('./pages/Lending'));
 const Loans = lazy(() => import('./pages/Loans'));
+const P2PLoans = lazy(() => import('./pages/P2PLoans'));
 const Transactions = lazy(() => import('./pages/Transactions'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Blog = lazy(() => import('./pages/Blog'));
@@ -270,6 +271,7 @@ function App() {
         <Route path="/reports" element={<ProtectedRoute><MainLayout><Reports /></MainLayout></ProtectedRoute>} />
         <Route path="/lending" element={<ProtectedRoute><MainLayout><Lending /></MainLayout></ProtectedRoute>} />
         <Route path="/loans" element={<ProtectedRoute><MainLayout><Loans /></MainLayout></ProtectedRoute>} />
+        <Route path="/p2p-loans" element={<ProtectedRoute><MainLayout><P2PLoans /></MainLayout></ProtectedRoute>} />
         <Route path="/investments" element={<ProtectedRoute><MainLayout><Investments /></MainLayout></ProtectedRoute>} />
         <Route path="/transactions" element={<ProtectedRoute><MainLayout><Transactions /></MainLayout></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><MainLayout><Notifications /></MainLayout></ProtectedRoute>} />
