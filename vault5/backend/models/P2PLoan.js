@@ -52,6 +52,11 @@ const p2pLoanSchema = new mongoose.Schema({
   autoDeduct: { type: Boolean, default: true },
   accountDeductionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
 
+  // Auto-deduction attempt metadata
+  autoRetryCount: { type: Number, default: 0 },
+  lastAutoAttemptAt: { type: Date },
+  nextAutoAttemptAt: { type: Date },
+
   // Privacy & risk fields (snapshots at request/approval time)
   protectionScore: { type: Number, default: 0 }, // 0..1
   riskFlags: [{ type: String }],
@@ -81,5 +86,6 @@ const p2pLoanSchema = new mongoose.Schema({
 p2pLoanSchema.index({ borrowerId: 1, lenderId: 1, status: 1 });
 p2pLoanSchema.index({ nextPaymentDate: 1, status: 1 });
 p2pLoanSchema.index({ createdAt: -1 });
+p2pLoanSchema.index({ nextAutoAttemptAt: 1 });
 
 module.exports = mongoose.model('P2PLoan', p2pLoanSchema);

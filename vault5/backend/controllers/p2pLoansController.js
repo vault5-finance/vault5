@@ -7,6 +7,8 @@ const {
   Transaction,
   User,
 } = require('../models');
+const escrowService = require('../services/escrowService');
+const { generateNotification } = require('./notificationsController');
 
 // Policy defaults (can be overridden with environment variables)
 const LOANS_2FA_THRESHOLD = Number(process.env.LOANS_2FA_THRESHOLD || 10000); // KES
@@ -257,6 +259,26 @@ async function createLoanRequest(req, res) {
       coolingOffExpiry
     });
 
+    // Notify lender of a new loan request (using existing enum 'outstanding_lending')
+    try {
+      await generateNotification(
+        lender._id,
+        'outstanding_lending',
+        'New Loan Request',
+        `${req.user.name || 'A contact'} requested KES ${recommended.toLocaleString()} as a P2P loan.`,
+        loan._id,
+        'high',
+        {
+          loanId: loan._id,
+          borrowerId: String(req.user._id),
+          amount: recommended,
+          currency: DEFAULT_CURRENCY,
+          scheduleType,
+          frequency
+        }
+      );
+    } catch (e) { /* non-blocking */ }
+
     return res.status(201).json({
       success: true,
       data: {
@@ -302,32 +324,33 @@ async function getLoan(req, res) {
 // POST /api/p2p-loans/:id/approve
 async function approveLoan(req, res) {
   try {
-    const { password, twoFactorCode, disburseImmediately = true, disburseAt = null } = req.body || {};
-    const loan = await P2PLoan.findById(req.params.id);
+    const { disburseImmediately = true, disburseAt = null } = req.body || {};
+    const loan = req.loan || await P2PLoan.findById(req.params.id);
     if (!loan) return res.status(404).json({ message: 'Loan not found' });
-
+ 
     if (String(loan.lenderId) !== String(req.user._id)) {
       return res.status(403).json({ message: 'Only lender can approve this loan' });
     }
     if (loan.status !== 'pending_approval') {
       return res.status(400).json({ message: 'Loan is not pending approval' });
     }
-
-    // Re-auth password
-    const lenderFull = await User.findById(req.user._id).select('+password');
-    if (!lenderFull || !(await bcrypt.compare(String(password || ''), lenderFull.password))) {
-      return res.status(401).json({ message: 'Password verification failed' });
-    }
-
-    // 2FA requirement if over threshold
-    if (loan.principal >= LOANS_2FA_THRESHOLD) {
-      if (!twoFactorCode || String(twoFactorCode).length < 4) {
-        return res.status(401).json({ message: '2FA required for this approval' });
+ 
+    // If re-auth middleware didn't run, verify here (fallback)
+    if (!req.reAuthOk) {
+      const { password, twoFactorCode } = req.body || {};
+      const lenderFull = await User.findById(req.user._id).select('+password');
+      if (!lenderFull || !(await bcrypt.compare(String(password || ''), lenderFull.password))) {
+        return res.status(401).json({ message: 'Password verification failed' });
       }
-      // TODO: verify twoFactorCode against provider
+      if (loan.principal >= LOANS_2FA_THRESHOLD) {
+        if (!twoFactorCode || String(twoFactorCode).length < 4) {
+          return res.status(401).json({ message: '2FA required for this approval' });
+        }
+        // TODO: verify twoFactorCode against provider
+      }
     }
-
-    // Place escrow hold (no actual money move yet; ledger integration TODO)
+ 
+    // Create escrow record and mark as held
     const escrow = await Escrow.create({
       loanId: loan._id,
       lenderId: loan.lenderId,
@@ -340,33 +363,74 @@ async function approveLoan(req, res) {
         notes: 'Auto-created on approval'
       }
     });
-
+ 
     loan.escrowId = escrow._id;
     loan.escrowStatus = 'held';
-    loan.status = disburseImmediately ? 'funded' : 'approved';
-
-    // Auto disburse (logical state only; real transfer integration to wallet/ledger is TODO)
-    if (disburseImmediately) {
-      loan.escrowStatus = 'disbursed';
-      loan.status = 'active';
-    }
-
+    loan.status = 'approved';
     await loan.save();
+ 
+    // Hold funds from lender accounts (atomic)
+    try {
+      await escrowService.holdFunds(loan);
+    } catch (e) {
+      // Rollback visible state if hold failed
+      loan.status = 'pending_approval';
+      loan.escrowStatus = 'none';
+      await loan.save();
+      return res.status(422).json({
+        message: e.message || 'Unable to hold funds for escrow',
+        code: e.code || 'ESCROW_HOLD_FAILED',
+        meta: { required: loan.principal, ...(e.totalAvailable !== undefined ? { totalAvailable: e.totalAvailable } : {}) }
+      });
+    }
+ 
+    // Optionally disburse immediately
+    let disbursementTxId = null;
+    if (disburseImmediately) {
+      const disb = await escrowService.disburse(loan);
+      disbursementTxId = disb.transactionId;
+    }
+ 
+    const updated = await P2PLoan.findById(loan._id).lean();
+ 
+    // Notifications: lender debited (hold), borrower credited (if disbursed)
+    try {
+      await generateNotification(
+        loan.lenderId,
+        'money_debited',
+        'Loan Funds Held in Escrow',
+        `KES ${loan.principal.toLocaleString()} reserved for borrower.`,
+        loan._id,
+        'medium',
+        { loanId: loan._id, amount: loan.principal, escrowId: escrow._id }
+      );
+      if (disburseImmediately) {
+        await generateNotification(
+          loan.borrowerId,
+          'money_received',
+          'Loan Disbursed',
+          `You received KES ${loan.principal.toLocaleString()} from your lender.`,
+          loan._id,
+          'high',
+          { loanId: loan._id, amount: loan.principal, escrowId: escrow._id }
+        );
+      }
+    } catch (e) { /* non-blocking */ }
 
     return res.json({
       success: true,
       data: {
-        loanId: loan._id,
-        status: loan.status,
+        loanId: updated._id,
+        status: updated.status,
         escrowTxId: escrow._id,
-        disbursementTxId: disburseImmediately ? 'pending-ledger' : null,
+        disbursementTxId,
         nextSteps: disburseImmediately
-          ? ['Funds held and marked disbursed', 'Repayment schedule is active']
-          : ['Funds held in escrow', 'Will disburse per schedule'],
+          ? ['Funds disbursed to borrower', 'Repayment schedule is active']
+          : ['Funds held in escrow', 'Lender may disburse later'],
         securityInfo: {
           escrowProtected: true,
-          twoFactorRequired: loan.principal >= LOANS_2FA_THRESHOLD,
-          lenderProtectionScore: loan.protectionScore
+          twoFactorRequired: updated.principal >= LOANS_2FA_THRESHOLD,
+          lenderProtectionScore: updated.protectionScore
         }
       }
     });
@@ -389,6 +453,29 @@ async function declineLoan(req, res) {
     }
     loan.status = 'declined';
     await loan.save();
+
+    // Notify both parties
+    try {
+      await generateNotification(
+        loan.borrowerId,
+        'outstanding_lending',
+        'Loan Request Declined',
+        'Your loan request was declined by the lender.',
+        loan._id,
+        'medium',
+        { loanId: loan._id }
+      );
+      await generateNotification(
+        loan.lenderId,
+        'outstanding_lending',
+        'Loan Request Declined',
+        'You declined a pending loan request.',
+        loan._id,
+        'low',
+        { loanId: loan._id }
+      );
+    } catch (e) { /* non-blocking */ }
+
     return res.json({ success: true, data: { status: 'declined' } });
   } catch (err) {
     console.error('declineLoan error:', err);
@@ -402,7 +489,7 @@ async function repayLoan(req, res) {
     const { amount, paymentMethod = 'wallet', autoPay = false } = req.body || {};
     const loan = await P2PLoan.findById(req.params.id);
     if (!loan) return res.status(404).json({ message: 'Loan not found' });
-
+ 
     const uid = String(req.user._id);
     if (String(loan.borrowerId) !== uid && String(loan.lenderId) !== uid) {
       return res.status(403).json({ message: 'Not authorized to operate on this loan' });
@@ -413,7 +500,18 @@ async function repayLoan(req, res) {
     if (!['active', 'overdue', 'funded', 'approved'].includes(loan.status)) {
       return res.status(400).json({ message: `Loan not in repayable state: ${loan.status}` });
     }
-
+ 
+    // Move money borrower -> lender (atomic)
+    let transferRes;
+    try {
+      transferRes = await escrowService.settlementTransfer(loan, { amount });
+    } catch (e) {
+      if (e && e.code === 'INSUFFICIENT_FUNDS') {
+        return res.status(400).json({ message: 'Insufficient borrower funds' });
+      }
+      throw e;
+    }
+ 
     // Apply to earliest unpaid schedule entries
     let remainingPay = Math.min(amount, loan.remainingAmount);
     for (const item of loan.repaymentSchedule) {
@@ -429,7 +527,7 @@ async function repayLoan(req, res) {
         remainingPay = 0;
       }
     }
-
+ 
     loan.remainingAmount = Math.max(0, loan.remainingAmount - Math.min(amount, loan.remainingAmount));
     const nextItem = loan.repaymentSchedule.find(i => !i.paid);
     loan.nextPaymentDate = nextItem ? nextItem.dueDate : null;
@@ -443,12 +541,33 @@ async function repayLoan(req, res) {
     }
     await loan.save();
 
-    // TODO: create Transaction entries, update accounts, and audit log
-
+    // Notifications for repayment
+    try {
+      await generateNotification(
+        loan.lenderId,
+        'money_received',
+        'Loan Repayment Received',
+        `KES ${Number(amount).toLocaleString()} received from borrower.`,
+        loan._id,
+        'high',
+        { loanId: loan._id, amount: Number(amount), borrowerTxId: transferRes.borrowerTxId, lenderTxId: transferRes.lenderTxId }
+      );
+      await generateNotification(
+        loan.borrowerId,
+        'money_debited',
+        'Loan Repayment Sent',
+        `You repaid KES ${Number(amount).toLocaleString()} to your lender.`,
+        loan._id,
+        'medium',
+        { loanId: loan._id, amount: Number(amount), borrowerTxId: transferRes.borrowerTxId }
+      );
+    } catch (e) { /* non-blocking */ }
+ 
     return res.json({
       success: true,
       data: {
-        transactionId: null,
+        borrowerTxId: transferRes.borrowerTxId,
+        lenderTxId: transferRes.lenderTxId,
         remainingAmount: loan.remainingAmount,
         nextPaymentDate: loan.nextPaymentDate,
         nextPaymentAmount: loan.nextPaymentAmount,
@@ -502,6 +621,28 @@ async function writeoffLoan(req, res) {
     loan.status = 'written_off';
     await loan.save();
 
+    // Notify both parties
+    try {
+      await generateNotification(
+        loan.borrowerId,
+        'outstanding_lending',
+        'Loan Written Off',
+        'Your lender wrote off the remaining balance.',
+        loan._id,
+        'medium',
+        { loanId: loan._id }
+      );
+      await generateNotification(
+        loan.lenderId,
+        'outstanding_lending',
+        'Loan Written Off',
+        'You wrote off this loan.',
+        loan._id,
+        'low',
+        { loanId: loan._id }
+      );
+    } catch (e) { /* non-blocking */ }
+ 
     return res.json({ success: true, data: { status: 'written_off' } });
   } catch (err) {
     console.error('writeoffLoan error:', err);

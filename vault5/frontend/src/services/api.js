@@ -121,3 +121,96 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// === P2P Loans API helpers (Loans v2) ===
+
+// Lightweight Idempotency-Key generator for client calls
+export function makeIdemKey(prefix = 'p2p') {
+  const rnd = Math.random().toString(36).slice(2);
+  return `${prefix}-${Date.now()}-${rnd}`;
+}
+
+const IDEMPOTENCY_HEADER = 'Idempotency-Key';
+function withIdem(config = {}, idemKey) {
+  if (!idemKey) return config;
+  return {
+    ...config,
+    headers: {
+      ...(config.headers || {}),
+      [IDEMPOTENCY_HEADER]: idemKey,
+    },
+  };
+}
+
+export const p2pLoansAPI = {
+  // POST /api/p2p-loans/eligibility-check
+  eligibilityCheck: async (targetContact) => {
+    return api.post('/api/p2p-loans/eligibility-check', { targetContact });
+  },
+
+  // GET /api/p2p-loans
+  list: async () => {
+    return api.get('/api/p2p-loans');
+  },
+
+  // POST /api/p2p-loans
+  create: async ({ contact, amount, schedule, purpose, autoApprove, interestRate }, idemKey) => {
+    return api.post(
+      '/api/p2p-loans',
+      { contact, amount, schedule, purpose, autoApprove, interestRate },
+      withIdem({}, idemKey || makeIdemKey('p2p-create'))
+    );
+  },
+
+  // GET /api/p2p-loans/:id
+  get: async (id) => {
+    return api.get(`/api/p2p-loans/${id}`);
+  },
+
+  // POST /api/p2p-loans/:id/approve
+  approve: async (id, { password, twoFactorCode, disburseImmediately = true, disburseAt = null } = {}, idemKey) => {
+    return api.post(
+      `/api/p2p-loans/${id}/approve`,
+      { password, twoFactorCode, disburseImmediately, disburseAt },
+      withIdem({}, idemKey || makeIdemKey('p2p-approve'))
+    );
+  },
+
+  // POST /api/p2p-loans/:id/decline
+  decline: async (id, idemKey) => {
+    return api.post(
+      `/api/p2p-loans/${id}/decline`,
+      {},
+      withIdem({}, idemKey || makeIdemKey('p2p-decline'))
+    );
+  },
+
+  // POST /api/p2p-loans/:id/repay
+  repay: async (id, { amount, paymentMethod = 'wallet', autoPay = false }, idemKey) => {
+    return api.post(
+      `/api/p2p-loans/${id}/repay`,
+      { amount, paymentMethod, autoPay },
+      withIdem({}, idemKey || makeIdemKey('p2p-repay'))
+    );
+  },
+
+  // POST /api/p2p-loans/:id/reschedule
+  reschedule: async (id, proposedSchedule, idemKey) => {
+    return api.post(
+      `/api/p2p-loans/${id}/reschedule`,
+      { proposedSchedule },
+      withIdem({}, idemKey || makeIdemKey('p2p-reschedule'))
+    );
+  },
+
+  // POST /api/p2p-loans/:id/writeoff
+  writeoff: async (id, idemKey) => {
+    return api.post(
+      `/api/p2p-loans/${id}/writeoff`,
+      {},
+      withIdem({}, idemKey || makeIdemKey('p2p-writeoff'))
+    );
+  },
+};
+
+// === End P2P Loans API helpers ===
