@@ -20,6 +20,7 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
   }, []);
 
   const menuItems = [
+    { path: '/', label: 'Home', icon: '🏠' },
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/accounts', label: 'Accounts', icon: '💳' },
     { path: '/wallet', label: 'Wallet', icon: '👛' },

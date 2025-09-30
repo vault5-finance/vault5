@@ -21,7 +21,7 @@ const ProfileDropdown = ({ onItemClick, isCollapsed = false, menuOnly = false })
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/login');
+    navigate('/');
     onItemClick();
   };
 

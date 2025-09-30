@@ -61,7 +61,8 @@ const unreadCount = useMemo(() => {
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
-    navigate('/login');
+    localStorage.removeItem('user');
+    navigate('/');
   }, [navigate]);
 
   const fetchCompliance = useCallback(async () => {
