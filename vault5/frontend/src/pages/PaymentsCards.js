@@ -138,10 +138,6 @@ export default function PaymentsCards() {
   }
 
   function handleAddCard() {
-    if (!stripePromise) {
-      showError('Stripe not configured. Please contact support.');
-      return;
-    }
     setShowAddModal(true);
   }
 
@@ -249,12 +245,11 @@ export default function PaymentsCards() {
       </div>
 
       {/* Add Card Modal */}
-      {showAddModal && stripePromise && (
-        <Elements stripe={stripePromise}>
+      {showAddModal && (
+        <Elements stripe={stripePromise || loadStripe('pk_test_placeholder')}>
           <AddCardModal
             onClose={() => setShowAddModal(false)}
             onSuccess={fetchCards}
-            stripePromise={stripePromise}
           />
         </Elements>
       )}

@@ -316,7 +316,9 @@ const userSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     lastUsedAt: { type: Date, default: Date.now }
   }],
-  lastLogin: { type: Date }
+  lastLogin: { type: Date },
+  // Stripe customer ID for card tokenization
+  stripeCustomerId: { type: String, default: null }
 }, {
   timestamps: true
 });
