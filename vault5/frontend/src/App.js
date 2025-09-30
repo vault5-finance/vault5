@@ -58,6 +58,7 @@ const AdminSupport = lazy(() => import('./pages/AdminSupport'));
 const AdminContent = lazy(() => import('./pages/AdminContent'));
 const AdminSystem = lazy(() => import('./pages/AdminSystem'));
 const AdminUserAccounts = lazy(() => import('./pages/AdminUserAccounts'));
+const AdminProfile = lazy(() => import('./pages/AdminProfile'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
@@ -294,6 +295,8 @@ function App() {
         <Route path="/admin/content" element={<AdminProtectedRoute><AdminContent /></AdminProtectedRoute>} />
         <Route path="/admin/system" element={<AdminProtectedRoute><AdminSystem /></AdminProtectedRoute>} />
         <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
+        <Route path="/admin/profile" element={<AdminProtectedRoute><AdminProfile /></AdminProtectedRoute>} />
+        <Route path="/admin/profile/change-password" element={<AdminProtectedRoute><AdminProfile /></AdminProtectedRoute>} />
 
         {/* Placeholder Pages for Future Features */}
         <Route path="/wallet" element={<ProtectedRoute><div className="p-8"><h1 className="text-3xl font-bold">Wallet</h1><p className="mt-4">Recharge, withdraw, and manage your accounts.</p></div></ProtectedRoute>} />
