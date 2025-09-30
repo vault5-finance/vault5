@@ -48,6 +48,9 @@ Vault5 uses a proven six-account allocation system to help you manage your money
 - ✅ Mobile money integration
 - ✅ Multi-factor authentication
 - ✅ KYC verification system
+- ✅ Card linking and payments
+- ✅ Subscription management
+- ✅ Vault5 Pay (wallet-first payments)
 
 ---
 
@@ -229,6 +232,80 @@ View all your transfers in the "Transfers" section:
 - Large transfers may require additional verification
 - Transfer limits based on KYC level
 - Real-time fraud monitoring
+
+---
+
+## Card Linking & Payments
+
+### Linking Your Cards
+1. Go to "Payments & Cards" in the navigation
+2. Click "Add Card"
+3. Enter your Visa, Mastercard, or other card details securely
+4. Complete verification (may require 3D Secure)
+5. Card is tokenized and stored safely (we never store full card numbers)
+
+### Card Management
+- **Default Card:** Set one card as your primary payment method
+- **Remove Cards:** Delete cards you no longer want to use
+- **Security:** All cards are PCI DSS compliant and encrypted
+
+### Vault5 Pay
+Vault5 Pay prioritizes your wallet balance for payments:
+- **Wallet First:** Payments deduct from wallet balance first
+- **Card Fallback:** If wallet insufficient, automatically charges linked card
+- **No Extra Fees:** Same rates as direct card payments
+- **Subscription Billing:** Automatic recurring payments with wallet priority
+
+### Supported Cards
+- Visa (all variants)
+- Mastercard (debit and credit)
+- American Express
+- Discover
+- Diners Club
+- JCB
+- UnionPay
+
+### Security Features
+- **Tokenization:** Cards are tokenized, not stored in plain text
+- **3D Secure:** Enhanced security for online payments
+- **Device Tracking:** Fraud prevention through device fingerprinting
+- **Velocity Limits:** Rate limiting on linking and payment attempts
+
+---
+
+## Subscriptions
+
+### Creating Subscriptions
+1. Go to "Subscriptions" in the navigation
+2. Click "Add Subscription"
+3. Enter merchant details (Netflix, Spotify, etc.)
+4. Set amount and billing interval (monthly, weekly, etc.)
+5. Choose payment source (wallet or specific card)
+6. Click "Create"
+
+### Subscription Management
+- **View History:** See all past payments and billing dates
+- **Cancel Anytime:** Stop subscriptions with one click
+- **Resume Paused:** Reactivate paused subscriptions
+- **Change Payment:** Switch between wallet and card payments
+
+### Billing Logic
+- **Wallet Priority:** Subscriptions charge wallet first
+- **Automatic Fallback:** If wallet empty, charges default card
+- **Retry Logic:** Failed payments retry up to 3 times
+- **Notifications:** Get alerts for all billing events
+
+### Supported Intervals
+- Daily
+- Weekly
+- Monthly
+- Quarterly
+- Yearly
+
+### Subscription Security
+- **PIN Required:** All subscription changes require PIN
+- **Audit Trail:** Complete history of all changes
+- **Merchant Verification:** Only verified merchants supported initially
 
 ---
 
