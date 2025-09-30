@@ -24,6 +24,7 @@ const Sidebar = ({ isOpen, isCollapsed, onToggle, onCollapseToggle, onClose }) =
     { path: '/accounts', label: 'Accounts', icon: '💳' },
     { path: '/wallet', label: 'Wallet', icon: '👛' },
     { path: '/payments-cards', label: 'Payments & Cards', icon: '💳' },
+    { path: '/subscriptions', label: 'Subscriptions', icon: '🔄' },
     { path: '/transactions', label: 'My Activity', icon: '🔄' },
     { type: 'group', key: 'investments', label: 'Investments', icon: '📊' },
     { path: '/lending', label: 'Lending', icon: '🤝' },

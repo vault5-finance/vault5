@@ -59,6 +59,7 @@ const AdminSupport = lazy(() => import('./pages/AdminSupport'));
 const AdminContent = lazy(() => import('./pages/AdminContent'));
 const AdminSystem = lazy(() => import('./pages/AdminSystem'));
 const AdminUserAccounts = lazy(() => import('./pages/AdminUserAccounts'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const LegalCenter = lazy(() => import('./pages/LegalCenter'));
@@ -278,6 +279,7 @@ function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/payments-cards" element={<ProtectedRoute><MainLayout><PaymentsCards /></MainLayout></ProtectedRoute>} />
+        <Route path="/subscriptions" element={<ProtectedRoute><MainLayout><Subscriptions /></MainLayout></ProtectedRoute>} />
         {/* Backwards compatibility: redirect old Banking route */}
         <Route path="/banking" element={<Navigate to="/payments-cards" replace />} />
         <Route path="/settings" element={<ProtectedRoute><MainLayout><Settings /></MainLayout></ProtectedRoute>} />
