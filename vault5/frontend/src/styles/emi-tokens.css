@@ -337,19 +337,23 @@
   padding: 2rem;
 }
 
-.emi-process-step::after {
+.emi-process-step:not(:last-child)::after {
   content: '';
   position: absolute;
   top: 50%;
-  left: 100%;
-  width: 100%;
+  right: -1rem;
+  width: calc(100% + 2rem);
   height: 2px;
   background: var(--gradient-primary);
   transform: translateY(-50%);
+  z-index: 1;
 }
 
-.emi-process-step:last-child::after {
-  display: none;
+@media (min-width: 768px) {
+  .emi-process-step:not(:last-child)::after {
+    right: -2rem;
+    width: calc(100% + 4rem);
+  }
 }
 
 .emi-cta-section {
