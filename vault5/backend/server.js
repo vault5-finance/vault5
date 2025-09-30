@@ -210,7 +210,9 @@ const {
   recommendationsRoutes,
   gamificationRoutes,
   receiptsRoutes,
-  paymentsRoutes
+  paymentsRoutes,
+  paymentMethodsRoutes,
+  subscriptionsRoutes
 } = require('./routes');
 const kycRoutes = require('./routes/kyc');
 const plaidRoutes = require('./routes/plaid');
@@ -242,6 +244,8 @@ app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/receipts', receiptsRoutes);
 app.use('/api/payments', paymentsRoutes);
+app.use('/api/payment-methods', paymentMethodsRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/plaid', plaidRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/linked-accounts', linkedAccountsRoutes);

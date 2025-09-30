@@ -71,6 +71,53 @@ async function creditWallet(userId, amount, description = 'Wallet credit', meta 
   return { wallet, transaction, transactionCode: txCode };
 }
 
+// Programmatic debit from a user's main wallet (subscription/merchant charge utility)
+// Returns { wallet, transaction, transactionCode }
+async function debitWallet(userId, amount, description = 'Wallet debit', meta = {}, currency = 'KES') {
+  if (!(Number(amount) > 0)) {
+    throw new Error('Amount must be positive');
+  }
+  const user = await User.findById(userId);
+  if (!user) throw new Error('User not found');
+
+  const wallet = await ensureWallet(userId);
+
+  // Check sufficient balance
+  const availableBalance = Number(wallet.balance || 0) - Number(wallet.negativeBalance || 0);
+  if (availableBalance < amount) {
+    throw new Error('Insufficient wallet balance');
+  }
+
+  // Debit the balance
+  wallet.balance = parseFloat((Number(wallet.balance || 0) - amount).toFixed(2));
+  if (typeof wallet.updateStats === 'function') {
+    wallet.updateStats(amount, 'spend');
+  }
+  await wallet.save();
+
+  // Create transaction record
+  const txCode = await generateUniqueTransactionCode(Transaction, 10);
+  const transaction = new Transaction({
+    user: userId,
+    type: 'expense',
+    amount: amount,
+    description: description,
+    currency,
+    transactionCode: txCode,
+    balanceAfter: wallet.balance,
+    category: 'Wallet',
+    allocations: [],
+    fraudRisk: { riskScore: 0, isHighRisk: false, flags: [] },
+    metadata: Object.assign({}, meta, {
+      source: 'wallet_debit',
+      availableBalance
+    })
+  });
+  await transaction.save();
+
+  return { wallet, transaction, transactionCode: txCode };
+}
+
 // Get user's wallet
 const getWallet = async (req, res) => {
   try {

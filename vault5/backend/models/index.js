@@ -16,6 +16,10 @@ const Notification = require('./Notification');
 // Loans v2 P2P models
 const P2PLoan = require('./P2PLoan');
 const Escrow = require('./Escrow');
+// Payment methods
+const PaymentMethod = require('./PaymentMethod');
+// Subscriptions
+const Subscription = require('./Subscription');
 const { Limitation, ReserveHold, PayoutRequest, KycRequest, GeoPolicy, IpDenylist, DeviceRule, LimitTier, VelocityCounter, RiskEvent } = require('./Compliance');
 
 module.exports = {
@@ -35,6 +39,10 @@ module.exports = {
   // P2P Loans v2
   P2PLoan,
   Escrow,
+  // Payment methods
+  PaymentMethod,
+  // Subscriptions
+  Subscription,
   // Compliance & Risk models
   Limitation,
   ReserveHold,
