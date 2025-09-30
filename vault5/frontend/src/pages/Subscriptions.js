@@ -17,6 +17,8 @@ export default function Subscriptions() {
     description: ''
   });
   const [cards, setCards] = useState([]);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelId, setCancelId] = useState(null);
 
   useEffect(() => {
     fetchSubscriptions();
@@ -65,12 +67,17 @@ export default function Subscriptions() {
     }
   }
 
-  async function handleCancel(id) {
-    if (!confirm('Cancel this subscription?')) return;
+  function handleCancel(id) {
+    setCancelId(id);
+    setShowCancelModal(true);
+  }
+
+  async function confirmCancel() {
     try {
-      await api.patch(`/api/subscriptions/${id}/cancel`);
+      await api.patch(`/api/subscriptions/${cancelId}/cancel`);
       showSuccess('Subscription canceled');
       fetchSubscriptions();
+      setShowCancelModal(false);
     } catch (e) {
       showError(e?.response?.data?.message || 'Failed to cancel subscription');
     }
@@ -339,6 +346,30 @@ export default function Subscriptions() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Cancel Subscription</h3>
+            <p className="mb-4">Are you sure you want to cancel this subscription? This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Keep Subscription
+              </button>
+              <button
+                onClick={confirmCancel}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Cancel Subscription
+              </button>
+            </div>
           </div>
         </div>
       )}

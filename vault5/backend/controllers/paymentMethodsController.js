@@ -1,6 +1,15 @@
 const { User, PaymentMethod, Notification } = require('../models');
 const { secrets } = require('../utils/secretsLoader');
-const stripe = require('stripe')(secrets.STRIPE_SECRET_KEY);
+let stripe = null;
+try {
+  if (secrets.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(secrets.STRIPE_SECRET_KEY);
+  } else {
+    console.warn('STRIPE_SECRET_KEY not configured');
+  }
+} catch (e) {
+  console.warn('Stripe initialization failed:', e.message);
+}
 const catchAsync = require('../utils/catchAsync');
 const { auditLog } = require('../utils/audit');
 
@@ -14,6 +23,9 @@ const getStripeConfig = catchAsync(async (req, res) => {
 
 // POST /api/payment-methods/stripe/setup-intent
 const createSetupIntent = catchAsync(async (req, res) => {
+  if (!stripe) {
+    return res.status(500).json({ success: false, message: 'Stripe not configured' });
+  }
   const userId = req.user._id;
   const user = await User.findById(userId);
   if (!user) {
@@ -51,6 +63,9 @@ const createSetupIntent = catchAsync(async (req, res) => {
 
 // POST /api/payment-methods/cards/link
 const linkCard = catchAsync(async (req, res) => {
+  if (!stripe) {
+    return res.status(500).json({ success: false, message: 'Stripe not configured' });
+  }
   const userId = req.user._id;
   const { paymentMethodId } = req.body;
   if (!paymentMethodId) {
@@ -138,10 +153,12 @@ const removeCard = catchAsync(async (req, res) => {
   }
 
   // Detach from Stripe
-  try {
-    await stripe.paymentMethods.detach(pm.providerId);
-  } catch (e) {
-    console.warn('Stripe detach failed:', e.message);
+  if (stripe) {
+    try {
+      await stripe.paymentMethods.detach(pm.providerId);
+    } catch (e) {
+      console.warn('Stripe detach failed:', e.message);
+    }
   }
 
   auditLog(userId, 'card_removed', { paymentMethodId: id });

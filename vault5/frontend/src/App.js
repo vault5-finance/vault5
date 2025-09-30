@@ -4,7 +4,6 @@ import { ToastProvider } from './contexts/ToastContext';
 import initializePerformanceMonitoring from './utils/performance';
 import './index.css';
 
-import NavBar from './components/NavBar';
 import MainLayout from './components/MainLayout';
 import PublicLayout from './components/PublicLayout';
 import { NotificationsProvider } from './contexts/NotificationsContext';
