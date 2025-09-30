@@ -663,6 +663,249 @@ Get outstanding lendings and total outstanding amount.
 
 ---
 
+## Payment Methods
+
+### Get Stripe Config
+**GET** `/api/payment-methods/stripe/config`
+
+Get Stripe publishable key for frontend integration.
+
+**Response:**
+```json
+{
+  "publishableKey": "pk_test_..."
+}
+```
+
+### Create Setup Intent
+**POST** `/api/payment-methods/stripe/setup-intent`
+
+Create a Stripe SetupIntent for card collection.
+
+**Response:**
+```json
+{
+  "clientSecret": "seti_...",
+  "setupIntentId": "seti_..."
+}
+```
+
+### Link Card
+**POST** `/api/payment-methods/cards/link`
+
+Link a card after successful SetupIntent confirmation.
+
+**Request Body:**
+```json
+{
+  "paymentMethodId": "pm_..."
+}
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "_id": "card_id",
+    "brand": "visa",
+    "last4": "4242",
+    "expMonth": 12,
+    "expYear": 2026,
+    "isDefault": false
+  }
+}
+```
+
+### List Cards
+**GET** `/api/payment-methods/cards`
+
+List all linked payment methods.
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "_id": "card_id",
+      "brand": "visa",
+      "last4": "4242",
+      "expMonth": 12,
+      "expYear": 2026,
+      "isDefault": true
+    }
+  ]
+}
+```
+
+### Set Default Card
+**PATCH** `/api/payment-methods/cards/{id}/default`
+
+Set a card as the default payment method.
+
+**Response:**
+```json
+{
+  "message": "Default card updated"
+}
+```
+
+### Remove Card
+**DELETE** `/api/payment-methods/cards/{id}`
+
+Remove a linked card.
+
+**Response:**
+```json
+{
+  "message": "Card removed"
+}
+```
+
+---
+
+## Subscriptions
+
+### Create Subscription
+**POST** `/api/subscriptions`
+
+Create a new subscription.
+
+**Request Body:**
+```json
+{
+  "merchantName": "Netflix",
+  "merchantUrl": "https://netflix.com",
+  "amount": 1500,
+  "currency": "KES",
+  "interval": "monthly",
+  "paymentSource": "wallet",
+  "paymentMethodId": "card_id", // if paymentSource is 'card'
+  "description": "Monthly subscription"
+}
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "_id": "sub_id",
+    "merchantName": "Netflix",
+    "amount": 1500,
+    "interval": "monthly",
+    "status": "active",
+    "nextBillingDate": "2025-10-01T00:00:00.000Z"
+  }
+}
+```
+
+### List Subscriptions
+**GET** `/api/subscriptions`
+
+List all subscriptions with optional status filter.
+
+**Query Parameters:**
+- `status`: Filter by status (active, paused, canceled, etc.)
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 20)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "_id": "sub_id",
+      "merchantName": "Netflix",
+      "amount": 1500,
+      "interval": "monthly",
+      "status": "active",
+      "nextBillingDate": "2025-10-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 5,
+    "pages": 1
+  }
+}
+```
+
+### Get Subscription
+**GET** `/api/subscriptions/{id}`
+
+Get details of a specific subscription.
+
+**Response:**
+```json
+{
+  "data": {
+    "_id": "sub_id",
+    "merchantName": "Netflix",
+    "amount": 1500,
+    "interval": "monthly",
+    "status": "active",
+    "nextBillingDate": "2025-10-01T00:00:00.000Z",
+    "history": [
+      {
+        "date": "2025-09-01T00:00:00.000Z",
+        "amount": 1500,
+        "status": "success",
+        "transactionId": "tx_123"
+      }
+    ]
+  }
+}
+```
+
+### Cancel Subscription
+**PATCH** `/api/subscriptions/{id}/cancel`
+
+Cancel a subscription.
+
+**Request Body:**
+```json
+{
+  "reason": "No longer needed"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Subscription canceled"
+}
+```
+
+### Resume Subscription
+**PATCH** `/api/subscriptions/{id}/resume`
+
+Resume a paused subscription.
+
+**Response:**
+```json
+{
+  "message": "Subscription resumed"
+}
+```
+
+### Charge Subscription Now
+**POST** `/api/subscriptions/{id}/charge-now`
+
+Manually charge a subscription (for testing).
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subscription charged successfully",
+  "data": {
+    "transactionId": "tx_123"
+  }
+}
+```
+
+---
+
 ## Admin (Admin Only)
 
 ### Get Users
