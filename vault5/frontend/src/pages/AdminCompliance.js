@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Eye, EyeOff, Clock, CheckCircle, XCircle, AlertTriangle, User, Shield, DollarSign, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import api from '../services/api';
 import ConfirmGate from '../components/ConfirmGate';
@@ -29,6 +31,16 @@ const AdminCompliance = () => {
     userId: '',
     type: 'temporary_30',
     reason: ''
+  });
+
+  // Expanded KYC items for collapsible cards
+  const [expandedKyc, setExpandedKyc] = useState(new Set());
+
+  // Overview stats
+  const [overviewStats, setOverviewStats] = useState({
+    pendingKyc: 0,
+    approvedKyc: 0,
+    flaggedIssues: 0
   });
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -257,42 +269,133 @@ const AdminCompliance = () => {
     );
   }
 
+  const toggleKycExpansion = (kycId) => {
+    const newExpanded = new Set(expandedKyc);
+    if (newExpanded.has(kycId)) {
+      newExpanded.delete(kycId);
+    } else {
+      newExpanded.add(kycId);
+    }
+    setExpandedKyc(newExpanded);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-3">
             <AdminSidebar />
           </div>
           <div className="md:col-span-9 space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-gray-900">Compliance & Risk</h1>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setActiveTab('audit')}
-                  className={`px-3 py-2 rounded ${activeTab === 'audit' ? 'bg-gray-900 text-white' : 'border'}`}
-                >
-                  Audit Logs
-                </button>
-                <button
-                  onClick={() => setActiveTab('kyc')}
-                  className={`px-3 py-2 rounded ${activeTab === 'kyc' ? 'bg-gray-900 text-white' : 'border'}`}
-                >
-                  KYC Queue
-                </button>
-                <button
-                  onClick={() => setActiveTab('limits')}
-                  className={`px-3 py-2 rounded ${activeTab === 'limits' ? 'bg-gray-900 text-white' : 'border'}`}
-                >
-                  Limitations
-                </button>
-                <button
-                  onClick={() => setActiveTab('payouts')}
-                  className={`px-3 py-2 rounded ${activeTab === 'payouts' ? 'bg-gray-900 text-white' : 'border'}`}
-                >
-                  Payouts
-                </button>
+            {/* Header */}
+            <motion.div
+              className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-1">Compliance & Risk</h1>
+                  <p className="text-gray-600">Monitor and manage regulatory compliance</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setActiveTab('audit')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      activeTab === 'audit'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Audit Logs
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('kyc')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      activeTab === 'kyc'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    KYC Queue
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('limits')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      activeTab === 'limits'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Limitations
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('payouts')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      activeTab === 'payouts'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Payouts
+                  </button>
+                </div>
               </div>
+            </motion.div>
+
+            {/* Overview Cards - Show on all tabs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <motion.div
+                className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl shadow-lg text-white hover:shadow-xl transition-all duration-300"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                whileHover={{ y: -2 }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Clock className="w-8 h-8 opacity-80" />
+                  <div className="text-3xl font-bold">
+                    {kycItems.filter(k => k.status === 'pending').length}
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold mb-1">Pending Reviews</h3>
+                <p className="text-orange-100 text-sm">KYC applications awaiting review</p>
+              </motion.div>
+
+              <motion.div
+                className="bg-gradient-to-br from-green-500 to-emerald-600 p-6 rounded-2xl shadow-lg text-white hover:shadow-xl transition-all duration-300"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                whileHover={{ y: -2 }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <CheckCircle className="w-8 h-8 opacity-80" />
+                  <div className="text-3xl font-bold">
+                    {kycItems.filter(k => k.status === 'approved').length}
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold mb-1">Approved KYC</h3>
+                <p className="text-green-100 text-sm">Successfully verified users</p>
+              </motion.div>
+
+              <motion.div
+                className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-2xl shadow-lg text-white hover:shadow-xl transition-all duration-300"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                whileHover={{ y: -2 }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <AlertTriangle className="w-8 h-8 opacity-80" />
+                  <div className="text-3xl font-bold">
+                    {limitations.filter(l => l.status === 'active').length}
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold mb-1">Flagged Issues</h3>
+                <p className="text-red-100 text-sm">Active limitations & restrictions</p>
+              </motion.div>
             </div>
 
             {activeTab === 'audit' && (
@@ -391,51 +494,188 @@ const AdminCompliance = () => {
             )}
 
             {activeTab === 'kyc' && (
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xl font-semibold">KYC Queue</h2>
-                  <div className="space-x-2">
-                    <button onClick={() => loadKyc()} className="px-3 py-1 rounded border">All</button>
-                    <button onClick={() => loadKyc('pending')} className="px-3 py-1 rounded border">Pending</button>
-                    <button onClick={() => loadKyc('approved')} className="px-3 py-1 rounded border">Approved</button>
-                    <button onClick={() => loadKyc('rejected')} className="px-3 py-1 rounded border">Rejected</button>
-                    <button onClick={() => loadKyc('more_info')} className="px-3 py-1 rounded border">More Info</button>
+              <motion.div
+                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">KYC Review Queue</h2>
+                    <p className="text-gray-600 text-sm mt-1">Review and verify user identity documents</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => loadKyc()}
+                      className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => loadKyc('pending')}
+                      className="px-4 py-2 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors"
+                    >
+                      Pending
+                    </button>
+                    <button
+                      onClick={() => loadKyc('approved')}
+                      className="px-4 py-2 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                    >
+                      Approved
+                    </button>
+                    <button
+                      onClick={() => loadKyc('rejected')}
+                      className="px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors"
+                    >
+                      Rejected
+                    </button>
+                    <button
+                      onClick={() => loadKyc('more_info')}
+                      className="px-4 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                    >
+                      More Info
+                    </button>
                   </div>
                 </div>
-                {loadingKyc ? <div>Loading KYC...</div> : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">User</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">Level</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">Status</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">Submitted</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-100">
-                        {kycItems.length === 0 && (
-                          <tr><td colSpan={5} className="px-4 py-3 text-gray-500 text-sm">No KYC items</td></tr>
-                        )}
-                        {kycItems.map(k => (
-                          <tr key={k._id}>
-                            <td className="px-4 py-2 text-sm">{String(k.user).slice(-6)}</td>
-                            <td className="px-4 py-2 text-sm">{k.levelRequested}</td>
-                            <td className="px-4 py-2 text-sm capitalize">{k.status}</td>
-                            <td className="px-4 py-2 text-sm">{new Date(k.createdAt).toLocaleString()}</td>
-                            <td className="px-4 py-2 text-sm space-x-2">
-                              <button onClick={() => kycAction(k, 'approve')} className="px-2 py-1 rounded bg-green-600 text-white">Approve</button>
-                              <button onClick={() => kycAction(k, 'more_info')} className="px-2 py-1 rounded border">More Info</button>
-                              <button onClick={() => kycAction(k, 'reject')} className="px-2 py-1 rounded bg-red-600 text-white">Reject</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+
+                {loadingKyc ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="bg-gray-50 p-4 rounded-xl animate-pulse">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="h-4 bg-gray-200 rounded w-32"></div>
+                          <div className="h-6 bg-gray-200 rounded w-20"></div>
+                        </div>
+                        <div className="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {kycItems.length === 0 ? (
+                      <div className="text-center py-12">
+                        <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No KYC applications found</p>
+                      </div>
+                    ) : (
+                      kycItems.map((kyc, index) => (
+                        <motion.div
+                          key={kyc._id}
+                          className="bg-gray-50 rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 }}
+                        >
+                          <div
+                            className="p-4 cursor-pointer"
+                            onClick={() => toggleKycExpansion(kyc._id)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                  <span className="text-white font-semibold text-sm">
+                                    {String(kyc.user).slice(-2).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-gray-900">
+                                    User {String(kyc.user).slice(-6)}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    Level {kyc.levelRequested} • Submitted {new Date(kyc.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                  kyc.status === 'pending' ? 'bg-orange-100 text-orange-800' :
+                                  kyc.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                  kyc.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {kyc.status.toUpperCase()}
+                                </span>
+                                {expandedKyc.has(kyc._id) ? (
+                                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                                ) : (
+                                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {expandedKyc.has(kyc._id) && (
+                            <motion.div
+                              className="px-4 pb-4 border-t border-gray-200"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                            >
+                              <div className="pt-4 space-y-4">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <span className="font-medium text-gray-700">Full User ID:</span>
+                                    <div className="font-mono text-gray-900 mt-1">{kyc.user}</div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">Verification Level:</span>
+                                    <div className="text-gray-900 mt-1">{kyc.levelRequested}</div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">Submitted:</span>
+                                    <div className="text-gray-900 mt-1">{new Date(kyc.createdAt).toLocaleString()}</div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">Last Updated:</span>
+                                    <div className="text-gray-900 mt-1">
+                                      {kyc.updatedAt ? new Date(kyc.updatedAt).toLocaleString() : 'Never'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {kyc.notes && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Notes:</span>
+                                    <div className="text-gray-900 mt-1 bg-white p-3 rounded-lg border">
+                                      {kyc.notes}
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="flex gap-3 pt-2">
+                                  <button
+                                    onClick={() => kycAction(kyc, 'approve')}
+                                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => kycAction(kyc, 'more_info')}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                  >
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Request More Info
+                                  </button>
+                                  <button
+                                    onClick={() => kycAction(kyc, 'reject')}
+                                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                    Reject
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </motion.div>
+                      ))
+                    )}
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
 
             {activeTab === 'limits' && (
