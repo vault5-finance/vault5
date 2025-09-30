@@ -90,7 +90,18 @@ const Login = () => {
 
   return (
     <div className="p-8 min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md relative">
+        {/* Back to Home Button */}
+        <button
+          onClick={() => navigate('/')}
+          className="absolute top-4 left-4 flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Vault5
+        </button>
+
         <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
