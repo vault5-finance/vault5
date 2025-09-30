@@ -681,20 +681,20 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold text-white mb-4">Product</h4>
               <ul className="space-y-2">
-                <li><Link to="/personal" className="emi-nav-link">Personal Banking</Link></li>
-                <li><Link to="/business" className="emi-nav-link">Business Banking</Link></li>
-                <li><Link to="/developers" className="emi-nav-link">API & Developers</Link></li>
-                <li><Link to="/app" className="emi-nav-link">Mobile App</Link></li>
+                <li><Link to="/personal" className="emi-footer-nav-link">Personal Banking</Link></li>
+                <li><Link to="/business" className="emi-footer-nav-link">Business Banking</Link></li>
+                <li><Link to="/developers" className="emi-footer-nav-link">API & Developers</Link></li>
+                <li><Link to="/app" className="emi-footer-nav-link">Mobile App</Link></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-semibold text-white mb-4">Support</h4>
               <ul className="space-y-2">
-                <li><Link to="/help" className="emi-nav-link">Help Center</Link></li>
-                <li><Link to="/contact" className="emi-nav-link">Contact Us</Link></li>
-                <li><Link to="/security" className="emi-nav-link">Security</Link></li>
-                <li><Link to="/fees" className="emi-nav-link">Fees & Pricing</Link></li>
+                <li><Link to="/help" className="emi-footer-nav-link">Help Center</Link></li>
+                <li><Link to="/contact" className="emi-footer-nav-link">Contact Us</Link></li>
+                <li><Link to="/security" className="emi-footer-nav-link">Security</Link></li>
+                <li><Link to="/fees" className="emi-footer-nav-link">Fees & Pricing</Link></li>
               </ul>
             </div>
           </div>
@@ -705,9 +705,9 @@ const Landing = () => {
                 &copy; {new Date().getFullYear()} Vault5. All rights reserved.
               </p>
               <div className="flex space-x-6 mt-4 md:mt-0">
-                <Link to="/privacy" className="emi-nav-link text-sm">Privacy Policy</Link>
-                <Link to="/terms" className="emi-nav-link text-sm">Terms of Service</Link>
-                <Link to="/legal" className="emi-nav-link text-sm">Legal</Link>
+                <Link to="/privacy" className="emi-footer-nav-link text-sm">Privacy Policy</Link>
+                <Link to="/terms" className="emi-footer-nav-link text-sm">Terms of Service</Link>
+                <Link to="/legal" className="emi-footer-nav-link text-sm">Legal</Link>
               </div>
             </div>
           </div>

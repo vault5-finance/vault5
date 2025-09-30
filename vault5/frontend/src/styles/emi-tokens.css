@@ -242,6 +242,18 @@
   font-weight: 600;
 }
 
+/* EMI Footer Navigation Links */
+.emi-footer-nav-link {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+.emi-footer-nav-link:hover {
+  color: white;
+}
+
 /* EMI Responsive Helpers */
 @media (max-width: 768px) {
   .emi-card {
