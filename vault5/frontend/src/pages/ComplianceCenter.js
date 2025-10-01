@@ -219,6 +219,7 @@ const ComplianceCenter = () => {
   const [submittingKyc, setSubmittingKyc] = useState(false);
   const [submittingPayout, setSubmittingPayout] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   // Enhanced form state
   const [kycForm, setKycForm] = useState({
@@ -284,6 +285,26 @@ const ComplianceCenter = () => {
         });
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e, index) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileUpload(index, files[0]);
     }
   };
 
