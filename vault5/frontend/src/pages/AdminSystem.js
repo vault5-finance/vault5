@@ -85,6 +85,14 @@ const AdminSystem = () => {
 
   const [expandedService, setExpandedService] = useState(null);
   const [showSystemGraphs, setShowSystemGraphs] = useState(false);
+  const [logFilter, setLogFilter] = useState('all');
+  const [logs, setLogs] = useState([
+    { id: 1, timestamp: '2025-10-01T15:45:23Z', level: 'info', message: 'API Gateway: New deployment v2.3.1 (success)', source: 'api-gateway' },
+    { id: 2, timestamp: '2025-10-01T15:42:15Z', level: 'warning', message: 'Database: High connection pool usage (85%)', source: 'database' },
+    { id: 3, timestamp: '2025-10-01T15:38:07Z', level: 'error', message: 'Payment Service: Failed to process transaction TXN-12345', source: 'payment-service' },
+    { id: 4, timestamp: '2025-10-01T15:35:42Z', level: 'info', message: 'Auth Service: User authentication successful for user_456', source: 'auth-service' },
+    { id: 5, timestamp: '2025-10-01T15:30:18Z', level: 'warning', message: 'File Storage: Upload timeout for file_789.jpg', source: 'file-storage' }
+  ]);
 
   const services = [
     { name: 'Database', status: 'running', uptime: 99.9, icon: Database, responseTime: 45, cpu: 35, memory: 60 },
@@ -521,20 +529,139 @@ const AdminSystem = () => {
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <div className={`min-h-screen transition-all duration-500 ${
+        isDarkMode
+          ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
+          : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'
+      }`}>
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full"
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.3, 0.5, 0.3]
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-3">
-              <div className={`animate-pulse ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg h-96`} />
+              <motion.div
+                className={`rounded-xl ${isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'} p-4`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <div className="space-y-4">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gray-300 rounded-lg animate-pulse"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-300 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 bg-gray-300 rounded animate-pulse w-3/4"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
             </div>
+
             <div className="md:col-span-9 space-y-6">
-              <div className={`animate-pulse ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg h-20`} />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className={`animate-pulse ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg h-32`} />
+              {/* Header skeleton */}
+              <motion.div
+                className={`rounded-xl ${isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'} p-6`}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div>
+                    <div className="h-8 bg-gray-300 rounded animate-pulse w-64 mb-2"></div>
+                    <div className="h-4 bg-gray-300 rounded animate-pulse w-96"></div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 bg-gray-300 rounded animate-pulse w-32"></div>
+                    <div className="h-8 bg-gray-300 rounded animate-pulse w-8"></div>
+                    <div className="h-8 bg-gray-300 rounded animate-pulse w-8"></div>
+                    <div className="h-8 bg-gray-300 rounded animate-pulse w-32"></div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Metrics cards skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i, index) => (
+                  <motion.div
+                    key={i}
+                    className={`rounded-xl ${isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'} p-6`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-5 h-5 bg-gray-300 rounded animate-pulse"></div>
+                      <div className="w-16 h-4 bg-gray-300 rounded animate-pulse"></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="h-8 bg-gray-300 rounded animate-pulse w-16 mb-2"></div>
+                        <div className="h-4 bg-gray-300 rounded animate-pulse w-20"></div>
+                      </div>
+                      <div className="w-20 h-12 bg-gray-300 rounded animate-pulse"></div>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
-              <div className={`animate-pulse ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg h-64`} />
+
+              {/* Service status skeleton */}
+              <motion.div
+                className={`rounded-xl ${isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'} p-6`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="h-6 bg-gray-300 rounded animate-pulse w-32"></div>
+                  <div className="h-8 bg-gray-300 rounded animate-pulse w-24"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map((i, index) => (
+                    <motion.div
+                      key={i}
+                      className={`rounded-xl ${isDarkMode ? 'bg-gray-800/30' : 'bg-white/60'} border ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'} p-4`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-300 rounded-lg animate-pulse"></div>
+                          <div>
+                            <div className="h-4 bg-gray-300 rounded animate-pulse w-20 mb-1"></div>
+                            <div className="h-3 bg-gray-300 rounded animate-pulse w-16"></div>
+                          </div>
+                        </div>
+                        <div className="h-6 bg-gray-300 rounded animate-pulse w-12"></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="h-3 bg-gray-300 rounded animate-pulse w-16 mb-1"></div>
+                          <div className="h-4 bg-gray-300 rounded animate-pulse w-8"></div>
+                        </div>
+                        <div>
+                          <div className="h-3 bg-gray-300 rounded animate-pulse w-12 mb-1"></div>
+                          <div className="h-4 bg-gray-300 rounded animate-pulse w-10"></div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
             </div>
           </div>
         </div>
@@ -548,12 +675,39 @@ const AdminSystem = () => {
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
         : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'
     }`}>
-      {/* Animated background grid */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, ${isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'} 1px, transparent 0)`,
-          backgroundSize: '40px 40px'
-        }} />
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full"
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-blue-200/20 rounded-full"
+          animate={{
+            scale: [1.1, 1, 1.1],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        {/* Animated grid */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, ${isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'} 1px, transparent 0)`,
+            backgroundSize: '40px 40px'
+          }} />
+        </div>
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
@@ -984,6 +1138,86 @@ const AdminSystem = () => {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Logs & Activity Feed */}
+            <motion.div
+              className={`rounded-xl ${isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'} p-6`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Server className="w-5 h-5 text-blue-600" />
+                  <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Logs & Activity Feed
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={logFilter}
+                    onChange={(e) => setLogFilter(e.target.value)}
+                    className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-200 text-gray-900'
+                    } border focus:ring-2 focus:ring-blue-500`}
+                  >
+                    <option value="all">All Logs</option>
+                    <option value="error">Errors Only</option>
+                    <option value="warning">Warnings Only</option>
+                    <option value="info">Info Only</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={`rounded-lg ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-50'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden`}>
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center gap-2 text-sm font-mono">
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>$ tail -f /var/log/system.log</span>
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-400">Live</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="max-h-96 overflow-y-auto">
+                  <AnimatePresence>
+                    {logs
+                      .filter(log => logFilter === 'all' || log.level === logFilter)
+                      .map((log, index) => (
+                        <motion.div
+                          key={log.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} hover:bg-gray-50/50 transition-colors`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`px-2 py-1 rounded text-xs font-medium ${
+                              log.level === 'error' ? 'bg-red-100 text-red-800' :
+                              log.level === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {log.level.toUpperCase()}
+                            </div>
+                            <div className="flex-1">
+                              <div className={`text-sm font-mono ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                {log.message}
+                              </div>
+                              <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'} mt-1`}>
+                                {new Date(log.timestamp).toLocaleString()} • {log.source}
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                  </AnimatePresence>
                 </div>
               </div>
             </motion.div>
