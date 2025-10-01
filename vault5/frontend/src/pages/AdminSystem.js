@@ -65,16 +65,27 @@ const AdminSystem = () => {
   const [systemMetrics, setSystemMetrics] = useState({
     uptime: { value: 99.9, trend: [99.8, 99.9, 99.7, 99.9, 99.8, 99.9, 99.9] },
     activeUsers: { value: 1247, trend: [1150, 1180, 1200, 1220, 1235, 1240, 1247] },
-    apiCalls: { value: 15420, trend: [14800, 15000, 15200, 15300, 15350, 15400, 15420] }
+    apiCalls: { value: 15420, trend: [14800, 15000, 15200, 15300, 15350, 15400, 15420] },
+    cpu: { value: 45, trend: [40, 42, 45, 43, 47, 44, 45] },
+    memory: { value: 67, trend: [65, 66, 67, 68, 69, 67, 67] },
+    errors: { value: 12, trend: [15, 18, 12, 14, 10, 11, 12] }
   });
 
+  const [alerts, setAlerts] = useState([
+    { id: 1, type: 'warning', message: 'Payment Gateway latency increased', timestamp: new Date() },
+    { id: 2, type: 'info', message: 'Database maintenance completed', timestamp: new Date() }
+  ]);
+
+  const [expandedService, setExpandedService] = useState(null);
+  const [showSystemGraphs, setShowSystemGraphs] = useState(false);
+
   const services = [
-    { name: 'Database', status: 'running', uptime: 99.9, icon: Database, responseTime: 45 },
-    { name: 'Authentication', status: 'running', uptime: 99.8, icon: Shield, responseTime: 120 },
-    { name: 'Payment Gateway', status: 'warning', uptime: 98.5, icon: CreditCard, responseTime: 340 },
-    { name: 'File Storage', status: 'running', uptime: 99.9, icon: HardDrive, responseTime: 80 },
-    { name: 'Notifications', status: 'running', uptime: 99.7, icon: Bell, responseTime: 95 },
-    { name: 'Cron Jobs', status: 'running', uptime: 99.6, icon: Settings, responseTime: 60 }
+    { name: 'Database', status: 'running', uptime: 99.9, icon: Database, responseTime: 45, cpu: 35, memory: 60 },
+    { name: 'Authentication', status: 'running', uptime: 99.8, icon: Shield, responseTime: 120, cpu: 25, memory: 40 },
+    { name: 'Payment Gateway', status: 'warning', uptime: 98.5, icon: CreditCard, responseTime: 340, cpu: 75, memory: 80 },
+    { name: 'File Storage', status: 'running', uptime: 99.9, icon: HardDrive, responseTime: 80, cpu: 30, memory: 55 },
+    { name: 'Notifications', status: 'running', uptime: 99.7, icon: Bell, responseTime: 95, cpu: 20, memory: 35 },
+    { name: 'Cron Jobs', status: 'running', uptime: 99.6, icon: Settings, responseTime: 60, cpu: 15, memory: 25 }
   ];
 
   const systemInsights = {
@@ -118,7 +129,7 @@ const AdminSystem = () => {
   useEffect(() => {
     loadSystemData();
 
-    // Set up real-time updates every 5 seconds
+    // Set up real-time updates every 30 seconds
     const interval = setInterval(() => {
       setLastUpdated(new Date());
       // Update metrics with slight variations
@@ -134,9 +145,21 @@ const AdminSystem = () => {
         apiCalls: {
           ...prev.apiCalls,
           trend: [...prev.apiCalls.trend.slice(1), prev.apiCalls.value + Math.floor((Math.random() - 0.5) * 100)]
+        },
+        cpu: {
+          ...prev.cpu,
+          trend: [...prev.cpu.trend.slice(1), Math.max(0, Math.min(100, prev.cpu.value + (Math.random() - 0.5) * 10))]
+        },
+        memory: {
+          ...prev.memory,
+          trend: [...prev.memory.trend.slice(1), Math.max(0, Math.min(100, prev.memory.value + (Math.random() - 0.5) * 5))]
+        },
+        errors: {
+          ...prev.errors,
+          trend: [...prev.errors.trend.slice(1), Math.max(0, prev.errors.value + Math.floor((Math.random() - 0.5) * 3))]
         }
       }));
-    }, 5000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -157,6 +180,49 @@ const AdminSystem = () => {
       case 'down': return <XCircle className="w-5 h-5 text-red-400" />;
       default: return <AlertTriangle className="w-5 h-5 text-gray-400" />;
     }
+  };
+
+  const handleServiceToggle = (serviceName) => {
+    setExpandedService(expandedService === serviceName ? null : serviceName);
+  };
+
+  // Circular Progress Ring Component
+  const CircularProgress = ({ value, size = 80, strokeWidth = 8, color = '#10b981' }) => {
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDasharray = circumference;
+    const strokeDashoffset = circumference - (value / 100) * circumference;
+
+    return (
+      <div className="relative">
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="none"
+            className="text-gray-200"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={color}
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={strokeDasharray}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-lg font-bold">{value}%</span>
+        </div>
+      </div>
+    );
   };
 
   const SparklineChart = ({ data, color }) => {
@@ -196,7 +262,60 @@ const AdminSystem = () => {
     );
   };
 
-  const MetricCard = ({ title, value, trend, icon: Icon, color, suffix = '' }) => {
+  // System Health Chart Component
+  const SystemHealthChart = ({ data, title, color, isDarkMode }) => {
+    const chartData = {
+      labels: data.labels,
+      datasets: [{
+        label: title,
+        data: data.values,
+        borderColor: color,
+        backgroundColor: color + '20',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      }]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          backgroundColor: isDarkMode ? '#374151' : '#ffffff',
+          titleColor: isDarkMode ? '#ffffff' : '#000000',
+          bodyColor: isDarkMode ? '#ffffff' : '#000000',
+        }
+      },
+      scales: {
+        x: {
+          display: false,
+          grid: { display: false }
+        },
+        y: {
+          display: false,
+          grid: { display: false }
+        }
+      },
+      elements: {
+        point: {
+          radius: 0,
+          hoverRadius: 4
+        }
+      }
+    };
+
+    return (
+      <div className="h-32">
+        <Line data={chartData} options={options} />
+      </div>
+    );
+  };
+
+  const MetricCard = ({ title, value, trend, icon: Icon, color, suffix = '', showProgress, progressValue, subtitle }) => {
     const { countUpRef } = useCountUp({
       end: value,
       duration: 2,
@@ -226,21 +345,41 @@ const AdminSystem = () => {
             </div>
             <div className="flex items-center gap-3">
               <div className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                <span ref={countUpRef} />
-                {suffix}
-              </div>
-              <div className="flex items-center gap-1">
-                {trend[trend.length - 1] > trend[trend.length - 2] ? (
-                  <TrendingUp className="w-4 h-4 text-green-400" />
+                {showProgress ? (
+                  <div className="flex items-center gap-4">
+                    <CircularProgress
+                      value={progressValue}
+                      color={progressValue > 95 ? '#10b981' : progressValue > 90 ? '#f59e0b' : '#ef4444'}
+                    />
+                  </div>
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-red-400" />
+                  <>
+                    <span ref={countUpRef} />
+                    {suffix}
+                  </>
                 )}
               </div>
+              {!showProgress && trend && (
+                <div className="flex items-center gap-1">
+                  {trend[trend.length - 1] > trend[trend.length - 2] ? (
+                    <TrendingUp className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-red-400" />
+                  )}
+                </div>
+              )}
             </div>
+            {subtitle && (
+              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                {subtitle}
+              </p>
+            )}
           </div>
-          <div className="ml-4">
-            <SparklineChart data={trend} color={color.includes('green') ? '#10b981' : color.includes('blue') ? '#3b82f6' : '#8b5cf6'} />
-          </div>
+          {!showProgress && (
+            <div className="ml-4">
+              <SparklineChart data={trend} color={color.includes('green') ? '#10b981' : color.includes('blue') ? '#3b82f6' : '#8b5cf6'} />
+            </div>
+          )}
         </div>
 
         {/* Hover tooltip */}
@@ -253,63 +392,122 @@ const AdminSystem = () => {
     );
   };
 
-  const ServiceCard = ({ service }) => {
+  const ServiceCard = ({ service, isExpanded, onToggle }) => {
     const StatusIcon = service.icon;
     const pulseColor = service.status === 'warning' ? 'animate-pulse' : '';
 
     return (
       <motion.div
-        className={`relative p-4 rounded-lg border transition-all duration-300 ${
+        className={`relative rounded-xl border transition-all duration-300 ${
           isDarkMode
             ? 'bg-gray-800/30 border-gray-700/50 hover:border-gray-600'
             : 'bg-white/60 border-gray-200/50 hover:border-gray-300'
-        } ${pulseColor}`}
+        } ${pulseColor} ${service.status === 'warning' ? 'ring-2 ring-yellow-400/50' : ''}`}
         whileHover={{ scale: 1.02 }}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
-              <StatusIcon className={`w-5 h-5 ${getStatusColor(service.status)}`} />
+        <div
+          className="p-4 cursor-pointer"
+          onClick={() => onToggle(service.name)}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                <StatusIcon className={`w-5 h-5 ${getStatusColor(service.status)}`} />
+              </div>
+              <div>
+                <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {service.name}
+                </h4>
+                <div className="flex items-center gap-2 mt-1">
+                  {getStatusIcon(service.status)}
+                  <span className={`text-sm capitalize ${getStatusColor(service.status)}`}>
+                    {service.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Uptime</div>
+                <div className={`text-lg font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                  {service.uptime}%
+                </div>
+              </div>
+              <motion.div
+                animate={{ rotate: isExpanded ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </motion.div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Response Time</div>
+              <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                {service.responseTime}ms
+              </div>
             </div>
             <div>
-              <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {service.name}
-              </h4>
-              <div className="flex items-center gap-2 mt-1">
-                {getStatusIcon(service.status)}
-                <span className={`text-sm capitalize ${getStatusColor(service.status)}`}>
-                  {service.status}
-                </span>
+              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>CPU Usage</div>
+              <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                {service.cpu}%
               </div>
             </div>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Uptime</span>
-            <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-              {service.uptime}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200/50 rounded-full h-2">
+        <AnimatePresence>
+          {isExpanded && (
             <motion.div
-              className={`h-2 rounded-full ${service.status === 'running' ? 'bg-green-400' : service.status === 'warning' ? 'bg-yellow-400' : 'bg-red-400'}`}
-              initial={{ width: 0 }}
-              animate={{ width: `${service.uptime}%` }}
-              transition={{ duration: 1, delay: 0.2 }}
-            />
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Response</span>
-            <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-              {service.responseTime}ms
-            </span>
-          </div>
-        </div>
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="border-t border-gray-200 px-4 py-4"
+            >
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Memory Usage</div>
+                    <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                      {service.memory}%
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                      <motion.div
+                        className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${service.memory}%` }}
+                        transition={{ duration: 1 }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Last Restart</div>
+                    <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                      2h ago
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-gray-200">
+                  <h5 className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    Recent Logs
+                  </h5>
+                  <div className={`text-xs font-mono ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} space-y-1`}>
+                    <div>2025-10-01 17:45:23 - Service started successfully</div>
+                    <div>2025-10-01 17:30:15 - Health check passed</div>
+                    <div>2025-10-01 17:15:07 - Configuration updated</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     );
   };
@@ -468,8 +666,8 @@ const AdminSystem = () => {
               </div>
             </motion.div>
 
-            {/* Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Enhanced Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <MetricCard
                 title="Server Uptime"
                 value={systemMetrics.uptime.value}
@@ -477,6 +675,9 @@ const AdminSystem = () => {
                 icon={Server}
                 color="text-green-400"
                 suffix="%"
+                showProgress={true}
+                progressValue={systemMetrics.uptime.value}
+                subtitle="Last 24 hours"
               />
               <MetricCard
                 title="Active Users"
@@ -484,6 +685,7 @@ const AdminSystem = () => {
                 trend={systemMetrics.activeUsers.trend}
                 icon={Users}
                 color="text-blue-400"
+                subtitle="Currently online"
               />
               <MetricCard
                 title="API Calls/min"
@@ -491,8 +693,135 @@ const AdminSystem = () => {
                 trend={systemMetrics.apiCalls.trend}
                 icon={Zap}
                 color="text-purple-400"
+                subtitle="Requests per minute"
+              />
+              <MetricCard
+                title="System Health"
+                value={95}
+                icon={Activity}
+                color="text-emerald-400"
+                showProgress={true}
+                progressValue={95}
+                subtitle="Overall status"
               />
             </div>
+
+            {/* Alert Notifications Banner */}
+            {alerts.length > 0 && (
+              <motion.div
+                className={`rounded-xl ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50'} border ${isDarkMode ? 'border-red-800' : 'border-red-200'} p-4`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertIcon className="w-5 h-5 text-red-600" />
+                  <span className={`font-medium ${isDarkMode ? 'text-red-300' : 'text-red-800'}`}>
+                    System Alerts ({alerts.length})
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {alerts.map((alert) => (
+                    <div key={alert.id} className="flex items-center justify-between">
+                      <span className={`text-sm ${isDarkMode ? 'text-red-200' : 'text-red-700'}`}>
+                        {alert.message}
+                      </span>
+                      <span className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                        {new Date(alert.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* System Health Graphs */}
+            <motion.div
+              className={`rounded-xl ${isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'} p-6`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                  <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    System Health Monitoring
+                  </h2>
+                </div>
+                <motion.button
+                  onClick={() => setShowSystemGraphs(!showSystemGraphs)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                    isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {showSystemGraphs ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                  {showSystemGraphs ? 'Hide' : 'Show'} Graphs
+                </motion.button>
+              </div>
+
+              <AnimatePresence>
+                {showSystemGraphs && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+                  >
+                    <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/30' : 'bg-gray-50'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Cpu className="w-4 h-4 text-blue-500" />
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>CPU Usage</span>
+                      </div>
+                      <SystemHealthChart
+                        data={{
+                          labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                          values: systemMetrics.cpu.trend
+                        }}
+                        title="CPU %"
+                        color="#3b82f6"
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
+
+                    <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/30' : 'bg-gray-50'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <HDD className="w-4 h-4 text-green-500" />
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Memory Usage</span>
+                      </div>
+                      <SystemHealthChart
+                        data={{
+                          labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                          values: systemMetrics.memory.trend
+                        }}
+                        title="Memory %"
+                        color="#10b981"
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
+
+                    <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/30' : 'bg-gray-50'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Error Rate</span>
+                      </div>
+                      <SystemHealthChart
+                        data={{
+                          labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                          values: systemMetrics.errors.trend
+                        }}
+                        title="Errors"
+                        color="#ef4444"
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Service Status Grid */}
             <motion.div
@@ -530,7 +859,12 @@ const AdminSystem = () => {
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                   >
                     {services.map((service, index) => (
-                      <ServiceCard key={service.name} service={service} />
+                      <ServiceCard
+                        key={service.name}
+                        service={service}
+                        isExpanded={expandedService === service.name}
+                        onToggle={handleServiceToggle}
+                      />
                     ))}
                   </motion.div>
                 ) : (
