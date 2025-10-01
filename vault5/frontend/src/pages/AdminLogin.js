@@ -27,7 +27,8 @@ import {
   Monitor,
   MapPin,
   Calendar,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import api from '../services/api';
 
