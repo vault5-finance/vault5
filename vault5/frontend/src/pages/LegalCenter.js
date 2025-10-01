@@ -9,6 +9,7 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Home,
   ArrowUp,
   Clock,
