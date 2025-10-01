@@ -40,7 +40,8 @@ import {
   EyeOff,
   Sparkles,
   Heart,
-  Gift
+  Gift,
+  User
 } from 'lucide-react';
 
 const Section = ({ title, children, right, icon, color = 'blue' }) => {

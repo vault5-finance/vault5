@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CountUp } from 'react-countup';
+import { useCountUp } from 'react-countup';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -204,54 +204,62 @@ const AdminSystem = () => {
     );
   };
 
-  const MetricCard = ({ title, value, trend, icon: Icon, color, suffix = '' }) => (
-    <motion.div
-      className={`relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 ${
-        isDarkMode
-          ? 'bg-gray-800/50 border border-gray-700/50 hover:border-gray-600'
-          : 'bg-white/80 backdrop-blur-sm border border-gray-200/50 hover:border-gray-300 shadow-lg hover:shadow-xl'
-      }`}
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon className={`w-5 h-5 ${color}`} />
-            <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              {title}
-            </h3>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              <CountUp end={value} duration={2} separator="," />
-              {suffix}
-            </div>
-            <div className="flex items-center gap-1">
-              {trend[trend.length - 1] > trend[trend.length - 2] ? (
-                <TrendingUp className="w-4 h-4 text-green-400" />
-              ) : (
-                <TrendingDown className="w-4 h-4 text-red-400" />
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="ml-4">
-          <SparklineChart data={trend} color={color.includes('green') ? '#10b981' : color.includes('blue') ? '#3b82f6' : '#8b5cf6'} />
-        </div>
-      </div>
+  const MetricCard = ({ title, value, trend, icon: Icon, color, suffix = '' }) => {
+    const { countUpRef } = useCountUp({
+      end: value,
+      duration: 2,
+      separator: ","
+    });
 
-      {/* Hover tooltip */}
+    return (
       <motion.div
-        className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none`}
-        initial={false}
-        whileHover={{ opacity: 1 }}
-      />
-    </motion.div>
-  );
+        className={`relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 ${
+          isDarkMode
+            ? 'bg-gray-800/50 border border-gray-700/50 hover:border-gray-600'
+            : 'bg-white/80 backdrop-blur-sm border border-gray-200/50 hover:border-gray-300 shadow-lg hover:shadow-xl'
+        }`}
+        whileHover={{ scale: 1.02, y: -2 }}
+        whileTap={{ scale: 0.98 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <Icon className={`w-5 h-5 ${color}`} />
+              <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                {title}
+              </h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <span ref={countUpRef} />
+                {suffix}
+              </div>
+              <div className="flex items-center gap-1">
+                {trend[trend.length - 1] > trend[trend.length - 2] ? (
+                  <TrendingUp className="w-4 h-4 text-green-400" />
+                ) : (
+                  <TrendingDown className="w-4 h-4 text-red-400" />
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="ml-4">
+            <SparklineChart data={trend} color={color.includes('green') ? '#10b981' : color.includes('blue') ? '#3b82f6' : '#8b5cf6'} />
+          </div>
+        </div>
+
+        {/* Hover tooltip */}
+        <motion.div
+          className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none`}
+          initial={false}
+          whileHover={{ opacity: 1 }}
+        />
+      </motion.div>
+    );
+  };
 
   const ServiceCard = ({ service }) => {
     const StatusIcon = service.icon;
