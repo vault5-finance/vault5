@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
@@ -15,25 +15,17 @@ import {
   AlertTriangle,
   FileText,
   Image,
-  Download,
   Upload,
   Calendar,
   DollarSign,
   CreditCard,
   Building,
   Target,
-  Award,
   Star,
-  Zap,
   Lock,
-  Globe,
-  Users,
   Activity,
-  BarChart3,
-  Settings,
   Loader2,
   Info,
-  ArrowRight,
   Check,
   X,
   Eye,
@@ -44,28 +36,6 @@ import {
   User
 } from 'lucide-react';
 
-const Section = ({ title, children, right, icon, color = 'blue' }) => {
-  const colorClasses = {
-    blue: 'border-blue-200 bg-blue-50',
-    green: 'border-green-200 bg-green-50',
-    yellow: 'border-yellow-200 bg-yellow-50',
-    red: 'border-red-200 bg-red-50',
-    gray: 'border-gray-200 bg-gray-50'
-  };
-
-  return (
-    <div className={`bg-white rounded-lg shadow-sm border-l-4 ${colorClasses[color]} p-6`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          {icon && <div className="text-2xl">{icon}</div>}
-          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-        </div>
-        {right}
-      </div>
-      {children}
-    </div>
-  );
-};
 
 const Pill = ({ children, color = 'blue' }) => {
   const map = {
@@ -249,8 +219,6 @@ const ComplianceCenter = () => {
   const [submittingKyc, setSubmittingKyc] = useState(false);
   const [submittingPayout, setSubmittingPayout] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Enhanced form state
   const [kycForm, setKycForm] = useState({
@@ -273,11 +241,7 @@ const ComplianceCenter = () => {
     }
   });
 
-  // Validation state
-  const [validationErrors, setValidationErrors] = useState({});
-  const [showValidation, setShowValidation] = useState(false);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [st, kl] = await Promise.all([
@@ -297,7 +261,7 @@ const ComplianceCenter = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError, showInfo]);
 
   useEffect(() => {
     load();
@@ -323,26 +287,6 @@ const ComplianceCenter = () => {
     }
   };
 
-  // Drag and drop handlers
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setDragOver(false);
-  };
-
-  const handleDrop = (e, index) => {
-    e.preventDefault();
-    setDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      handleFileUpload(index, files[0]);
-    }
-  };
-
   // Bank logo detection
   const getBankLogo = (bankName) => {
     const bankLogos = {
@@ -356,47 +300,6 @@ const ComplianceCenter = () => {
 
     const normalizedName = bankName?.toLowerCase();
     return bankLogos[normalizedName] || '🏦';
-  };
-
-  // Form validation
-  const validateKycForm = () => {
-    const errors = {};
-
-    if (!kycForm.levelRequested) {
-      errors.levelRequested = 'Please select a KYC level';
-    }
-
-    kycForm.documents.forEach((doc, index) => {
-      if (!doc.url && !doc.file) {
-        errors[`document_${index}`] = 'Please provide either a URL or upload a file';
-      }
-    });
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const validatePayoutForm = () => {
-    const errors = {};
-
-    if (!payoutForm.amount || Number(payoutForm.amount) <= 0) {
-      errors.amount = 'Please enter a valid amount';
-    }
-
-    if (!payoutForm.destination.bankName) {
-      errors.bankName = 'Bank name is required';
-    }
-
-    if (!payoutForm.destination.accountName) {
-      errors.accountName = 'Account name is required';
-    }
-
-    if (!payoutForm.destination.accountNumber) {
-      errors.accountNumber = 'Account number is required';
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
   };
 
   const onKycDocChange = (idx, field, value) => {

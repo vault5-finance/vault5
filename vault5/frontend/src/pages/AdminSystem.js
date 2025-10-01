@@ -13,7 +13,6 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import {
-  Activity,
   Users,
   Zap,
   Database,
@@ -35,16 +34,9 @@ import {
   XCircle,
   AlertCircle,
   Server,
-  Globe,
-  Cpu,
-  Wifi,
-  WifiOff,
   Eye,
   EyeOff,
   Wrench,
-  FileText,
-  BarChart3,
-  Layers,
   GitBranch
 } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
