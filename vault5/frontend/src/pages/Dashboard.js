@@ -8,8 +8,8 @@ import SendMoneyModal from '../components/SendMoneyModal';
 
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
-import { PaperAirplaneIcon, PlusCircleIcon, FlagIcon, ArrowTrendingUpIcon, ArrowDownCircleIcon, BanknotesIcon } from '@heroicons/react/24/solid';
-import { InformationCircleIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, PlusCircleIcon, FlagIcon, ArrowTrendingUpIcon, ArrowDownCircleIcon, BanknotesIcon, ShoppingBagIcon, HeartIcon, ShieldCheckIcon, PiggyBankIcon, ChartBarIcon, XMarkIcon, CheckIcon, EyeIcon } from '@heroicons/react/24/solid';
+import { InformationCircleIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import DashboardSkeleton from '../components/DashboardSkeleton';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement);
 
@@ -93,13 +93,14 @@ const Dashboard = () => {
   const [showSendMoneyModal, setShowSendMoneyModal] = useState(false);
   const navigate = useNavigate();
 
-  // Local-time greeting
+  // Local-time greeting with emoji context
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const firstName = (user?.name || '').split(' ')[0] || 'there';
   const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? 'Good morning' :
-    hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greetingData =
+    hour < 12 ? { text: 'Good morning', emoji: '🌅', subtext: 'Start your day with financial clarity' } :
+    hour < 17 ? { text: 'Good afternoon', emoji: '🌞', subtext: 'Keep building your financial future' } :
+    { text: 'Good evening', emoji: '🌙', subtext: 'Review your progress and plan ahead' };
 
   const fetchDashboardData = React.useCallback(async () => {
     try {
@@ -170,46 +171,65 @@ const Dashboard = () => {
 
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <motion.div
-        className="mb-6 flex items-center justify-between"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-      >
-        <div>
-          <div className="text-xl md:text-2xl font-semibold text-gray-800">
-            {greeting}, <span className="text-indigo-600">{firstName}</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 dark:from-slate-900 dark:via-blue-900 dark:to-slate-900">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        {/* Enhanced Header with Command Center Feel */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          {/* Greeting Section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">{greetingData.emoji}</span>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">
+                {greetingData.text}, <span className="text-blue-600 dark:text-blue-400">{firstName}</span>
+              </h1>
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 text-lg">{greetingData.subtext}</p>
           </div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-        </div>
-        <div className="hidden md:flex items-center gap-3">
-          <button
-            onClick={handleSendMoney}
-            className="px-4 py-2 bg-gradient-primary text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 inline-flex items-center gap-2 font-medium"
-            style={{ background: 'var(--gradient-primary)' }}
-          >
-            <PaperAirplaneIcon className="h-5 w-5" />
-            <span>Send Money</span>
-          </button>
-          <button
-            onClick={() => navigate('/accounts')}
-            className="px-4 py-2 bg-gradient-success text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 inline-flex items-center gap-2 font-medium"
-            style={{ background: 'var(--gradient-success)' }}
-          >
-            <PlusCircleIcon className="h-5 w-5" />
-            <span>Add Account</span>
-          </button>
-          <button
-            onClick={() => navigate('/accounts#goals')}
-            className="px-4 py-2 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 inline-flex items-center gap-2 font-medium"
-            style={{ background: 'var(--gradient-secondary)' }}
-          >
-            <FlagIcon className="h-5 w-5" />
-            <span>Create Goal</span>
-          </button>
-        </div>
-      </motion.div>
+
+          {/* Floating Action Buttons */}
+          <div className="flex flex-wrap items-center gap-3">
+            <motion.button
+              onClick={handleSendMoney}
+              className="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 inline-flex items-center gap-3 font-semibold overflow-hidden"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              title="Send funds instantly"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+              <PaperAirplaneIcon className="h-5 w-5 relative z-10" />
+              <span className="relative z-10">Send Money</span>
+            </motion.button>
+
+            <motion.button
+              onClick={() => navigate('/accounts')}
+              className="group relative px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 inline-flex items-center gap-3 font-semibold overflow-hidden"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              title="Create a savings bucket"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-emerald-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+              <PlusCircleIcon className="h-5 w-5 relative z-10" />
+              <span className="relative z-10">Add Account</span>
+            </motion.button>
+
+            <motion.button
+              onClick={() => navigate('/accounts#goals')}
+              className="group relative px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 inline-flex items-center gap-3 font-semibold overflow-hidden"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              title="Set a financial goal"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+              <FlagIcon className="h-5 w-5 relative z-10" />
+              <span className="relative z-10">Create Goal</span>
+            </motion.button>
+          </div>
+        </motion.div>
 
       {/* Primary Actions moved to header Quick Actions */}
 
@@ -512,6 +532,7 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       <AddFundsModal
