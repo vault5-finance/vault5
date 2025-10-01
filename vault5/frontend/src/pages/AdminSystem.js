@@ -37,7 +37,14 @@ import {
   Eye,
   EyeOff,
   Wrench,
-  GitBranch
+  GitBranch,
+  ChevronRight,
+  ChevronLeft,
+  Cpu,
+  Activity,
+  BarChart3,
+  Info,
+  X
 } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import api from '../services/api';
@@ -715,7 +722,7 @@ const AdminSystem = () => {
                 transition={{ duration: 0.3 }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <AlertIcon className="w-5 h-5 text-red-600" />
+                  <AlertCircle className="w-5 h-5 text-red-600" />
                   <span className={`font-medium ${isDarkMode ? 'text-red-300' : 'text-red-800'}`}>
                     System Alerts ({alerts.length})
                   </span>
@@ -789,7 +796,7 @@ const AdminSystem = () => {
 
                     <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/30' : 'bg-gray-50'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                       <div className="flex items-center gap-2 mb-3">
-                        <HDD className="w-4 h-4 text-green-500" />
+                        <HardDrive className="w-4 h-4 text-green-500" />
                         <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Memory Usage</span>
                       </div>
                       <SystemHealthChart
