@@ -1,13 +1,38 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Star, CheckCircle, Shield, Zap, TrendingUp, Users, Award, Lock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  CheckCircle,
+  Shield,
+  Zap,
+  TrendingUp,
+  Users,
+  Award,
+  Lock,
+  Play,
+  Globe,
+  Moon,
+  Sun,
+  Sparkles,
+  ArrowRight,
+  Download,
+  Phone,
+  Mail,
+  MapPin,
+  ExternalLink,
+  CheckBadgeIcon
+} from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [counters, setCounters] = useState([0, 0, 0, 0]);
-  const targetCounts = useMemo(() => [10000, 98, 50000000, 24], []);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState('EN');
+  const targetCounts = useMemo(() => [10540, 98, 52000000, 24], []); // Updated with live counters
 
   const testimonials = [
     {
@@ -56,45 +81,145 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="emi-section-bg-gradient min-h-screen flex items-center relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-32 h-32 bg-white/20 rounded-full blur-xl"></div>
-          <div className="absolute bottom-20 right-10 w-48 h-48 bg-white/20 rounded-full blur-xl"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
+    <div className="min-h-screen bg-black">
+      {/* Sticky Navigation */}
+      <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-xl border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-8">
+              <Link to="/" className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">V5</span>
+                </div>
+                <span className="text-white font-bold text-xl">Vault5</span>
+              </Link>
+              <div className="hidden md:flex items-center gap-6">
+                <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
+                <a href="#testimonials" className="text-gray-300 hover:text-white transition-colors">Testimonials</a>
+                <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
+                <a href="#about" className="text-gray-300 hover:text-white transition-colors">About</a>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-gray-400" />
+                <select
+                  value={currentLanguage}
+                  onChange={(e) => setCurrentLanguage(e.target.value)}
+                  className="bg-transparent text-white text-sm border-none outline-none"
+                >
+                  <option value="EN">EN</option>
+                  <option value="SW">SW</option>
+                  <option value="FR">FR</option>
+                </select>
+              </div>
+              <button
+                onClick={() => navigate('/login')}
+                className="text-gray-300 hover:text-white transition-colors"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => navigate('/signup')}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all"
+              >
+                Get Started
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section - Cinematic Design */}
+      <section className="relative min-h-screen flex items-center overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-black"></div>
+          <div className="absolute inset-0 opacity-20" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }}></div>
+
+          {/* Floating Particles */}
+          <motion.div
+            animate={{
+              x: [0, 100, 0],
+              y: [0, -50, 0],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute top-20 left-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl"
+          ></motion.div>
+          <motion.div
+            animate={{
+              x: [0, -80, 0],
+              y: [0, 60, 0],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute bottom-20 right-10 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl"
+          ></motion.div>
+          <motion.div
+            animate={{
+              x: [0, 60, 0],
+              y: [0, -40, 0],
+            }}
+            transition={{
+              duration: 30,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl"
+          ></motion.div>
         </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
+          {/* Live Social Proof */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mb-6"
+            className="mb-8"
           >
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium">
-              <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
-              Now available in Kenya • 10,000+ users
+            <div className="inline-flex items-center px-6 py-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white text-sm font-medium shadow-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>Serving <strong>10,540</strong> users • KES <strong>52M</strong> processed</span>
+              </div>
             </div>
           </motion.div>
 
+          {/* Main Headline */}
           <motion.h1
-            className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight"
+            className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-tight"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <span className="emi-text-gradient">Vault5</span>
+            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+              Vault5
+            </span>
             <br />
-            Financial Freedom
-            <span className="block text-3xl md:text-5xl lg:text-6xl mt-2 opacity-90">
+            <span className="text-white">Financial Freedom</span>
+            <br />
+            <span className="text-4xl md:text-6xl lg:text-7xl bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               Made Simple
             </span>
           </motion.h1>
 
           <motion.p
-            className="text-lg md:text-xl text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -102,49 +227,125 @@ const Landing = () => {
             Take control of your finances with smart allocation, automated discipline, and modern banking features designed for the digital age.
           </motion.p>
 
+          {/* CTA Buttons */}
           <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
+            className="flex flex-col sm:flex-row gap-6 justify-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <button
+            <motion.button
               onClick={() => navigate('/signup')}
-              className="emi-btn-primary text-lg px-8 py-4 hover:shadow-2xl hover:shadow-blue-500/25"
+              className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xl px-10 py-5 rounded-2xl font-semibold shadow-2xl hover:shadow-blue-500/25 transition-all duration-300"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <span className="flex items-center justify-center gap-2">
+              <span className="flex items-center justify-center gap-3">
                 Get Started Free
-                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
               </span>
-            </button>
-            <button
+            </motion.button>
+
+            <motion.button
               onClick={() => navigate('/app')}
-              className="emi-btn-accent text-lg px-8 py-4"
+              className="group bg-white/10 backdrop-blur-xl border border-white/20 text-white text-xl px-10 py-5 rounded-2xl font-semibold hover:bg-white/20 transition-all duration-300"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
             >
-              Download App
-            </button>
+              <span className="flex items-center justify-center gap-3">
+                <Download className="w-6 h-6" />
+                Download App
+              </span>
+            </motion.button>
           </motion.div>
 
-          {/* Trust Indicators */}
+          {/* App Store Badges */}
           <motion.div
-            className="flex flex-wrap justify-center items-center gap-6 md:gap-8 text-slate-400"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            className="flex justify-center gap-4 mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-green-400" />
-              <span className="text-sm">Bank-grade security</span>
+            <div className="bg-black/50 backdrop-blur-xl border border-white/20 rounded-xl px-6 py-3 hover:bg-black/70 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-black font-bold text-sm">📱</span>
+                </div>
+                <div>
+                  <div className="text-white text-sm">Download on the</div>
+                  <div className="text-white font-semibold">App Store</div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Lock className="w-5 h-5 text-blue-400" />
-              <span className="text-sm">PCI DSS compliant</span>
+            <div className="bg-black/50 backdrop-blur-xl border border-white/20 rounded-xl px-6 py-3 hover:bg-black/70 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-black font-bold text-sm">🤖</span>
+                </div>
+                <div>
+                  <div className="text-white text-sm">Get it on</div>
+                  <div className="text-white font-semibold">Google Play</div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-400" />
-              <span className="text-sm">Instant transfers</span>
+          </motion.div>
+
+          {/* Enhanced Trust Indicators */}
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 1.0 }}
+          >
+            <motion.div
+              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
+              whileHover={{ y: -4 }}
+            >
+              <div className="flex items-center justify-center w-12 h-12 bg-green-500/20 rounded-xl mb-4 mx-auto">
+                <Shield className="w-6 h-6 text-green-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-2">Bank-grade Security</h3>
+              <p className="text-gray-400 text-sm">Your data is protected with enterprise-level encryption</p>
+            </motion.div>
+
+            <motion.div
+              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
+              whileHover={{ y: -4 }}
+            >
+              <div className="flex items-center justify-center w-12 h-12 bg-blue-500/20 rounded-xl mb-4 mx-auto">
+                <Lock className="w-6 h-6 text-blue-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-2">PCI DSS Compliant</h3>
+              <p className="text-gray-400 text-sm">Meets the highest standards for payment card security</p>
+            </motion.div>
+
+            <motion.div
+              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
+              whileHover={{ y: -4 }}
+            >
+              <div className="flex items-center justify-center w-12 h-12 bg-purple-500/20 rounded-xl mb-4 mx-auto">
+                <Zap className="w-6 h-6 text-purple-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-2">Instant Transfers</h3>
+              <p className="text-gray-400 text-sm">Send and receive money instantly with modern technology</p>
+            </motion.div>
+          </motion.div>
+
+          {/* Certification Logos */}
+          <motion.div
+            className="flex justify-center items-center gap-8 mt-12 opacity-60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 1.2 }}
+          >
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg px-4 py-2">
+              <span className="text-white text-sm font-medium">PCI DSS</span>
+            </div>
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg px-4 py-2">
+              <span className="text-white text-sm font-medium">SSL Secured</span>
+            </div>
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg px-4 py-2">
+              <span className="text-white text-sm font-medium">CBK Licensed</span>
             </div>
           </motion.div>
         </div>

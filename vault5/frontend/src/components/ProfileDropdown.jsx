@@ -19,10 +19,21 @@ const ProfileDropdown = ({ onItemClick, isCollapsed = false, menuOnly = false })
   };
 
   const handleLogout = () => {
+    // Clear all auth-related localStorage items
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/login');
+    localStorage.removeItem('theme');
+
+    // Force navigation to regular login page for all users (including admins)
+    navigate('/login', { replace: true });
+
+    // Close dropdown
     onItemClick();
+
+    // Force page reload to clear any cached state
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   const menuItems = [
