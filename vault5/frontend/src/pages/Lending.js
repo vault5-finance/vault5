@@ -33,6 +33,302 @@ import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import ContactBasedLendingModal from '../components/ContactBasedLendingModal';
 
+// Lending Card Component
+const LendingCard = ({ lending, index, onStatusUpdate, onSendReminder }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const daysOverdue = lending.status === 'overdue'
+    ? Math.floor((new Date() - new Date(lending.expectedReturnDate)) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  const getBorrowerInitials = (name) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'repaid': return <CheckCircle className="w-4 h-4" />;
+      case 'overdue': return <AlertTriangle className="w-4 h-4" />;
+      case 'pending': return <Clock className="w-4 h-4" />;
+      default: return <Target className="w-4 h-4" />;
+    }
+  };
+
+  return (
+    <motion.div
+      className={`bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-lg ${
+        lending.status === 'repaid' ? 'border-green-200 bg-green-50/50' :
+        lending.status === 'overdue' ? 'border-red-200 bg-red-50/50' :
+        lending.status === 'written_off' ? 'border-gray-200 bg-gray-50/50' :
+        'border-gray-200 hover:border-blue-300'
+      }`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      whileHover={{ scale: 1.01 }}
+    >
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
+              lending.status === 'repaid' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+              lending.status === 'overdue' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+              lending.status === 'written_off' ? 'bg-gradient-to-r from-gray-500 to-slate-500' :
+              'bg-gradient-to-r from-blue-500 to-indigo-500'
+            }`}>
+              {getBorrowerInitials(lending.borrowerName)}
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">{lending.borrowerName}</h3>
+              <p className="text-sm text-gray-600">{lending.borrowerContact}</p>
+              <div className="flex items-center gap-2 mt-1">
+                {getStatusIcon(lending.status)}
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  lending.status === 'repaid' ? 'bg-green-100 text-green-800' :
+                  lending.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                  lending.status === 'written_off' ? 'bg-gray-100 text-gray-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {lending.status.replace('_', ' ').toUpperCase()}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-gray-900">KES {lending.amount.toLocaleString()}</div>
+            <div className="text-sm text-gray-600">{lending.type}</div>
+          </div>
+        </div>
+
+        {/* Timeline Bar */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+            <Calendar className="w-3 h-3" />
+            <span>Timeline</span>
+          </div>
+          <div className="relative">
+            <div className="flex items-center justify-between">
+              <div className="text-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mb-1"></div>
+                <div className="text-xs text-gray-600">Created</div>
+                <div className="text-xs font-medium text-gray-900">
+                  {new Date(lending.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+              <div className="flex-1 h-px bg-gray-300 mx-4 relative">
+                <div className={`h-full transition-all duration-1000 ${
+                  lending.status === 'repaid' ? 'bg-green-500' :
+                  lending.status === 'overdue' ? 'bg-red-500' :
+                  'bg-blue-500'
+                }`} style={{ width: lending.status === 'repaid' ? '100%' : lending.status === 'pending' ? '50%' : '75%' }}></div>
+              </div>
+              <div className="text-center">
+                <div className={`w-3 h-3 rounded-full mb-1 ${
+                  lending.status === 'repaid' ? 'bg-green-500' :
+                  lending.status === 'overdue' ? 'bg-red-500' :
+                  'bg-gray-400'
+                }`}></div>
+                <div className="text-xs text-gray-600">Expected</div>
+                <div className="text-xs font-medium text-gray-900">
+                  {new Date(lending.expectedReturnDate).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Trust Badges */}
+        {lending.securityChecks && (
+          <div className="flex items-center gap-2 mb-4">
+            {lending.securityChecks.escrowEnabled && (
+              <div className="flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                <Lock className="w-3 h-3" />
+                <span>Escrow Protected</span>
+              </div>
+            )}
+            {lending.securityChecks.mfaRequired && (
+              <div className="flex items-center gap-1 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                <Shield className="w-3 h-3" />
+                <span>MFA Required</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+              <Star className="w-3 h-3" />
+              <span>Trust Score: {lending.securityChecks.trustScore}/100</span>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <motion.button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {isExpanded ? 'Less' : 'More'} Details
+            </motion.button>
+
+            {lending.status === 'overdue' && (
+              <motion.button
+                onClick={() => onSendReminder(lending._id)}
+                className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span>📧</span>
+                Send Reminder
+              </motion.button>
+            )}
+          </div>
+
+          <select
+            onChange={(e) => onStatusUpdate(lending._id, e.target.value)}
+            defaultValue={lending.status}
+            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="pending">Pending</option>
+            <option value="repaid">✅ Mark Repaid</option>
+            <option value="written_off">🎁 Write Off</option>
+            <option value="overdue">⚠️ Mark Overdue</option>
+          </select>
+        </div>
+
+        {/* Expandable Details */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4 pt-4 border-t border-gray-200"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Fund Sources:</span>
+                  {lending.sourceAccounts && lending.sourceAccounts.length > 0 ? (
+                    <div className="mt-1 space-y-1">
+                      {lending.sourceAccounts.map((source, idx) => (
+                        <div key={idx} className="text-gray-600">
+                          {source.account}: KES {source.amount.toLocaleString()}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-600 mt-1">Not specified</div>
+                  )}
+                </div>
+
+                <div>
+                  <span className="font-medium text-gray-700">Notes:</span>
+                  <div className="text-gray-600 mt-1">
+                    {lending.notes || 'No notes provided'}
+                  </div>
+                </div>
+              </div>
+
+              {lending.status === 'overdue' && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-800">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="font-medium">Overdue Alert</span>
+                  </div>
+                  <p className="text-red-700 text-sm mt-1">
+                    This loan is {daysOverdue} day{daysOverdue !== 1 ? 's' : ''} overdue.
+                    Consider sending a reminder or updating the status.
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+};
+
+// Summary Card Component
+const SummaryCard = ({ title, value, trend, icon: Icon, color, suffix = '', showProgress, progressValue, subtitle }) => {
+  const { countUpRef } = useCountUp({
+    end: value,
+    duration: 2,
+    separator: ","
+  });
+
+  return (
+    <motion.div
+      className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <Icon className={`w-6 h-6 ${color}`} />
+        <div className="text-xs text-gray-500 font-medium">{title}</div>
+      </div>
+
+      <div className="mb-3">
+        {showProgress ? (
+          <div className="flex items-center gap-4">
+            <div className="relative w-16 h-16">
+              <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                <path
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeDasharray={`${progressValue}, 100`}
+                  className="text-gray-200"
+                />
+                <path
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeDasharray={`${progressValue}, 100`}
+                  className={`${color} transition-all duration-1000`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-lg font-bold text-gray-900">{progressValue}%</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-3xl font-bold text-gray-900">
+            <span ref={countUpRef} />
+            {suffix}
+          </div>
+        )}
+      </div>
+
+      {subtitle && (
+        <p className="text-xs text-gray-600 mb-3">{subtitle}</p>
+      )}
+
+      {!showProgress && trend && (
+        <div className="flex items-center gap-1">
+          {trend[trend.length - 1] > trend[trend.length - 2] ? (
+            <TrendingUp className="w-4 h-4 text-green-500" />
+          ) : (
+            <TrendingDown className="w-4 h-4 text-red-500" />
+          )}
+          <span className="text-xs text-gray-500">
+            {Math.abs(((trend[trend.length - 1] - trend[trend.length - 2]) / trend[trend.length - 2] * 100)).toFixed(1)}%
+          </span>
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// Main Lending Component
 const Lending = () => {
   const { showError, showSuccess } = useToast();
   const [lendings, setLendings] = useState([]);
@@ -48,6 +344,15 @@ const Lending = () => {
   const [showOverdueTimeline, setShowOverdueTimeline] = useState(false);
   const [selectedOverdueIndex, setSelectedOverdueIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Mock lending data for sample contacts
+  const mockLending = {
+    securityChecks: { trustScore: 85, mfaRequired: true, escrowEnabled: true },
+    status: 'pending',
+    expectedReturnDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date().toISOString(),
+    _id: 'mock'
+  };
 
   const filteredLendings = useMemo(() => {
     let filtered = lendings;
@@ -223,83 +528,6 @@ const Lending = () => {
       case 'pending': return <Clock className="w-4 h-4" />;
       default: return <Target className="w-4 h-4" />;
     }
-  };
-
-  // Summary Card Component
-  const SummaryCard = ({ title, value, trend, icon: Icon, color, suffix = '', showProgress, progressValue, subtitle }) => {
-    const { countUpRef } = useCountUp({
-      end: value,
-      duration: 2,
-      separator: ","
-    });
-
-    return (
-      <motion.div
-        className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-        whileHover={{ scale: 1.02, y: -2 }}
-        whileTap={{ scale: 0.98 }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <Icon className={`w-6 h-6 ${color}`} />
-          <div className="text-xs text-gray-500 font-medium">{title}</div>
-        </div>
-
-        <div className="mb-3">
-          {showProgress ? (
-            <div className="flex items-center gap-4">
-              <div className="relative w-16 h-16">
-                <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeDasharray={`${progressValue}, 100`}
-                    className="text-gray-200"
-                  />
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeDasharray={`${progressValue}, 100`}
-                    className={`${color} transition-all duration-1000`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-lg font-bold text-gray-900">{progressValue}%</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-3xl font-bold text-gray-900">
-              <span ref={countUpRef} />
-              {suffix}
-            </div>
-          )}
-        </div>
-
-        {subtitle && (
-          <p className="text-xs text-gray-600 mb-3">{subtitle}</p>
-        )}
-
-        {!showProgress && trend && (
-          <div className="flex items-center gap-1">
-            {trend[trend.length - 1] > trend[trend.length - 2] ? (
-              <TrendingUp className="w-4 h-4 text-green-500" />
-            ) : (
-              <TrendingDown className="w-4 h-4 text-red-500" />
-            )}
-            <span className="text-xs text-gray-500">
-              {Math.abs(((trend[trend.length - 1] - trend[trend.length - 2]) / trend[trend.length - 2] * 100)).toFixed(1)}%
-            </span>
-          </div>
-        )}
-      </motion.div>
-    );
   };
 
   if (loading) {
@@ -578,7 +806,6 @@ const Lending = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {showOverdueTimeline ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 {showOverdueTimeline ? 'Hide' : 'Show'} Timeline
               </motion.button>
             </div>
@@ -772,256 +999,34 @@ const Lending = () => {
               <span className="text-sm text-gray-600">Sample Contacts</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { name: 'Sarah Johnson', status: 'verified', avatar: 'SJ' },
-                { name: 'Michael Chen', status: 'verified', avatar: 'MC' },
-                { name: 'Emma Davis', status: 'pending', avatar: 'ED' }
-              ].map((contact, index) => (
-                <motion.div
-                  key={index}
-                  className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                    contact.status === 'verified'
-                      ? 'border-green-200 bg-green-50 hover:border-green-300'
-                      : 'border-yellow-200 bg-yellow-50 hover:border-yellow-300'
-                  }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-gray-700">{contact.avatar}</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">{contact.name}</div>
-                      <div className={`text-xs flex items-center gap-1 ${
-                        contact.status === 'verified' ? 'text-green-600' : 'text-yellow-600'
-                      }`}>
-                        {contact.status === 'verified' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                        {contact.status === 'verified' ? 'Verified' : 'Pending'}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Info Tooltip */}
-          <motion.div
-            className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-          >
-            <div className="flex items-start gap-2">
-              <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-800">
-                <strong>Why it's secure:</strong> Auto-verification + MFA + optional escrow protection.
-                All transactions are monitored and insured up to KES 100,000.
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Modern Fintech Action Buttons */}
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-        >
-          <motion.button
-            onClick={() => setShowModal(true)}
-            className="group relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center gap-4">
-              <motion.div
-                className="p-3 bg-white/20 rounded-xl"
-                whileHover={{ rotate: 10 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              >
-                <HandHeart className="w-8 h-8" />
-              </motion.div>
-              <div className="text-left">
-                <div className="text-lg font-bold">Request Loan</div>
-                <div className="text-sm opacity-90">From trusted contacts</div>
-              </div>
-            </div>
-            <motion.div
-              className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              initial={{ scale: 0 }}
-              whileHover={{ scale: 1 }}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </motion.div>
-          </motion.button>
-
-          <motion.button
-            onClick={processOverdueReminders}
-            disabled={processingReminders}
-            className="group relative overflow-hidden bg-gradient-to-r from-orange-500 via-red-500 to-red-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50"
-            whileHover={{ scale: processingReminders ? 1 : 1.02, y: processingReminders ? 0 : -2 }}
-            whileTap={{ scale: processingReminders ? 1 : 0.98 }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center gap-4">
-              <motion.div
-                className="p-3 bg-white/20 rounded-xl"
-                animate={processingReminders ? { rotate: 360 } : {}}
-                transition={{ duration: 1, repeat: processingReminders ? Infinity : 0, ease: "linear" }}
-              >
-                {processingReminders ? <RefreshCw className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
-              </motion.div>
-              <div className="text-left">
-                <div className="text-lg font-bold">
-                  {processingReminders ? 'Processing...' : 'Overdue Alerts'}
-                </div>
-                <div className="text-sm opacity-90">
-                  {processingReminders ? 'Sending reminders' : 'Check & notify borrowers'}
-                </div>
-              </div>
-            </div>
-          </motion.button>
-
-          <motion.button
-            onClick={() => navigate('/p2p-loans')}
-            className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center gap-4">
-              <motion.div
-                className="p-3 bg-white/20 rounded-xl"
-                whileHover={{ scale: 1.1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              >
-                <Users className="w-8 h-8" />
-              </motion.div>
-              <div className="text-left">
-                <div className="text-lg font-bold">P2P Marketplace</div>
-                <div className="text-sm opacity-90">Community lending platform</div>
-              </div>
-            </div>
-            <motion.div
-              className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              initial={{ scale: 0 }}
-              whileHover={{ scale: 1 }}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </motion.div>
-          </motion.button>
-        </motion.div>
-
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Lending History</h2>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'pending', label: 'Pending' },
-            { key: 'overdue', label: 'Overdue' },
-            { key: 'repaid', label: 'Repaid' },
-            { key: 'written_off', label: 'Written Off' }
-          ].map(chip => (
-            <button
-              key={chip.key}
-              onClick={() => setFilterStatus(chip.key)}
-              className={`px-3 py-1.5 rounded-full border transition ${
-                filterStatus === chip.key
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          {filteredLendings.map(lending => (
-            <div key={lending._id} className={`border p-4 rounded-lg ${lending.status === 'repaid' ? 'border-green-300 bg-green-50' : lending.status === 'overdue' ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}>
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <div className="font-medium">{lending.borrowerName}</div>
-                  <div className="text-sm text-gray-600">{lending.borrowerContact}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium">KES {lending.amount.toFixed(2)}</div>
-                  <div className={`text-xs px-2 py-1 rounded-full inline-block ${
-                    lending.status === 'repaid' ? 'bg-green-100 text-green-800' :
-                    lending.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                    lending.status === 'written_off' ? 'bg-gray-100 text-gray-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {lending.status.replace('_', ' ').toUpperCase()}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
-                <div>
-                  <span className="font-medium">Type:</span> {lending.type}
-                </div>
-                <div>
-                  <span className="font-medium">Expected Return:</span> {new Date(lending.expectedReturnDate).toLocaleDateString()}
-                  {lending.status === 'overdue' && (
-                    <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                      {(() => {
-                        const daysOverdue = Math.floor((new Date() - new Date(lending.expectedReturnDate)) / (1000 * 60 * 60 * 24));
-                        return `${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue`;
-                      })()}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {lending.notes && (
-                <div className="text-sm text-gray-600 mb-3">
-                  <span className="font-medium">Notes:</span> {lending.notes}
-                </div>
-              )}
-
-              {lending.sourceAccounts && lending.sourceAccounts.length > 0 && (
-                <div className="text-xs text-gray-600 mb-3">
-                  <span className="font-medium">Fund Sources:</span> {lending.sourceAccounts.map(s => `${s.account} (KES ${s.amount.toFixed(2)})`).join(', ')}
-                </div>
-              )}
-
-              {lending.securityChecks && (
+              {mockLending.securityChecks && (
                 <div className="text-xs bg-gray-50 p-2 rounded mb-3">
-                  <span className="font-medium">Security:</span> Trust Score {lending.securityChecks.trustScore}/100
-                  {lending.securityChecks.mfaRequired && ' • MFA Required'}
-                  {lending.securityChecks.escrowEnabled && ' • Escrow Protected'}
+                  <span className="font-medium">Security:</span> Trust Score {mockLending.securityChecks.trustScore}/100
+                  {mockLending.securityChecks.mfaRequired && ' • MFA Required'}
+                  {mockLending.securityChecks.escrowEnabled && ' • Escrow Protected'}
                 </div>
               )}
-
-              {lending.status === 'overdue' && (
+              {mockLending.status === 'overdue' && (
                 <div className="text-xs bg-red-50 p-2 rounded mb-3 border border-red-200">
                   <div className="flex items-center gap-2">
                     <span className="text-red-600">📧</span>
                     <span className="font-medium text-red-800">Reminder Sent:</span>
                     <span className="text-red-700">
                       {(() => {
-                        const daysOverdue = Math.floor((new Date() - new Date(lending.expectedReturnDate)) / (1000 * 60 * 60 * 24));
+                        const daysOverdue = Math.floor((new Date() - new Date(mockLending.expectedReturnDate)) / (1000 * 60 * 60 * 24));
                         return `Overdue reminder sent ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago`;
                       })()}
                     </span>
                   </div>
                 </div>
               )}
-
               <div className="flex justify-between items-center">
                 <div className="text-xs text-gray-500">
-                  Created: {new Date(lending.createdAt).toLocaleDateString()}
+                  Created: {new Date(mockLending.createdAt).toLocaleDateString()}
                 </div>
                 <select
-                  onChange={(e) => updateStatus(lending._id, e.target.value)}
-                  defaultValue={lending.status}
+                  onChange={(e) => updateStatus(mockLending._id, e.target.value)}
+                  defaultValue={mockLending.status}
                   className="p-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="pending">Pending</option>
@@ -1031,8 +1036,22 @@ const Lending = () => {
                 </select>
               </div>
             </div>
+          </div>
+        </motion.div>
+
+        {/* Lending Cards Grid */}
+        <div className="grid grid-cols-1 gap-6">
+          {filteredLendings.map((lending, index) => (
+            <LendingCard
+              key={lending._id}
+              lending={lending}
+              index={index}
+              onStatusUpdate={updateStatus}
+              onSendReminder={sendIndividualReminder}
+            />
           ))}
         </div>
+
         {lendings.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             <div className="text-6xl mb-4">📱</div>
@@ -1056,211 +1075,6 @@ const Lending = () => {
       />
     </div>
   );
-
-  // Lending Card Component
-  const LendingCard = ({ lending, index, onStatusUpdate, onSendReminder }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const daysOverdue = lending.status === 'overdue'
-      ? Math.floor((new Date() - new Date(lending.expectedReturnDate)) / (1000 * 60 * 60 * 24))
-      : 0;
-
-    return (
-      <motion.div
-        className={`bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-lg ${
-          lending.status === 'repaid' ? 'border-green-200 bg-green-50/50' :
-          lending.status === 'overdue' ? 'border-red-200 bg-red-50/50' :
-          lending.status === 'written_off' ? 'border-gray-200 bg-gray-50/50' :
-          'border-gray-200 hover:border-blue-300'
-        }`}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-        whileHover={{ scale: 1.01 }}
-      >
-        <div className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
-                lending.status === 'repaid' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                lending.status === 'overdue' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
-                lending.status === 'written_off' ? 'bg-gradient-to-r from-gray-500 to-slate-500' :
-                'bg-gradient-to-r from-blue-500 to-indigo-500'
-              }`}>
-                {getBorrowerInitials(lending.borrowerName)}
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">{lending.borrowerName}</h3>
-                <p className="text-sm text-gray-600">{lending.borrowerContact}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  {getStatusIcon(lending.status)}
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    lending.status === 'repaid' ? 'bg-green-100 text-green-800' :
-                    lending.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                    lending.status === 'written_off' ? 'bg-gray-100 text-gray-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {lending.status.replace('_', ' ').toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-gray-900">KES {lending.amount.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">{lending.type}</div>
-            </div>
-          </div>
-
-          {/* Timeline Bar */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-              <Calendar className="w-3 h-3" />
-              <span>Timeline</span>
-            </div>
-            <div className="relative">
-              <div className="flex items-center justify-between">
-                <div className="text-center">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mb-1"></div>
-                  <div className="text-xs text-gray-600">Created</div>
-                  <div className="text-xs font-medium text-gray-900">
-                    {new Date(lending.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-                <div className="flex-1 h-px bg-gray-300 mx-4 relative">
-                  <div className={`h-full transition-all duration-1000 ${
-                    lending.status === 'repaid' ? 'bg-green-500' :
-                    lending.status === 'overdue' ? 'bg-red-500' :
-                    'bg-blue-500'
-                  }`} style={{ width: lending.status === 'repaid' ? '100%' : lending.status === 'pending' ? '50%' : '75%' }}></div>
-                </div>
-                <div className="text-center">
-                  <div className={`w-3 h-3 rounded-full mb-1 ${
-                    lending.status === 'repaid' ? 'bg-green-500' :
-                    lending.status === 'overdue' ? 'bg-red-500' :
-                    'bg-gray-400'
-                  }`}></div>
-                  <div className="text-xs text-gray-600">Expected</div>
-                  <div className="text-xs font-medium text-gray-900">
-                    {new Date(lending.expectedReturnDate).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Trust Badges */}
-          {lending.securityChecks && (
-            <div className="flex items-center gap-2 mb-4">
-              {lending.securityChecks.escrowEnabled && (
-                <div className="flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                  <Lock className="w-3 h-3" />
-                  <span>Escrow Protected</span>
-                </div>
-              )}
-              {lending.securityChecks.mfaRequired && (
-                <div className="flex items-center gap-1 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                  <Shield className="w-3 h-3" />
-                  <span>MFA Required</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
-                <Star className="w-3 h-3" />
-                <span>Trust Score: {lending.securityChecks.trustScore}/100</span>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <motion.button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                {isExpanded ? 'Less' : 'More'} Details
-              </motion.button>
-
-              {lending.status === 'overdue' && (
-                <motion.button
-                  onClick={() => onSendReminder(lending._id)}
-                  className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <span>📧</span>
-                  Send Reminder
-                </motion.button>
-              )}
-            </div>
-
-            <select
-              onChange={(e) => onStatusUpdate(lending._id, e.target.value)}
-              defaultValue={lending.status}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="pending">Pending</option>
-              <option value="repaid">✅ Mark Repaid</option>
-              <option value="written_off">🎁 Write Off</option>
-              <option value="overdue">⚠️ Mark Overdue</option>
-            </select>
-          </div>
-
-          {/* Expandable Details */}
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="mt-4 pt-4 border-t border-gray-200"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">Fund Sources:</span>
-                    {lending.sourceAccounts && lending.sourceAccounts.length > 0 ? (
-                      <div className="mt-1 space-y-1">
-                        {lending.sourceAccounts.map((source, idx) => (
-                          <div key={idx} className="text-gray-600">
-                            {source.account}: KES {source.amount.toLocaleString()}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-gray-600 mt-1">Not specified</div>
-                    )}
-                  </div>
-
-                  <div>
-                    <span className="font-medium text-gray-700">Notes:</span>
-                    <div className="text-gray-600 mt-1">
-                      {lending.notes || 'No notes provided'}
-                    </div>
-                  </div>
-                </div>
-
-                {lending.status === 'overdue' && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-red-800">
-                      <AlertTriangle className="w-4 h-4" />
-                      <span className="font-medium">Overdue Alert</span>
-                    </div>
-                    <p className="text-red-700 text-sm mt-1">
-                      This loan is {daysOverdue} day{daysOverdue !== 1 ? 's' : ''} overdue.
-                      Consider sending a reminder or updating the status.
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    );
-  };
 };
 
 export default Lending;
