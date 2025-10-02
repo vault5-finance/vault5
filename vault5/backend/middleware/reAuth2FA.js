@@ -61,6 +61,39 @@ async function reAuth2FAP2PLoan(req, res, next) {
   }
 }
 
+/**
+ * General re-authentication middleware for sensitive operations
+ * Verifies user password before allowing sensitive actions
+ */
+const reAuth2FA = async (req, res, next) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: 'Password verification required for this action' });
+    }
+
+    const user = await require('../models').User.findById(req.user._id).select('+password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({ message: 'Password verification failed' });
+    }
+
+    // Remove password from body to prevent it from being used elsewhere
+    delete req.body.password;
+
+    return next();
+  } catch (error) {
+    console.error('reAuth2FA error:', error);
+    return res.status(500).json({ message: 'Authentication verification failed' });
+  }
+};
+
 module.exports = {
+  reAuth2FA,
   reAuth2FAP2PLoan,
 };
