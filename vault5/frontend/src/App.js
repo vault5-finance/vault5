@@ -2,6 +2,8 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastProvider } from './contexts/ToastContext';
 import initializePerformanceMonitoring from './utils/performance';
+import LoadingSpinner from './components/LoadingSpinner';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 import MainLayout from './components/MainLayout';
@@ -112,12 +114,12 @@ function App() {
     trackRouteChange(location.pathname);
   }, [location.pathname]);
 
-
   return (
-    <ToastProvider>
-      <NotificationsProvider>
-        <Suspense fallback={<div className="p-8">Loading...</div>}>
-          <Routes>
+    <ErrorBoundary>
+      <ToastProvider>
+        <NotificationsProvider>
+          <Suspense fallback={<LoadingSpinner message="Loading Vault5..." fullScreen={true} />}>
+            <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicRoute><PublicLayout><Landing /></PublicLayout></PublicRoute>} />
         <Route path="/login" element={<Login />} />
@@ -308,7 +310,8 @@ function App() {
         </Suspense>
     </NotificationsProvider>
   </ToastProvider>
-);
+    </ErrorBoundary>
+  );
 }
 
 export default App;

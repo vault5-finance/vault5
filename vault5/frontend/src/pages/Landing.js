@@ -83,36 +83,79 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-black">
       {/* Sticky Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-xl border-b border-white/10">
+      <nav
+        className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-xl border-b border-white/10"
+        role="navigation"
+        aria-label="Main navigation"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-8">
-              <Link to="/" className="flex items-center gap-3">
+              <Link
+                to="/"
+                className="flex items-center gap-3"
+                aria-label="Vault5 homepage"
+              >
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">V5</span>
+                  <span className="text-white font-bold text-sm" aria-hidden="true">V5</span>
                 </div>
                 <span className="text-white font-bold text-xl">Vault5</span>
               </Link>
               <div className="hidden md:flex items-center gap-6">
-                <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
-                <a href="#testimonials" className="text-gray-300 hover:text-white transition-colors">Testimonials</a>
-                <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
-                <a href="#about" className="text-gray-300 hover:text-white transition-colors">About</a>
+                <a
+                  href="#features"
+                  className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1"
+                  aria-label="Navigate to features section"
+                >
+                  Features
+                </a>
+                <a
+                  href="#security"
+                  className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1"
+                  aria-label="Navigate to security section"
+                >
+                  Security
+                </a>
+                <a
+                  href="#pricing"
+                  className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1"
+                  aria-label="Navigate to fees section"
+                >
+                  Fees
+                </a>
+                <a
+                  href="#business"
+                  className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1"
+                  aria-label="Navigate to business section"
+                >
+                  Business
+                </a>
+                <a
+                  href="#about"
+                  className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1"
+                  aria-label="Navigate to about section"
+                >
+                  About
+                </a>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
+                className="p-2 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
               <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-gray-400" />
+                <Globe className="w-4 h-4 text-gray-400" aria-hidden="true" />
+                <label htmlFor="language-select" className="sr-only">Select language</label>
                 <select
+                  id="language-select"
                   value={currentLanguage}
                   onChange={(e) => setCurrentLanguage(e.target.value)}
-                  className="bg-transparent text-white text-sm border-none outline-none"
+                  className="bg-transparent text-white text-sm border-none outline-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1"
+                  aria-label="Select language"
                 >
                   <option value="EN">EN</option>
                   <option value="SW">SW</option>
@@ -121,13 +164,15 @@ const Landing = () => {
               </div>
               <button
                 onClick={() => navigate('/login')}
-                className="text-gray-300 hover:text-white transition-colors"
+                className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1"
+                aria-label="Sign in to your account"
               >
                 Sign In
               </button>
               <button
                 onClick={() => navigate('/signup')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black"
+                aria-label="Get started with Vault5"
               >
                 Get Started
               </button>
@@ -137,9 +182,21 @@ const Landing = () => {
       </nav>
 
       {/* Hero Section - Cinematic Design */}
-      <section className="relative min-h-screen flex items-center overflow-hidden">
+      <section
+        className="relative min-h-screen flex items-center overflow-hidden"
+        aria-labelledby="hero-heading"
+        role="banner"
+      >
+        {/* Skip to main content link for accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-50"
+        >
+          Skip to main content
+        </a>
+
         {/* Animated Background */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0" aria-hidden="true">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-black"></div>
           <div className="absolute inset-0 opacity-20" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
@@ -157,6 +214,7 @@ const Landing = () => {
               ease: "linear"
             }}
             className="absolute top-20 left-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl"
+            aria-hidden="true"
           ></motion.div>
           <motion.div
             animate={{
@@ -169,6 +227,7 @@ const Landing = () => {
               ease: "linear"
             }}
             className="absolute bottom-20 right-10 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl"
+            aria-hidden="true"
           ></motion.div>
           <motion.div
             animate={{
@@ -181,6 +240,7 @@ const Landing = () => {
               ease: "linear"
             }}
             className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl"
+            aria-hidden="true"
           ></motion.div>
         </div>
 
@@ -192,9 +252,13 @@ const Landing = () => {
             transition={{ duration: 0.6 }}
             className="mb-8"
           >
-            <div className="inline-flex items-center px-6 py-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white text-sm font-medium shadow-lg">
+            <div
+              className="inline-flex items-center px-6 py-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white text-sm font-medium shadow-lg"
+              role="status"
+              aria-live="polite"
+            >
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" aria-hidden="true"></div>
                 <span>Serving <strong>10,540</strong> users • KES <strong>52M</strong> processed</span>
               </div>
             </div>
@@ -202,6 +266,7 @@ const Landing = () => {
 
           {/* Main Headline */}
           <motion.h1
+            id="hero-heading"
             className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-tight"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -236,24 +301,26 @@ const Landing = () => {
           >
             <motion.button
               onClick={() => navigate('/signup')}
-              className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xl px-10 py-5 rounded-2xl font-semibold shadow-2xl hover:shadow-blue-500/25 transition-all duration-300"
+              className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xl px-10 py-5 rounded-2xl font-semibold shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
+              aria-label="Get started with Vault5 for free"
             >
               <span className="flex items-center justify-center gap-3">
                 Get Started Free
-                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </span>
             </motion.button>
 
             <motion.button
               onClick={() => navigate('/app')}
-              className="group bg-white/10 backdrop-blur-xl border border-white/20 text-white text-xl px-10 py-5 rounded-2xl font-semibold hover:bg-white/20 transition-all duration-300"
+              className="group bg-white/10 backdrop-blur-xl border border-white/20 text-white text-xl px-10 py-5 rounded-2xl font-semibold hover:bg-white/20 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
+              aria-label="Download the Vault5 mobile app"
             >
               <span className="flex items-center justify-center gap-3">
-                <Download className="w-6 h-6" />
+                <Download className="w-6 h-6" aria-hidden="true" />
                 Download App
               </span>
             </motion.button>
@@ -290,45 +357,17 @@ const Landing = () => {
             </div>
           </motion.div>
 
-          {/* Enhanced Trust Indicators */}
+          {/* Live Support Indicator */}
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
+            className="flex justify-center mb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 1.0 }}
           >
-            <motion.div
-              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
-              whileHover={{ y: -4 }}
-            >
-              <div className="flex items-center justify-center w-12 h-12 bg-green-500/20 rounded-xl mb-4 mx-auto">
-                <Shield className="w-6 h-6 text-green-400" />
-              </div>
-              <h3 className="text-white font-semibold mb-2">Bank-grade Security</h3>
-              <p className="text-gray-400 text-sm">Your data is protected with enterprise-level encryption</p>
-            </motion.div>
-
-            <motion.div
-              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
-              whileHover={{ y: -4 }}
-            >
-              <div className="flex items-center justify-center w-12 h-12 bg-blue-500/20 rounded-xl mb-4 mx-auto">
-                <Lock className="w-6 h-6 text-blue-400" />
-              </div>
-              <h3 className="text-white font-semibold mb-2">PCI DSS Compliant</h3>
-              <p className="text-gray-400 text-sm">Meets the highest standards for payment card security</p>
-            </motion.div>
-
-            <motion.div
-              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
-              whileHover={{ y: -4 }}
-            >
-              <div className="flex items-center justify-center w-12 h-12 bg-purple-500/20 rounded-xl mb-4 mx-auto">
-                <Zap className="w-6 h-6 text-purple-400" />
-              </div>
-              <h3 className="text-white font-semibold mb-2">Instant Transfers</h3>
-              <p className="text-gray-400 text-sm">Send and receive money instantly with modern technology</p>
-            </motion.div>
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+              Live support available 24/7
+            </div>
           </motion.div>
 
           {/* Certification Logos */}
@@ -348,6 +387,211 @@ const Landing = () => {
               <span className="text-white text-sm font-medium">CBK Licensed</span>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Payment App Features Showcase */}
+      <section className="py-20 bg-gradient-to-br from-slate-900 to-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Send, Receive & Pay Instantly
+            </h2>
+            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+              Experience the future of digital payments with Vault5's intuitive interface
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Phone Mockup */}
+            <motion.div
+              className="relative"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <div className="relative mx-auto max-w-sm">
+                {/* Phone Frame */}
+                <div className="relative bg-black rounded-3xl p-3 shadow-2xl">
+                  <div className="bg-slate-900 rounded-2xl overflow-hidden">
+                    {/* Status Bar */}
+                    <div className="h-6 bg-black flex items-center justify-between px-4">
+                      <span className="text-white text-xs">9:41</span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-4 h-2 bg-white rounded-sm"></div>
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                    </div>
+
+                    {/* App Interface */}
+                    <div className="p-4 bg-gradient-to-b from-blue-600 to-purple-700 min-h-[500px]">
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">V5</span>
+                          </div>
+                          <div>
+                            <div className="text-white font-semibold">Vault5</div>
+                            <div className="text-white/70 text-sm">Balance: KES 25,430</div>
+                          </div>
+                        </div>
+                        <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                          <span className="text-white">🔔</span>
+                        </div>
+                      </div>
+
+                      {/* Quick Actions */}
+                      <div className="grid grid-cols-4 gap-3 mb-6">
+                        <motion.button
+                          className="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center gap-1 hover:bg-white/30 transition-colors"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <span className="text-2xl">📤</span>
+                          <span className="text-white text-xs font-medium">Send</span>
+                        </motion.button>
+                        <motion.button
+                          className="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center gap-1 hover:bg-white/30 transition-colors"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <span className="text-2xl">📥</span>
+                          <span className="text-white text-xs font-medium">Request</span>
+                        </motion.button>
+                        <motion.button
+                          className="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center gap-1 hover:bg-white/30 transition-colors"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <span className="text-2xl">💳</span>
+                          <span className="text-white text-xs font-medium">Pay</span>
+                        </motion.button>
+                        <motion.button
+                          className="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center gap-1 hover:bg-white/30 transition-colors"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <span className="text-2xl">⋯</span>
+                          <span className="text-white text-xs font-medium">More</span>
+                        </motion.button>
+                      </div>
+
+                      {/* Recent Transactions */}
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                        <h3 className="text-white font-semibold mb-3">Recent Transactions</h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-sm">✓</span>
+                              </div>
+                              <div>
+                                <div className="text-white text-sm font-medium">Sarah Wanjiku</div>
+                                <div className="text-white/70 text-xs">2 hours ago</div>
+                              </div>
+                            </div>
+                            <div className="text-green-400 font-semibold">+KES 2,500</div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-sm">☕</span>
+                              </div>
+                              <div>
+                                <div className="text-white text-sm font-medium">Java House</div>
+                                <div className="text-white/70 text-xs">Yesterday</div>
+                              </div>
+                            </div>
+                            <div className="text-red-400 font-semibold">-KES 450</div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-sm">🎁</span>
+                              </div>
+                              <div>
+                                <div className="text-white text-sm font-medium">Gift from David</div>
+                                <div className="text-white/70 text-xs">3 days ago</div>
+                              </div>
+                            </div>
+                            <div className="text-green-400 font-semibold">+KES 1,000</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Feature Cards */}
+            <motion.div
+              className="space-y-6"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+            >
+              <motion.div
+                className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
+                whileHover={{ y: -4 }}
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                    <span className="text-2xl">⚡</span>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">Instant Transfers</h3>
+                    <p className="text-slate-300 text-sm">Send money anywhere in seconds</p>
+                  </div>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  Transfer funds instantly to any Vault5 user, bank account, or mobile money. No waiting, no fees for basic transfers.
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
+                whileHover={{ y: -4 }}
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                    <span className="text-2xl">📱</span>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">Mobile Money Integration</h3>
+                    <p className="text-slate-300 text-sm">Seamless M-Pesa & Airtel Money</p>
+                  </div>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  Connect your mobile money accounts for instant deposits and withdrawals. Pay bills, buy airtime, and more.
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
+                whileHover={{ y: -4 }}
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                    <span className="text-2xl">🔄</span>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">Request & Split Bills</h3>
+                    <p className="text-slate-300 text-sm">Easy money requests and bill splitting</p>
+                  </div>
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  Request money from friends and family. Split bills automatically and track who owes what.
+                </p>
+              </motion.div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -506,6 +750,181 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Enhanced Security Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              Your Money, Fully Protected
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Bank-grade security with cutting-edge technology to keep your finances safe
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <motion.div
+              className="text-center group"
+              whileHover={{ y: -8 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-4xl group-hover:scale-110 transition-transform duration-300">
+                🔒
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">256-bit Encryption</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Military-grade encryption protects all your transactions and personal data, both in transit and at rest.
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="text-center group"
+              whileHover={{ y: -8 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-4xl group-hover:scale-110 transition-transform duration-300">
+                📱
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Biometric Security</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Fingerprint and Face ID authentication, plus two-factor authentication for maximum account protection.
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="text-center group"
+              whileHover={{ y: -8 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-4xl group-hover:scale-110 transition-transform duration-300">
+                🛡️
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Fraud Protection</h3>
+              <p className="text-slate-600 leading-relaxed">
+                AI-powered fraud detection monitors all transactions in real-time to prevent unauthorized access.
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Security Certifications */}
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <p className="text-slate-500 mb-8">Trusted by millions with enterprise-grade security</p>
+            <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
+              <div className="bg-slate-100 px-6 py-3 rounded-lg">
+                <span className="text-slate-700 font-semibold">CBK Licensed</span>
+              </div>
+              <div className="bg-slate-100 px-6 py-3 rounded-lg">
+                <span className="text-slate-700 font-semibold">PCI DSS</span>
+              </div>
+              <div className="bg-slate-100 px-6 py-3 rounded-lg">
+                <span className="text-slate-700 font-semibold">SSL Secured</span>
+              </div>
+              <div className="bg-slate-100 px-6 py-3 rounded-lg">
+                <span className="text-slate-700 font-semibold">ISO 27001</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Transparent Pricing Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              Transparent Fees, No Hidden Costs
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Clear pricing you can trust, designed for everyday financial needs
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <motion.div
+              className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 text-center"
+              whileHover={{ y: -4 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <div className="text-3xl font-bold text-blue-600 mb-2">FREE</div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Basic Transfers</h3>
+              <p className="text-slate-600 text-sm">Send money to other Vault5 users</p>
+            </motion.div>
+
+            <motion.div
+              className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 text-center"
+              whileHover={{ y: -4 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <div className="text-3xl font-bold text-blue-600 mb-2">KES 25</div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Bank Transfers</h3>
+              <p className="text-slate-600 text-sm">Transfer to any Kenyan bank account</p>
+            </motion.div>
+
+            <motion.div
+              className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 text-center"
+              whileHover={{ y: -4 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <div className="text-3xl font-bold text-blue-600 mb-2">FREE</div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Mobile Money</h3>
+              <p className="text-slate-600 text-sm">Deposit and withdraw via M-Pesa</p>
+            </motion.div>
+
+            <motion.div
+              className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 text-center"
+              whileHover={{ y: -4 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <div className="text-3xl font-bold text-blue-600 mb-2">0.5%</div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Card Payments</h3>
+              <p className="text-slate-600 text-sm">International card transactions</p>
+            </motion.div>
+          </div>
+
+          <motion.div
+            className="text-center mt-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            <p className="text-slate-600 mb-4">No monthly fees • No setup costs • No hidden charges</p>
+            <div className="inline-flex items-center px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-medium">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              All fees shown before you pay
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
       <section className="emi-section-bg-white py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -581,6 +1000,67 @@ const Landing = () => {
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Integration Partners Section */}
+      <section className="py-20 bg-slate-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              Trusted by Leading Companies
+            </h2>
+            <p className="text-xl text-slate-600">
+              Seamlessly connect with your favorite services and platforms
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {[
+              { name: 'M-Pesa', logo: '💰' },
+              { name: 'Airtel Money', logo: '📱' },
+              { name: 'Equity Bank', logo: '🏦' },
+              { name: 'KCB Bank', logo: '💳' },
+              { name: 'Stripe', logo: '⚡' },
+              { name: 'PayPal', logo: '🌐' },
+              { name: 'Shopify', logo: '🛒' },
+              { name: 'Flutterwave', logo: '💸' },
+              { name: 'JamboPay', logo: '🇰🇪' },
+              { name: 'Cellulant', logo: '🔄' },
+              { name: 'Safaricom', logo: '📞' },
+              { name: 'Telkom', logo: '📡' }
+            ].map((partner, index) => (
+              <motion.div
+                key={partner.name}
+                className="bg-white rounded-lg p-6 text-center hover:shadow-lg transition-all duration-300 opacity-60 hover:opacity-100"
+                whileHover={{ y: -2 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.05 }}
+              >
+                <div className="text-3xl mb-3">{partner.logo}</div>
+                <div className="text-sm font-medium text-slate-700">{partner.name}</div>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            className="text-center mt-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+          >
+            <p className="text-slate-600 mb-6">And 100+ more integrations available</p>
+            <div className="inline-flex items-center px-6 py-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer">
+              <span className="text-slate-700 font-medium">View all integrations</span>
+              <ArrowRight className="w-4 h-4 ml-2 text-slate-500" />
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -886,6 +1366,16 @@ const Landing = () => {
                 <li><Link to="/business" className="emi-footer-nav-link">Business Banking</Link></li>
                 <li><Link to="/developers" className="emi-footer-nav-link">API & Developers</Link></li>
                 <li><Link to="/app" className="emi-footer-nav-link">Mobile App</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-4">Business</h4>
+              <ul className="space-y-2">
+                <li><Link to="/merchant-services" className="emi-footer-nav-link">Merchant Services</Link></li>
+                <li><Link to="/payment-links" className="emi-footer-nav-link">Payment Links</Link></li>
+                <li><Link to="/invoicing" className="emi-footer-nav-link">Invoicing</Link></li>
+                <li><Link to="/business-api" className="emi-footer-nav-link">Business API</Link></li>
               </ul>
             </div>
 
