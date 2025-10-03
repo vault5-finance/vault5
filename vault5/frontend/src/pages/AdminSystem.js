@@ -148,32 +148,38 @@ const AdminSystem = () => {
     const interval = setInterval(() => {
       setLastUpdated(new Date());
       // Update metrics with slight variations
-      setSystemMetrics(prev => ({
-        uptime: {
-          ...prev.uptime,
-          trend: [...prev.uptime.trend.slice(1), prev.uptime.value + (Math.random() - 0.5) * 0.1]
-        },
-        activeUsers: {
-          ...prev.activeUsers,
-          trend: [...prev.activeUsers.trend.slice(1), prev.activeUsers.value + Math.floor((Math.random() - 0.5) * 20)]
-        },
-        apiCalls: {
-          ...prev.apiCalls,
-          trend: [...prev.apiCalls.trend.slice(1), prev.apiCalls.value + Math.floor((Math.random() - 0.5) * 100)]
-        },
-        cpu: {
-          ...prev.cpu,
-          trend: [...prev.cpu.trend.slice(1), Math.max(0, Math.min(100, prev.cpu.value + (Math.random() - 0.5) * 10))]
-        },
-        memory: {
-          ...prev.memory,
-          trend: [...prev.memory.trend.slice(1), Math.max(0, Math.min(100, prev.memory.value + (Math.random() - 0.5) * 5))]
-        },
-        errors: {
-          ...prev.errors,
-          trend: [...prev.errors.trend.slice(1), Math.max(0, prev.errors.value + Math.floor((Math.random() - 0.5) * 3))]
+      setSystemMetrics(prev => {
+        // Safety check for prev state
+        if (!prev || !prev.uptime || !prev.uptime.trend || !Array.isArray(prev.uptime.trend)) {
+          return prev;
         }
-      }));
+        return {
+          uptime: {
+            ...prev.uptime,
+            trend: [...prev.uptime.trend.slice(1), prev.uptime.value + (Math.random() - 0.5) * 0.1]
+          },
+          activeUsers: {
+            ...prev.activeUsers,
+            trend: [...prev.activeUsers.trend.slice(1), prev.activeUsers.value + Math.floor((Math.random() - 0.5) * 20)]
+          },
+          apiCalls: {
+            ...prev.apiCalls,
+            trend: [...prev.apiCalls.trend.slice(1), prev.apiCalls.value + Math.floor((Math.random() - 0.5) * 100)]
+          },
+          cpu: {
+            ...prev.cpu,
+            trend: [...prev.cpu.trend.slice(1), Math.max(0, Math.min(100, prev.cpu.value + (Math.random() - 0.5) * 10))]
+          },
+          memory: {
+            ...prev.memory,
+            trend: [...prev.memory.trend.slice(1), Math.max(0, Math.min(100, prev.memory.value + (Math.random() - 0.5) * 5))]
+          },
+          errors: {
+            ...prev.errors,
+            trend: [...prev.errors.trend.slice(1), Math.max(0, prev.errors.value + Math.floor((Math.random() - 0.5) * 3))]
+          }
+        };
+      });
     }, 30000);
 
     return () => clearInterval(interval);
@@ -847,27 +853,27 @@ const AdminSystem = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <MetricCard
                 title="Server Uptime"
-                value={systemMetrics.uptime.value}
-                trend={systemMetrics.uptime.trend}
+                value={systemMetrics?.uptime?.value ?? 99.9}
+                trend={systemMetrics?.uptime?.trend ?? []}
                 icon={Server}
                 color="text-green-400"
                 suffix="%"
                 showProgress={true}
-                progressValue={systemMetrics.uptime.value}
+                progressValue={systemMetrics?.uptime?.value ?? 99.9}
                 subtitle="Last 24 hours"
               />
               <MetricCard
                 title="Active Users"
-                value={systemMetrics.activeUsers.value}
-                trend={systemMetrics.activeUsers.trend}
+                value={systemMetrics?.activeUsers?.value ?? 0}
+                trend={systemMetrics?.activeUsers?.trend ?? []}
                 icon={Users}
                 color="text-blue-400"
                 subtitle="Currently online"
               />
               <MetricCard
                 title="API Calls/min"
-                value={systemMetrics.apiCalls.value}
-                trend={systemMetrics.apiCalls.trend}
+                value={systemMetrics?.apiCalls?.value ?? 0}
+                trend={systemMetrics?.apiCalls?.trend ?? []}
                 icon={Zap}
                 color="text-purple-400"
                 subtitle="Requests per minute"
@@ -956,7 +962,7 @@ const AdminSystem = () => {
                       <SystemHealthChart
                         data={{
                           labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-                          values: systemMetrics.cpu.trend
+                          values: systemMetrics?.cpu?.trend ?? []
                         }}
                         title="CPU %"
                         color="#3b82f6"
@@ -972,7 +978,7 @@ const AdminSystem = () => {
                       <SystemHealthChart
                         data={{
                           labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-                          values: systemMetrics.memory.trend
+                          values: systemMetrics?.memory?.trend ?? []
                         }}
                         title="Memory %"
                         color="#10b981"
@@ -988,7 +994,7 @@ const AdminSystem = () => {
                       <SystemHealthChart
                         data={{
                           labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-                          values: systemMetrics.errors.trend
+                          values: systemMetrics?.errors?.trend ?? []
                         }}
                         title="Errors"
                         color="#ef4444"
