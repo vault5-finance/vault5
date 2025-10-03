@@ -17,6 +17,11 @@ Document Status Legend
   - Features → [FEATURES.md](./FEATURES.md)
   - User Guide → [USER_GUIDE.md](./USER_GUIDE.md)
   - Payments Overview → [PAYMENTS.md](./PAYMENTS.md)
+  - EMI Design System → [EMI_DESIGN_SYSTEM.md](./EMI_DESIGN_SYSTEM.md)
+  - Component Library → [COMPONENT_LIBRARY.md](./COMPONENT_LIBRARY.md)
+  - Admin Guide → [ADMIN_GUIDE.md](./ADMIN_GUIDE.md)
+  - Troubleshooting Guide → [TROUBLESHOOTING_GUIDE.md](./TROUBLESHOOTING_GUIDE.md)
+  - Development Setup Guide → [DEVELOPMENT_SETUP.md](./DEVELOPMENT_SETUP.md)
 - Draft
   - Changelog → [CHANGELOG.md](./CHANGELOG.md)
   - Docs Index → [README.md](./README.md)

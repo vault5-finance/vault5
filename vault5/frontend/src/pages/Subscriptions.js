@@ -64,8 +64,10 @@ const Subscriptions = () => {
     try {
       setLoading(true);
       const { data } = await api.get('/api/subscriptions');
-      setSubscriptions(data || []);
+      // Ensure data is always an array
+      setSubscriptions(Array.isArray(data) ? data : []);
     } catch (e) {
+      console.error('Error fetching subscriptions:', e);
       setSubscriptions([]);
     } finally {
       setLoading(false);

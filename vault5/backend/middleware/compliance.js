@@ -155,13 +155,15 @@ async function deviceGate(req, res, next) {
 
     const ua = String(req.headers['user-agent'] || '');
     const hasCookies = Boolean(req.headers['cookie'] || req.headers['cookies']);
+    const hasAuthHeader = Boolean(req.headers.authorization);
 
     if (rules.forbidHeadless && /Headless|PhantomJS|Puppeteer|Playwright/i.test(ua)) {
       await logRiskEvent(req.user?._id, 'device_block', 70, { ua });
       return res.status(400).json({ message: 'Unsupported browser environment' });
     }
 
-    if (rules.requireCookies && !hasCookies) {
+    // Skip cookie requirement for API requests that use Authorization headers (JWT auth)
+    if (rules.requireCookies && !hasCookies && !hasAuthHeader) {
       await logRiskEvent(req.user?._id, 'device_block', 50, { reason: 'cookies_disabled' });
       return res.status(400).json({ message: 'Please enable cookies to continue' });
     }

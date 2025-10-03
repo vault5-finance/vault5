@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCountUp } from 'react-countup';
+import CountUp from 'react-countup';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -331,12 +331,6 @@ const AdminSystem = () => {
   };
 
   const MetricCard = ({ title, value, trend, icon: Icon, color, suffix = '', showProgress, progressValue, subtitle }) => {
-    const { countUpRef } = useCountUp({
-      end: value,
-      duration: 2,
-      separator: ","
-    });
-
     return (
       <motion.div
         className={`relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 ${
@@ -369,8 +363,12 @@ const AdminSystem = () => {
                   </div>
                 ) : (
                   <>
-                    <span ref={countUpRef} />
-                    {suffix}
+                    <CountUp
+                      end={value}
+                      duration={2}
+                      separator=","
+                      suffix={suffix}
+                    />
                   </>
                 )}
               </div>

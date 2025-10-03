@@ -671,8 +671,10 @@ export default function PaymentsCards() {
     try {
       setLoading(true);
       const { data } = await api.get('/api/payment-methods/cards');
-      setCards(data || []);
+      // Ensure data is always an array
+      setCards(Array.isArray(data) ? data : []);
     } catch (e) {
+      console.error('Error fetching cards:', e);
       setCards([]);
     } finally {
       setLoading(false);

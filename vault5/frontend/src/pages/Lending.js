@@ -227,7 +227,7 @@ const Lending = () => {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 mb-8"
           >
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
             <div>
               <h1 id="lending-title" className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
                 Lending & Borrowing
@@ -448,7 +448,7 @@ const Lending = () => {
                 )}
               </motion.div>
             )}
-          </div>
+          </section>
 
           {/* Sidebar */}
           <aside className="lg:col-span-1" aria-label="Lending analytics and insights">
@@ -457,7 +457,6 @@ const Lending = () => {
               overdueSummary={overdueSummary}
             />
           </aside>
-        </section>
         </main>
 
         {/* Batch Action Toolbar */}
