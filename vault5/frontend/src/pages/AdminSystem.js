@@ -241,6 +241,15 @@ const AdminSystem = () => {
   };
 
   const SparklineChart = ({ data, color }) => {
+    // Safety check for data
+    if (!data || !Array.isArray(data)) {
+      return (
+        <div className="h-12 w-20 flex items-center justify-center text-xs text-gray-400">
+          -
+        </div>
+      );
+    }
+
     const chartData = {
       labels: data.map((_, i) => i),
       datasets: [{
@@ -279,6 +288,15 @@ const AdminSystem = () => {
 
   // System Health Chart Component
   const SystemHealthChart = ({ data, title, color, isDarkMode }) => {
+    // Safety check for data
+    if (!data || !data.labels || !data.values) {
+      return (
+        <div className="h-32 flex items-center justify-center text-gray-500">
+          Loading chart data...
+        </div>
+      );
+    }
+
     const chartData = {
       labels: data.labels,
       datasets: [{
