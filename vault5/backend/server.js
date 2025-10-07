@@ -213,7 +213,8 @@ const {
   paymentsRoutes,
   paymentMethodsRoutes,
   subscriptionsRoutes,
-  gracePeriodRoutes
+  gracePeriodRoutes,
+  adminReminderRoutes
 } = require('./routes');
 const kycRoutes = require('./routes/kyc');
 const plaidRoutes = require('./routes/plaid');
@@ -230,6 +231,7 @@ app.use('/api/admin/support', adminSupportRoutes);
 app.use('/api/admin/content', adminContentRoutes);
 app.use('/api/admin/system', adminSystemRoutes);
 app.use('/api/admin/accounts', adminAccountsRoutes);
+app.use('/api/admin/reminder', adminReminderRoutes);
 app.use('/api/legal', legalRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/goals', goalsRoutes);

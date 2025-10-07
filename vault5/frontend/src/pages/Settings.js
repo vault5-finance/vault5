@@ -54,7 +54,15 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState({
     linkedAccounts: [],
     notificationThresholds: { shortfall: 1000, goalProgress: 90, loanDueDays: 3 },
-    lendingRules: { nonRepayCap: 3, safePercent: 50 }
+    lendingRules: { nonRepayCap: 3, safePercent: 50 },
+    gracePeriodSettings: {
+      enabled: true,
+      channels: { email: true, sms: false, push: true, whatsapp: false },
+      gracePeriods: { emergency: 1, nonEmergency: 3 },
+      escalationSchedule: { firstReminder: 1, secondReminder: 7, thirdReminder: 14, finalReminder: 30 },
+      preferredContactTimes: { startHour: 9, endHour: 18, timezone: 'Africa/Nairobi' },
+      templates: { preferredTone: 'professional' }
+    }
   });
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -73,17 +81,29 @@ const SettingsPage = () => {
       return;
     }
 
-    setLoading(true);
-    api.get('/api/settings')
-    .then(response => {
-      setSettings(response.data);
-      setLoading(false);
-    })
-    .catch(error => {
-      console.error('Settings load error:', error);
-      if (error.response && error.response.status === 401) navigate('/login');
-      setLoading(false);
-    });
+    const loadSettings = async () => {
+      setLoading(true);
+      try {
+        // Load regular settings
+        const settingsResponse = await api.get('/api/settings');
+
+        // Load grace period settings
+        const gracePeriodResponse = await api.get('/api/grace-period/settings');
+
+        setSettings(prev => ({
+          ...prev,
+          ...settingsResponse.data,
+          gracePeriodSettings: gracePeriodResponse.data.settings
+        }));
+      } catch (error) {
+        console.error('Settings load error:', error);
+        if (error.response && error.response.status === 401) navigate('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
   }, [navigate]);
   
   // Load accounts for account preferences
@@ -158,28 +178,42 @@ const SettingsPage = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     setUpdating(true);
-    api.put('/api/settings', settings)
-    .then(response => {
-      setSettings(response.data.preferences);
-      showSuccess('Settings updated successfully');
-      setUpdating(false);
-    })
-    .catch(error => {
+
+    try {
+      // Update regular settings
+      const settingsResponse = await api.put('/api/settings', {
+        notificationThresholds: settings.notificationThresholds,
+        lendingRules: settings.lendingRules,
+        linkedAccounts: settings.linkedAccounts
+      });
+
+      // Update grace period settings
+      const gracePeriodResponse = await api.put('/api/grace-period/settings', settings.gracePeriodSettings);
+
+      setSettings(prev => ({
+        ...prev,
+        ...settingsResponse.data.preferences,
+        gracePeriodSettings: gracePeriodResponse.data.settings
+      }));
+
+      showSuccess('All settings updated successfully');
+    } catch (error) {
       console.error('Update settings error:', error);
       showError(error.response?.data?.message || 'Error updating settings');
+    } finally {
       setUpdating(false);
-    });
+    }
   };
 
   const tabs = [
     { id: 'accounts', name: 'Linked Accounts', icon: <Link className="w-4 h-4" /> },
     { id: 'preferences', name: 'Account Preferences', icon: <CreditCard className="w-4 h-4" /> },
     { id: 'notifications', name: 'Notifications', icon: <Bell className="w-4 h-4" /> },
-    { id: 'lending', name: 'Lending Rules', icon: <Shield className="w-4 h-4" /> }
+    { id: 'lending', name: 'Lending Rules', icon: <Shield className="w-4 h-4" /> },
+    { id: 'reminders', name: 'Overdue Reminders', icon: <Clock className="w-4 h-4" /> }
   ];
 
   if (loading) {
@@ -557,6 +591,250 @@ const SettingsPage = () => {
                       min="0" max="100"
                     />
                     <p className="text-xs text-gray-500 mt-1">Recommended: 50%. Adjust higher if you can take more risk</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'reminders' && (
+              <div className="p-8">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Overdue Reminder Settings</h3>
+
+                {/* Enable/Disable */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Enable Overdue Reminders</h4>
+                      <p className="text-sm text-gray-600">Receive automated reminders for overdue lendings</p>
+                    </div>
+                    <label className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={settings.gracePeriodSettings.enabled}
+                        onChange={(e) => handleChange('gracePeriodSettings', 'enabled', e.target.checked)}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm font-medium text-gray-700">
+                        {settings.gracePeriodSettings.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Communication Channels */}
+                <div className="mb-8">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Communication Channels</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'email', label: 'Email', icon: '📧', description: 'Professional email notifications' },
+                      { key: 'sms', label: 'SMS', icon: '📱', description: 'Text message reminders' },
+                      { key: 'push', label: 'Push Notifications', icon: '🔔', description: 'Mobile app notifications' },
+                      { key: 'whatsapp', label: 'WhatsApp', icon: '💬', description: 'WhatsApp message reminders' }
+                    ].map(channel => (
+                      <div key={channel.key} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{channel.icon}</span>
+                          <div>
+                            <div className="font-medium text-gray-900">{channel.label}</div>
+                            <div className="text-sm text-gray-600">{channel.description}</div>
+                          </div>
+                        </div>
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={settings.gracePeriodSettings.channels[channel.key]}
+                            onChange={(e) => handleChange('gracePeriodSettings', 'channels', {
+                              ...settings.gracePeriodSettings.channels,
+                              [channel.key]: e.target.checked
+                            })}
+                            className="text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grace Periods */}
+                <div className="mb-8">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Grace Periods</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Emergency Loans (days)
+                      </label>
+                      <input
+                        type="number"
+                        value={settings.gracePeriodSettings.gracePeriods.emergency}
+                        onChange={(e) => handleChange('gracePeriodSettings', 'gracePeriods', {
+                          ...settings.gracePeriodSettings.gracePeriods,
+                          emergency: parseInt(e.target.value) || 0
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="0" max="7"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Days before reminders start for emergency loans</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Non-Emergency Loans (days)
+                      </label>
+                      <input
+                        type="number"
+                        value={settings.gracePeriodSettings.gracePeriods.nonEmergency}
+                        onChange={(e) => handleChange('gracePeriodSettings', 'gracePeriods', {
+                          ...settings.gracePeriodSettings.gracePeriods,
+                          nonEmergency: parseInt(e.target.value) || 0
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="0" max="14"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Days before reminders start for regular loans</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Escalation Schedule */}
+                <div className="mb-8">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Reminder Escalation Schedule</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { key: 'firstReminder', label: 'First Reminder', description: 'Friendly reminder' },
+                      { key: 'secondReminder', label: 'Second Reminder', description: 'Firm reminder' },
+                      { key: 'thirdReminder', label: 'Third Reminder', description: 'Urgent reminder' },
+                      { key: 'finalReminder', label: 'Final Notice', description: 'Legal notice' }
+                    ].map(reminder => (
+                      <div key={reminder.key} className="p-4 border border-gray-200 rounded-xl">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {reminder.label}
+                        </label>
+                        <input
+                          type="number"
+                          value={settings.gracePeriodSettings.escalationSchedule[reminder.key]}
+                          onChange={(e) => handleChange('gracePeriodSettings', 'escalationSchedule', {
+                            ...settings.gracePeriodSettings.escalationSchedule,
+                            [reminder.key]: parseInt(e.target.value) || 0
+                          })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          min="1" max="90"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">{reminder.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-4">
+                    Days after due date when each reminder level is sent
+                  </p>
+                </div>
+
+                {/* Contact Time Preferences */}
+                <div className="mb-8">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Contact Time Preferences</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Start Hour (24h)
+                      </label>
+                      <input
+                        type="number"
+                        value={settings.gracePeriodSettings.preferredContactTimes.startHour}
+                        onChange={(e) => handleChange('gracePeriodSettings', 'preferredContactTimes', {
+                          ...settings.gracePeriodSettings.preferredContactTimes,
+                          startHour: parseInt(e.target.value) || 9
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="0" max="23"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Earliest time to send reminders</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        End Hour (24h)
+                      </label>
+                      <input
+                        type="number"
+                        value={settings.gracePeriodSettings.preferredContactTimes.endHour}
+                        onChange={(e) => handleChange('gracePeriodSettings', 'preferredContactTimes', {
+                          ...settings.gracePeriodSettings.preferredContactTimes,
+                          endHour: parseInt(e.target.value) || 18
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="0" max="23"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Latest time to send reminders</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Timezone
+                      </label>
+                      <select
+                        value={settings.gracePeriodSettings.preferredContactTimes.timezone}
+                        onChange={(e) => handleChange('gracePeriodSettings', 'preferredContactTimes', {
+                          ...settings.gracePeriodSettings.preferredContactTimes,
+                          timezone: e.target.value
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Africa/Nairobi">East Africa Time (EAT)</option>
+                        <option value="Africa/Johannesburg">South Africa Time (SAST)</option>
+                        <option value="Africa/Lagos">West Africa Time (WAT)</option>
+                        <option value="UTC">UTC</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">Your local timezone</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Template Preferences */}
+                <div className="mb-8">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Communication Style</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      { key: 'professional', label: 'Professional', description: 'Formal business tone' },
+                      { key: 'friendly', label: 'Friendly', description: 'Warm and approachable' },
+                      { key: 'firm', label: 'Firm', description: 'Direct and assertive' }
+                    ].map(tone => (
+                      <div key={tone.key} className="p-4 border border-gray-200 rounded-xl">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="tone"
+                            value={tone.key}
+                            checked={settings.gracePeriodSettings.templates.preferredTone === tone.key}
+                            onChange={(e) => handleChange('gracePeriodSettings', 'templates', {
+                              ...settings.gracePeriodSettings.templates,
+                              preferredTone: e.target.value
+                            })}
+                            className="text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="ml-3">
+                            <div className="font-medium text-gray-900">{tone.label}</div>
+                            <div className="text-sm text-gray-600">{tone.description}</div>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Information Section */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="text-blue-600 mt-1">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-blue-900 mb-2">How Grace Periods Work</h4>
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        <li>• Grace periods give borrowers extra time before reminders start</li>
+                        <li>• Emergency loans get shorter grace periods for faster follow-up</li>
+                        <li>• Reminders escalate in tone and frequency as time passes</li>
+                        <li>• All communications respect your preferred contact hours</li>
+                        <li>• Multiple channels ensure important reminders are received</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -26,6 +26,7 @@ const paymentMethodsRoutes = require('./paymentMethods');
 const subscriptionsRoutes = require('./subscriptions');
 const schedulerRoutes = require('./scheduler');
 const gracePeriodRoutes = require('./gracePeriod');
+const adminReminderRoutes = require('./adminReminder');
 
 // Export all routes
 module.exports = {
@@ -56,5 +57,6 @@ module.exports = {
   paymentMethodsRoutes,
   subscriptionsRoutes,
   schedulerRoutes,
-  gracePeriodRoutes
+  gracePeriodRoutes,
+  adminReminderRoutes
 };
