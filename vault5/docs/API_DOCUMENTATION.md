@@ -2,9 +2,9 @@
 
 ## REST API Reference for Developers
 
-**Version:** 2.0.0 - Enhanced with Advanced Lending & EMI Branding
+**Version:** 2.1.0 - Enhanced Overdue Reminder System & Grace Period Management
 **Base URL:** `https://api.vault5.com/v1`
-**Date:** September 2025
+**Date:** October 2025
 **Brand Identity:** EMI (Enhanced Microfinance Interface)
 
 ---
@@ -660,6 +660,290 @@ Get outstanding lendings and total outstanding amount.
   "totalOutstanding": 25000
 }
 ```
+
+---
+
+## Enhanced Overdue Reminder System
+
+The Vault5 overdue reminder system provides intelligent, multi-channel communication with escalating reminders, grace period management, and comprehensive analytics.
+
+### Key Features
+
+- **Escalating Reminders**: 4-tier system (1st, 2nd, 3rd, final) with increasing urgency
+- **Multi-Channel Support**: Email, SMS, push notifications, WhatsApp
+- **Time-Zone Awareness**: Respects user preferred contact hours
+- **Business Rules Engine**: Grace periods with intelligent adjustments
+- **Complete Analytics**: Delivery tracking, response rates, effectiveness metrics
+
+### Grace Period Management
+
+#### Get Grace Period Settings
+**GET** `/api/grace-period/settings`
+
+Get user's current grace period and reminder preferences.
+
+**Response:**
+```json
+{
+  "success": true,
+  "settings": {
+    "enabled": true,
+    "channels": {
+      "email": true,
+      "sms": false,
+      "push": true,
+      "whatsapp": false
+    },
+    "gracePeriods": {
+      "emergency": 1,
+      "nonEmergency": 3
+    },
+    "escalationSchedule": {
+      "firstReminder": 1,
+      "secondReminder": 7,
+      "thirdReminder": 14,
+      "finalReminder": 30
+    },
+    "preferredContactTimes": {
+      "startHour": 9,
+      "endHour": 18,
+      "timezone": "Africa/Nairobi"
+    },
+    "templates": {
+      "preferredTone": "professional"
+    }
+  }
+}
+```
+
+#### Update Grace Period Settings
+**PUT** `/api/grace-period/settings`
+
+Update user's grace period and reminder preferences.
+
+**Request Body:**
+```json
+{
+  "enabled": true,
+  "channels": {
+    "email": true,
+    "sms": true,
+    "push": true,
+    "whatsapp": false
+  },
+  "gracePeriods": {
+    "emergency": 2,
+    "nonEmergency": 5
+  },
+  "escalationSchedule": {
+    "firstReminder": 1,
+    "secondReminder": 7,
+    "thirdReminder": 14,
+    "finalReminder": 30
+  },
+  "preferredContactTimes": {
+    "startHour": 8,
+    "endHour": 20,
+    "timezone": "Africa/Nairobi"
+  }
+}
+```
+
+#### Get Grace Period Explanation
+**GET** `/api/grace-period/explanation/{lendingId}`
+
+Get detailed explanation of how grace period was calculated for a specific lending.
+
+**Response:**
+```json
+{
+  "success": true,
+  "explanation": {
+    "baseGracePeriod": 3,
+    "effectiveGracePeriod": 5,
+    "totalAdjustment": 2,
+    "adjustments": [
+      {
+        "type": "loyalty_bonus",
+        "description": "Extended grace period for loyal user",
+        "adjustment": 2
+      }
+    ]
+  }
+}
+```
+
+#### Get Default Configurations
+**GET** `/api/grace-period/defaults`
+
+Get default grace period configurations and business rules.
+
+**Query Parameters:**
+- `userTier`: User tier (basic, premium, enterprise)
+- `lendingType`: Lending type (emergency, non-emergency)
+
+### Enhanced Scheduler
+
+#### Process Overdue Reminders
+**POST** `/api/scheduler/process-overdue-reminders`
+
+Manually trigger overdue reminder processing (admin/system use).
+
+**Response:**
+```json
+{
+  "success": true,
+  "results": {
+    "processed": 0,
+    "remindersSent": {
+      "first": 2,
+      "second": 1,
+      "third": 0,
+      "final": 0,
+      "collection": 0,
+      "legal": 0
+    },
+    "errors": []
+  }
+}
+```
+
+#### Get Overdue Summary
+**GET** `/api/scheduler/overdue-summary`
+
+Get summary of user's overdue lendings with reminder status.
+
+**Response:**
+```json
+{
+  "success": true,
+  "summary": {
+    "totalCount": 3,
+    "totalAmount": 75000,
+    "lendings": [
+      {
+        "id": "lending_id",
+        "borrowerName": "John Doe",
+        "borrowerContact": "+254700000000",
+        "amount": 25000,
+        "expectedReturnDate": "2025-09-15T00:00:00.000Z",
+        "daysOverdue": 22,
+        "lastReminderSent": "2025-09-20T10:00:00.000Z",
+        "reminderTier": "second"
+      }
+    ]
+  }
+}
+```
+
+#### Process User Overdue Reminders
+**POST** `/api/scheduler/process-user-overdue`
+
+Process overdue reminders for current user only (for testing).
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User overdue reminders processed successfully",
+  "results": {
+    "processed": 2,
+    "remindersSent": {
+      "first": 1,
+      "second": 1,
+      "third": 0,
+      "final": 0,
+      "collection": 0,
+      "legal": 0
+    },
+    "errors": []
+  }
+}
+```
+
+### Reminder Analytics
+
+#### Get Reminder Effectiveness
+**GET** `/api/notifications/reminder-effectiveness`
+
+Get analytics on reminder effectiveness over time.
+
+**Query Parameters:**
+- `userId`: Specific user ID (admin only)
+- `days`: Number of days to analyze (default: 30)
+
+**Response:**
+```json
+{
+  "success": true,
+  "effectiveness": [
+    {
+      "tier": "first",
+      "total": 15,
+      "effective": 12,
+      "effectivenessRate": 80.0
+    },
+    {
+      "tier": "second",
+      "total": 8,
+      "effective": 6,
+      "effectivenessRate": 75.0
+    }
+  ]
+}
+```
+
+### Enhanced Notification Types
+
+The system now supports specialized overdue reminder notification types:
+
+- `lending_overdue_first`: First reminder (1 day overdue)
+- `lending_overdue_second`: Second reminder (7 days overdue)
+- `lending_overdue_third`: Third reminder (14 days overdue)
+- `lending_overdue_final`: Final reminder (30 days overdue)
+- `lending_overdue_collection`: Collections escalation
+- `lending_overdue_legal`: Legal notice
+
+### Reminder History Tracking
+
+All reminder communications are tracked with detailed metadata:
+
+```json
+{
+  "_id": "reminder_id",
+  "user": "user_id",
+  "lending": "lending_id",
+  "tier": "first",
+  "daysOverdue": 3,
+  "template": "friendly",
+  "status": "sent",
+  "providerResponse": [
+    {
+      "channel": "email",
+      "success": true,
+      "messageId": "email_123"
+    }
+  ],
+  "createdAt": "2025-09-15T10:00:00.000Z"
+}
+```
+
+### Business Rules Engine
+
+The grace period calculation considers multiple factors:
+
+**Automatic Adjustments:**
+- **Loyalty Bonus**: +2 days for users with 10+ successful lendings
+- **Seasonal Adjustments**: ±1-3 days based on month (holidays, tax season)
+- **Weekend Extension**: +1 day if due date falls on weekend
+- **Amount-Based**: Small amounts get +1 day, large amounts get -1 to -2 days
+- **Risk Factors**: High-risk borrowers get 50% reduction
+
+**User Preferences:**
+- Custom grace periods per lending type
+- Preferred communication channels
+- Contact time restrictions
+- Escalation schedule customization
 
 ---
 

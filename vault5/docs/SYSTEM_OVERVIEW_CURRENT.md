@@ -67,13 +67,15 @@ Vault5 is a fullstack financial freedom platform that helps users track, manage,
 - Pause/resume/cancel functionality
 - Billing history and notifications
 
-### 7. Notifications System
-- Real-time notifications for:
-  - Loan approvals/repayments
-  - Card linking/removal
-  - Subscription events
-  - Account compliance alerts
-- Email and in-app notifications
+### 7. Enhanced Overdue Reminder System
+- **Escalating Reminders**: 4-tier system (1st, 2nd, 3rd, final) with increasing urgency
+- **Intelligent Grace Periods**: Business rules engine with loyalty bonuses, seasonal adjustments
+- **Time-Zone Aware Scheduling**: Respects user preferred contact hours (9 AM - 6 PM)
+- **Multi-Channel Communications**: Email, SMS, push notifications, WhatsApp support
+- **Complete Analytics**: Delivery tracking, response rates, effectiveness metrics
+- **User Preferences**: Customizable grace periods, communication channels, escalation schedules
+- **Performance Optimized**: Database indexing, batch processing for large-scale operations
+- **Business Rules Engine**: Automatic adjustments based on user behavior and market conditions
 
 ### 8. Reports & Analytics
 - Monthly/quarterly/yearly reports
@@ -91,7 +93,7 @@ Vault5 is a fullstack financial freedom platform that helps users track, manage,
 ## Data Models
 
 ### Core Entities
-- **User**: Profile, preferences, permissions
+- **User**: Profile, preferences, permissions, overdue reminder settings
 - **Account**: Financial allocation buckets
 - **Transaction**: All financial movements
 - **P2PLoan**: Peer-to-peer lending records
@@ -99,6 +101,8 @@ Vault5 is a fullstack financial freedom platform that helps users track, manage,
 - **PaymentMethod**: Tokenized card storage
 - **Subscription**: Recurring billing
 - **Notification**: User communications
+- **ReminderHistory**: Complete audit trail of overdue reminder communications
+- **Lending**: Enhanced with overdue status tracking and grace period metadata
 
 ### Relationships
 - Users have multiple Accounts
@@ -144,6 +148,8 @@ Vault5 is a fullstack financial freedom platform that helps users track, manage,
 - `/api/payment-methods/*` - Card management
 - `/api/subscriptions/*` - Recurring payments
 - `/api/notifications/*` - Communications
+- `/api/grace-period/*` - Overdue reminder preferences and settings
+- `/api/scheduler/*` - Enhanced overdue reminder processing
 - `/api/admin/*` - Administrative functions
 
 ### Response Format
@@ -237,4 +243,4 @@ See [FEATURE_SUGGESTIONS.md](FEATURE_SUGGESTIONS.md) for planned enhancements in
 
 ---
 
-*This overview reflects the system as of September 2025. For the latest changes, check the changelog.*
+*This overview reflects the system as of October 2025. For the latest changes, check the changelog.*

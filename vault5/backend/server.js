@@ -212,7 +212,8 @@ const {
   receiptsRoutes,
   paymentsRoutes,
   paymentMethodsRoutes,
-  subscriptionsRoutes
+  subscriptionsRoutes,
+  gracePeriodRoutes
 } = require('./routes');
 const kycRoutes = require('./routes/kyc');
 const plaidRoutes = require('./routes/plaid');
@@ -253,6 +254,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/email-verification', emailVerificationRoutes);
 app.use('/api/scheduler', schedulerRoutes);
+app.use('/api/grace-period', gracePeriodRoutes);
 // Compliance & KYC routes
 app.use('/api/compliance', require('./routes').complianceRoutes);
 

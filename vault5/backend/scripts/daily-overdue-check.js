@@ -1,16 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * Daily Overdue Reminder Check Script
+ * Scheduled Overdue Reminder Check Script
  *
- * This script should be run daily by a cron job to:
- * 1. Find overdue lendings (expectedReturnDate < today and status is 'pending')
- * 2. Mark them as 'overdue' in the database
- * 3. Send email reminders via emailService.sendNotificationEmail()
- * 4. Create in-app notifications via notifications routes
+ * This script should be run regularly (e.g., hourly) by a cron job to:
+ * 1. Check for pending reminders that should be sent based on user schedules
+ * 2. Send escalating reminders through appropriate channels
+ * 3. Track reminder delivery and effectiveness
  *
  * Usage:
- * - Add to cron: 0 9 * * * /usr/bin/node /path/to/vault5/backend/scripts/daily-overdue-check.js
+ * - Add to cron (hourly): 0 * * * * /usr/bin/node /path/to/vault5/backend/scripts/daily-overdue-check.js
  * - Or run manually: node vault5/backend/scripts/daily-overdue-check.js
  */
 

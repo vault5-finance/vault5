@@ -294,6 +294,95 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 50 // % of available for lending
       }
+    },
+    overdueReminders: {
+      enabled: {
+        type: Boolean,
+        default: true
+      },
+      channels: {
+        email: {
+          type: Boolean,
+          default: true
+        },
+        sms: {
+          type: Boolean,
+          default: false
+        },
+        push: {
+          type: Boolean,
+          default: true
+        },
+        whatsapp: {
+          type: Boolean,
+          default: false
+        }
+      },
+      gracePeriods: {
+        emergency: {
+          type: Number,
+          default: 1, // 1 day grace for emergency loans
+          min: 0,
+          max: 30
+        },
+        nonEmergency: {
+          type: Number,
+          default: 3, // 3 days grace for non-emergency loans
+          min: 0,
+          max: 30
+        }
+      },
+      escalationSchedule: {
+        firstReminder: {
+          type: Number,
+          default: 1, // Days after grace period
+          min: 0,
+          max: 30
+        },
+        secondReminder: {
+          type: Number,
+          default: 7,
+          min: 1,
+          max: 60
+        },
+        thirdReminder: {
+          type: Number,
+          default: 14,
+          min: 2,
+          max: 90
+        },
+        finalReminder: {
+          type: Number,
+          default: 30,
+          min: 7,
+          max: 180
+        }
+      },
+      preferredContactTimes: {
+        startHour: {
+          type: Number,
+          default: 9, // 9 AM
+          min: 0,
+          max: 23
+        },
+        endHour: {
+          type: Number,
+          default: 18, // 6 PM
+          min: 0,
+          max: 23
+        },
+        timezone: {
+          type: String,
+          default: 'Africa/Nairobi'
+        }
+      },
+      templates: {
+        preferredTone: {
+          type: String,
+          enum: ['friendly', 'firm', 'professional'],
+          default: 'professional'
+        }
+      }
     }
   },
   accounts: [{
@@ -437,10 +526,58 @@ userSchema.methods.hasLinkedAccount = function(accountType, accountNumber) {
  );
 };
 userSchema.methods.updateLinkedAccountLastUsed = function(accountId) {
- const account = this.preferences.linkedAccounts.id(accountId);
- if (account) {
-   account.lastUsed = new Date();
- }
+  const account = this.preferences.linkedAccounts.id(accountId);
+  if (account) {
+    account.lastUsed = new Date();
+  }
+};
+
+// Overdue reminder preference helpers
+userSchema.methods.isReminderChannelEnabled = function(channel) {
+  return this.preferences.overdueReminders?.enabled &&
+         this.preferences.overdueReminders?.channels?.[channel];
+};
+
+userSchema.methods.getEnabledReminderChannels = function() {
+  if (!this.preferences.overdueReminders?.enabled) return [];
+
+  const channels = this.preferences.overdueReminders.channels || {};
+  return Object.keys(channels).filter(channel => channels[channel]);
+};
+
+userSchema.methods.getGracePeriodForLoanType = function(loanType) {
+  const gracePeriods = this.preferences.overdueReminders?.gracePeriods || {};
+  return gracePeriods[loanType === 'emergency' ? 'emergency' : 'nonEmergency'] || 3;
+};
+
+userSchema.methods.getEscalationSchedule = function() {
+  return this.preferences.overdueReminders?.escalationSchedule || {
+    firstReminder: 1,
+    secondReminder: 7,
+    thirdReminder: 14,
+    finalReminder: 30
+  };
+};
+
+userSchema.methods.getPreferredContactHours = function() {
+  return this.preferences.overdueReminders?.preferredContactTimes || {
+    startHour: 9,
+    endHour: 18,
+    timezone: 'Africa/Nairobi'
+  };
+};
+
+userSchema.methods.shouldSendReminderNow = function() {
+  if (!this.preferences.overdueReminders?.enabled) return false;
+
+  const contactTimes = this.getPreferredContactHours();
+  const now = new Date();
+  const userTimezone = contactTimes.timezone;
+
+  // For now, use UTC time - in production, you'd convert to user's timezone
+  const currentHour = now.getUTCHours();
+
+  return currentHour >= contactTimes.startHour && currentHour <= contactTimes.endHour;
 };
 
 // Trusted devices helpers
