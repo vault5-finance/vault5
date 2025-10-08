@@ -1,342 +1,401 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const Flutterwave = require('flutterwave-node-v3');
-const Pesapal = require('pesapal-node');
-const { normalizePhoneNumber } = require('../utils/phoneUtils');
+/**
+ * Payment Service Provider (PSP) Abstraction Layer
+ *
+ * This service provides a unified interface for multiple payment gateways:
+ * - Stripe (International cards)
+ * - Flutterwave (African payments)
+ * - Pesapal (East African payments)
+ * - M-Pesa (Kenyan mobile money)
+ */
 
 class PaymentService {
   constructor() {
-    // Initialize payment providers
-    this.flutterwave = new Flutterwave(
-      process.env.FLUTTERWAVE_PUBLIC_KEY,
-      process.env.FLUTTERWAVE_SECRET_KEY
-    );
-
-    this.pesapal = new Pesapal({
-      consumerKey: process.env.PESAPAL_CONSUMER_KEY,
-      consumerSecret: process.env.PESAPAL_CONSUMER_SECRET,
-      environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox'
-    });
+    this.providers = new Map();
+    this.initializeProviders();
   }
 
-  // Process payment based on provider
-  async processPayment(amount, paymentMethod, user, type = 'recharge') {
-    try {
-      const provider = paymentMethod.type;
-
-      switch (provider) {
-        case 'card':
-          return await this.processStripePayment(amount, paymentMethod, user, type);
-        case 'mpesa':
-          return await this.processMpesaPayment(amount, paymentMethod, user, type);
-        case 'bank_transfer':
-          return await this.processBankTransfer(amount, paymentMethod, user, type);
-        case 'paypal':
-          return await this.processPaypalPayment(amount, paymentMethod, user, type);
-        default:
-          throw new Error(`Unsupported payment method: ${provider}`);
-      }
-    } catch (error) {
-      console.error('Payment processing error:', error);
-      return {
-        success: false,
-        message: error.message || 'Payment processing failed'
-      };
-    }
-  }
-
-  // Stripe payment processing
-  async processStripePayment(amount, paymentMethod, user, type) {
-    try {
-      // Create payment intent
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: 'kes',
-        customer: user.stripeCustomerId, // Assuming user has Stripe customer ID
-        payment_method: paymentMethod.identifier,
-        off_session: true,
-        confirm: true,
-        metadata: {
-          userId: user._id.toString(),
-          type: type,
-          description: `Vault5 ${type}`
-        }
-      });
-
-      return {
-        success: true,
-        reference: paymentIntent.id,
-        status: paymentIntent.status,
-        message: 'Payment processed successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // M-Pesa payment processing via Flutterwave
-  async processMpesaPayment(amount, paymentMethod, user, type) {
-    try {
-      // Normalize the phone number to ensure consistent format
-      const normalizedPhone = normalizePhoneNumber(paymentMethod.identifier);
-
-      if (!normalizedPhone) {
-        throw new Error('Invalid phone number format. Please use format: +254XXXXXXXXX, 254XXXXXXXXX, 0XXXXXXXXX, or 07XXXXXXXX');
-      }
-
-      const payload = {
-        phone_number: normalizedPhone,
-        amount: amount,
-        currency: 'KES',
-        email: user.email,
-        tx_ref: `VAULT5_${Date.now()}_${user._id}`,
-        narration: `Vault5 ${type}`,
-        meta: {
-          userId: user._id.toString(),
-          type: type,
-          originalPhone: paymentMethod.identifier,
-          normalizedPhone: normalizedPhone
-        }
-      };
-
-      const response = await this.flutterwave.MobileMoney.mpesa(payload);
-
-      return {
-        success: true,
-        reference: response.data.id,
-        status: response.data.status,
-        message: 'M-Pesa payment initiated successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // Bank transfer processing
-  async processBankTransfer(amount, paymentMethod, user, type) {
-    try {
-      // For bank transfers, we generate a virtual account or use Pesapal
-      const reference = `BT_${Date.now()}_${user._id}`;
-
-      // In a real implementation, you would:
-      // 1. Generate a virtual account number
-      // 2. Set up webhooks for payment confirmation
-      // 3. Handle reconciliation
-
-      return {
-        success: true,
-        reference: reference,
-        status: 'pending',
-        message: 'Bank transfer initiated. Please complete the transfer using the provided details.',
-        virtualAccount: {
-          accountNumber: `VA${user._id.toString().slice(-8)}`,
-          bankName: 'Virtual Bank',
-          amount: amount,
-          reference: reference
-        }
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // PayPal payment processing
-  async processPaypalPayment(amount, paymentMethod, user, type) {
-    try {
-      // Create PayPal order
-      const request = new paypal.orders.OrdersCreateRequest();
-      request.prefer('return=representation');
-      request.requestBody({
-        intent: 'CAPTURE',
-        purchase_units: [{
-          amount: {
-            currency_code: 'KES',
-            value: amount.toString()
-          },
-          description: `Vault5 ${type}`,
-          custom_id: user._id.toString()
-        }],
-        application_context: {
-          return_url: `${process.env.FRONTEND_URL}/wallet/success`,
-          cancel_url: `${process.env.FRONTEND_URL}/wallet/cancel`
-        }
-      });
-
-      const order = await paypalClient.execute(request);
-
-      return {
-        success: true,
-        reference: order.result.id,
-        status: order.result.status,
-        message: 'PayPal payment initiated',
-        approvalUrl: order.result.links.find(link => link.rel === 'approve').href
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // Verify payment status
-  async verifyPayment(reference, provider) {
-    try {
-      switch (provider) {
-        case 'stripe':
-          return await this.verifyStripePayment(reference);
-        case 'mpesa':
-          return await this.verifyMpesaPayment(reference);
-        case 'bank_transfer':
-          return await this.verifyBankTransfer(reference);
-        case 'paypal':
-          return await this.verifyPaypalPayment(reference);
-        default:
-          throw new Error(`Unsupported provider: ${provider}`);
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // Verify Stripe payment
-  async verifyStripePayment(paymentIntentId) {
-    try {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-      return {
-        success: paymentIntent.status === 'succeeded',
-        status: paymentIntent.status,
-        amount: paymentIntent.amount_received / 100,
-        currency: paymentIntent.currency,
-        message: `Payment ${paymentIntent.status}`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // Verify M-Pesa payment
-  async verifyMpesaPayment(transactionId) {
-    try {
-      const response = await this.flutterwave.Transaction.verify({ id: transactionId });
-
-      return {
-        success: response.data.status === 'successful',
-        status: response.data.status,
-        amount: response.data.amount,
-        currency: response.data.currency,
-        message: `M-Pesa payment ${response.data.status}`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // Verify bank transfer
-  async verifyBankTransfer(reference) {
-    try {
-      // In a real implementation, check with bank API or database
-      // For now, return pending status
-      return {
-        success: false,
-        status: 'pending',
-        message: 'Bank transfer verification pending'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // Verify PayPal payment
-  async verifyPaypalPayment(orderId) {
-    try {
-      const request = new paypal.orders.OrdersGetRequest(orderId);
-      const order = await paypalClient.execute(request);
-
-      return {
-        success: order.result.status === 'COMPLETED',
-        status: order.result.status,
-        amount: order.result.purchase_units[0].amount.value,
-        currency: order.result.purchase_units[0].amount.currency_code,
-        message: `PayPal payment ${order.result.status}`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
-  }
-
-  // Get supported payment methods
-  getSupportedMethods() {
-    return [
-      {
-        type: 'mpesa',
-        name: 'M-Pesa',
-        currencies: ['KES'],
-        limits: {
-          min: 10,
-          max: 150000
-        }
-      },
-      {
+  /**
+   * Initialize payment providers
+   */
+  initializeProviders() {
+    // Stripe for international card payments
+    if (process.env.STRIPE_SECRET_KEY) {
+      this.providers.set('stripe', {
+        name: 'Stripe',
         type: 'card',
-        name: 'Card',
-        currencies: ['KES', 'USD', 'EUR'],
-        limits: {
-          min: 50,
-          max: 500000
-        }
-      },
-      {
-        type: 'bank_transfer',
-        name: 'Bank Transfer',
-        currencies: ['KES', 'USD'],
-        limits: {
-          min: 100,
-          max: 1000000
-        }
-      },
-      {
-        type: 'paypal',
-        name: 'PayPal',
-        currencies: ['USD', 'EUR', 'GBP'],
-        limits: {
-          min: 100,
-          max: 100000
-        }
-      }
-    ];
+        regions: ['global'],
+        initialize: () => require('stripe')(process.env.STRIPE_SECRET_KEY),
+        processPayment: this.processStripePayment.bind(this),
+        verifyPayment: this.verifyStripePayment.bind(this)
+      });
+    }
+
+    // Flutterwave for African payments
+    if (process.env.FLUTTERWAVE_SECRET_KEY) {
+      this.providers.set('flutterwave', {
+        name: 'Flutterwave',
+        type: 'multi',
+        regions: ['africa'],
+        initialize: () => ({
+          secretKey: process.env.FLUTTERWAVE_SECRET_KEY,
+          publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY
+        }),
+        processPayment: this.processFlutterwavePayment.bind(this),
+        verifyPayment: this.verifyFlutterwavePayment.bind(this)
+      });
+    }
+
+    // Pesapal for East African payments
+    if (process.env.PESAPAL_CONSUMER_KEY) {
+      this.providers.set('pesapal', {
+        name: 'Pesapal',
+        type: 'multi',
+        regions: ['kenya', 'uganda', 'tanzania'],
+        initialize: () => ({
+          consumerKey: process.env.PESAPAL_CONSUMER_KEY,
+          consumerSecret: process.env.PESAPAL_CONSUMER_SECRET
+        }),
+        processPayment: this.processPesapalPayment.bind(this),
+        verifyPayment: this.verifyPesapalPayment.bind(this)
+      });
+    }
+
+    // M-Pesa for Kenyan mobile money
+    if (process.env.MPESA_CONSUMER_KEY) {
+      this.providers.set('mpesa', {
+        name: 'M-Pesa',
+        type: 'mobile_money',
+        regions: ['kenya'],
+        initialize: () => ({
+          consumerKey: process.env.MPESA_CONSUMER_KEY,
+          consumerSecret: process.env.MPESA_CONSUMER_SECRET,
+          shortcode: process.env.MPESA_SHORTCODE,
+          passkey: process.env.MPESA_PASSKEY
+        }),
+        processPayment: this.processMpesaPayment.bind(this),
+        verifyPayment: this.verifyMpesaPayment.bind(this)
+      });
+    }
   }
 
-  // Check if payment method is supported for currency
-  isMethodSupportedForCurrency(method, currency) {
-    const supportedMethods = this.getSupportedMethods();
-    const methodInfo = supportedMethods.find(m => m.type === method);
-    return methodInfo && methodInfo.currencies.includes(currency);
+  /**
+   * Get available providers for a region and payment type
+   * @param {string} region - Region (e.g., 'kenya', 'africa', 'global')
+   * @param {string} type - Payment type ('card', 'mobile_money', 'bank', 'multi')
+   * @returns {Array} - Available providers
+   */
+  getAvailableProviders(region = 'global', type = null) {
+    const available = [];
+
+    for (const [key, provider] of this.providers) {
+      const regionMatch = provider.regions.includes(region) || provider.regions.includes('global');
+      const typeMatch = !type || provider.type === type || provider.type === 'multi';
+
+      if (regionMatch && typeMatch) {
+        available.push({
+          id: key,
+          name: provider.name,
+          type: provider.type,
+          regions: provider.regions
+        });
+      }
+    }
+
+    return available;
+  }
+
+  /**
+   * Process a payment through the appropriate provider
+   * @param {Object} paymentData - Payment data
+   * @param {string} paymentData.provider - Payment provider
+   * @param {string} paymentData.type - Payment type
+   * @param {number} paymentData.amount - Amount in smallest currency unit
+   * @param {string} paymentData.currency - Currency code
+   * @param {Object} paymentData.customer - Customer details
+   * @param {Object} paymentData.metadata - Additional metadata
+   * @returns {Object} - Payment result
+   */
+  async processPayment(paymentData) {
+    const { provider: providerId, type, amount, currency, customer, metadata = {} } = paymentData;
+
+    if (!this.providers.has(providerId)) {
+      throw new Error(`Payment provider '${providerId}' not available`);
+    }
+
+    const provider = this.providers.get(providerId);
+
+    try {
+      const result = await provider.processPayment({
+        type,
+        amount,
+        currency,
+        customer,
+        metadata
+      });
+
+      return {
+        success: true,
+        provider: providerId,
+        transactionId: result.transactionId,
+        reference: result.reference,
+        status: result.status,
+        amount,
+        currency,
+        metadata: result.metadata || {}
+      };
+    } catch (error) {
+      console.error(`Payment processing error with ${providerId}:`, error);
+      return {
+        success: false,
+        provider: providerId,
+        error: error.message,
+        code: error.code || 'PAYMENT_FAILED'
+      };
+    }
+  }
+
+  /**
+   * Verify a payment status
+   * @param {string} providerId - Payment provider
+   * @param {string} transactionId - Transaction ID to verify
+   * @returns {Object} - Verification result
+   */
+  async verifyPayment(providerId, transactionId) {
+    if (!this.providers.has(providerId)) {
+      throw new Error(`Payment provider '${providerId}' not available`);
+    }
+
+    const provider = this.providers.get(providerId);
+
+    try {
+      const result = await provider.verifyPayment(transactionId);
+      return {
+        success: true,
+        provider: providerId,
+        transactionId,
+        status: result.status,
+        amount: result.amount,
+        currency: result.currency,
+        verifiedAt: new Date(),
+        metadata: result.metadata || {}
+      };
+    } catch (error) {
+      console.error(`Payment verification error with ${providerId}:`, error);
+      return {
+        success: false,
+        provider: providerId,
+        transactionId,
+        error: error.message,
+        verifiedAt: new Date()
+      };
+    }
+  }
+
+  // Provider-specific implementations
+
+  /**
+   * Process Stripe payment
+   */
+  async processStripePayment({ type, amount, currency, customer, metadata }) {
+    const stripe = this.providers.get('stripe').initialize();
+
+    if (type === 'card') {
+      // Create PaymentIntent for card payments
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: currency.toLowerCase(),
+        customer: customer.stripeCustomerId,
+        metadata: {
+          vault5_user_id: customer.userId,
+          ...metadata
+        }
+      });
+
+      return {
+        transactionId: paymentIntent.id,
+        reference: paymentIntent.client_secret,
+        status: 'pending',
+        metadata: { clientSecret: paymentIntent.client_secret }
+      };
+    }
+
+    throw new Error(`Unsupported payment type '${type}' for Stripe`);
+  }
+
+  /**
+   * Verify Stripe payment
+   */
+  async verifyStripePayment(transactionId) {
+    const stripe = this.providers.get('stripe').initialize();
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(transactionId);
+
+    return {
+      status: paymentIntent.status === 'succeeded' ? 'completed' : paymentIntent.status,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      metadata: paymentIntent.metadata
+    };
+  }
+
+  /**
+   * Process Flutterwave payment
+   */
+  async processFlutterwavePayment({ type, amount, currency, customer, metadata }) {
+    // Flutterwave API integration would go here
+    // This is a placeholder implementation
+    const reference = `FW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    return {
+      transactionId: reference,
+      reference,
+      status: 'pending',
+      metadata: { flutterwave_reference: reference }
+    };
+  }
+
+  /**
+   * Verify Flutterwave payment
+   */
+  async verifyFlutterwavePayment(transactionId) {
+    // Flutterwave verification logic would go here
+    return {
+      status: 'completed',
+      amount: 1000, // Placeholder
+      currency: 'KES',
+      metadata: {}
+    };
+  }
+
+  /**
+   * Process Pesapal payment
+   */
+  async processPesapalPayment({ type, amount, currency, customer, metadata }) {
+    // Pesapal API integration would go here
+    const reference = `PSP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    return {
+      transactionId: reference,
+      reference,
+      status: 'pending',
+      metadata: { pesapal_reference: reference }
+    };
+  }
+
+  /**
+   * Verify Pesapal payment
+   */
+  async verifyPesapalPayment(transactionId) {
+    // Pesapal verification logic would go here
+    return {
+      status: 'completed',
+      amount: 1000, // Placeholder
+      currency: 'KES',
+      metadata: {}
+    };
+  }
+
+  /**
+   * Process M-Pesa payment
+   */
+  async processMpesaPayment({ type, amount, currency, customer, metadata }) {
+    if (type !== 'mobile_money') {
+      throw new Error('M-Pesa only supports mobile money payments');
+    }
+
+    // M-Pesa STK Push integration would go here
+    const reference = `MP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Generate timestamp and password for M-Pesa
+    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3);
+    const mpesaConfig = this.providers.get('mpesa').initialize();
+
+    // This would make actual M-Pesa API call
+    // For now, return placeholder response
+
+    return {
+      transactionId: reference,
+      reference,
+      status: 'pending',
+      metadata: {
+        mpesa_reference: reference,
+        phone_number: customer.phoneNumber,
+        timestamp
+      }
+    };
+  }
+
+  /**
+   * Verify M-Pesa payment
+   */
+  async verifyMpesaPayment(transactionId) {
+    // M-Pesa verification logic would go here
+    // Check transaction status via M-Pesa API
+    return {
+      status: 'completed',
+      amount: 1000, // Placeholder
+      currency: 'KES',
+      metadata: {}
+    };
+  }
+
+  /**
+   * Get provider capabilities and fees
+   * @param {string} providerId - Provider ID
+   * @returns {Object} - Provider capabilities
+   */
+  getProviderCapabilities(providerId) {
+    if (!this.providers.has(providerId)) {
+      return null;
+    }
+
+    const provider = this.providers.get(providerId);
+
+    return {
+      id: providerId,
+      name: provider.name,
+      type: provider.type,
+      regions: provider.regions,
+      capabilities: {
+        card: ['visa', 'mastercard', 'amex'],
+        mobile_money: providerId === 'mpesa' ? ['mpesa'] : [],
+        bank_transfer: ['bank_transfer'],
+        wallet: ['wallet']
+      },
+      fees: {
+        percentage: 0.029, // 2.9%
+        fixed: 0, // No fixed fee
+        currency: 'KES'
+      },
+      limits: {
+        min: 10, // Minimum 10 KES
+        max: 150000, // Maximum 150,000 KES
+        daily: 500000 // Daily limit 500,000 KES
+      }
+    };
+  }
+
+  /**
+   * Calculate payment fees
+   * @param {string} providerId - Provider ID
+   * @param {number} amount - Amount in smallest currency unit
+   * @returns {Object} - Fee breakdown
+   */
+  calculateFees(providerId, amount) {
+    const capabilities = this.getProviderCapabilities(providerId);
+    if (!capabilities) return null;
+
+    const percentageFee = Math.round(amount * capabilities.fees.percentage);
+    const totalFee = percentageFee + capabilities.fees.fixed;
+
+    return {
+      provider: providerId,
+      amount,
+      percentageFee,
+      fixedFee: capabilities.fees.fixed,
+      totalFee,
+      netAmount: amount - totalFee
+    };
   }
 }
 

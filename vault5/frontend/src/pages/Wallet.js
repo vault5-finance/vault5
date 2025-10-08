@@ -64,8 +64,8 @@ const WalletPage = () => {
     try {
       setLoading(true);
       const response = await api.get('/api/wallet');
-      if (response.data) {
-        setWallet(response.data);
+      if (response.data && response.data.success) {
+        setWallet(response.data.wallet);
       } else {
         setError('Failed to load wallet data');
       }
@@ -79,8 +79,10 @@ const WalletPage = () => {
 
   const loadRecentTransactions = async () => {
     try {
-      const response = await api.get('/api/transactions?limit=5');
-      setRecentTransactions(response.data || []);
+      const response = await api.get('/api/wallet/transactions?limit=10');
+      if (response.data && response.data.success) {
+        setRecentTransactions(response.data.transactions || []);
+      }
     } catch (err) {
       console.error('Load recent transactions error:', err);
     }
@@ -88,46 +90,54 @@ const WalletPage = () => {
 
   const loadMonthlyStats = async () => {
     try {
-      const response = await api.get('/api/transactions/analytics?period=month');
-      setMonthlyStats(response.data || {});
+      const response = await api.get('/api/wallet/analytics?period=month');
+      if (response.data && response.data.success) {
+        setMonthlyStats(response.data.analytics || {});
+      }
     } catch (err) {
       console.error('Load monthly stats error:', err);
     }
   };
 
-  const handleRecharge = async (amount) => {
+  const handleRecharge = async (rechargeData) => {
     try {
-      const response = await api.post('/api/wallet/recharge', { amount });
-      if (response.data.success) {
+      const response = await api.post('/api/wallet/recharge', rechargeData);
+      if (response.data && response.data.success) {
         showSuccess('Wallet recharged successfully!');
         await loadWallet();
-        return response;
+        await loadRecentTransactions();
+        return { success: true, data: response.data };
       } else {
-        showError(response.data.message);
-        return response;
+        const message = response.data?.message || 'Failed to recharge wallet';
+        showError(message);
+        return { success: false, message };
       }
     } catch (err) {
-      showError('Failed to recharge wallet');
+      const message = err.response?.data?.message || 'Failed to recharge wallet';
+      showError(message);
       console.error('Recharge error:', err);
-      return { success: false, message: 'Failed to recharge wallet' };
+      return { success: false, message };
     }
   };
 
-  const handleTransfer = async (amount, recipient) => {
+  const handleTransfer = async (transferData) => {
     try {
-      const response = await api.post('/api/wallet/transfer', { amount, recipient });
-      if (response.data.success) {
+      const response = await api.post('/api/wallet/transfer', transferData);
+      if (response.data && response.data.success) {
         showSuccess('Transfer completed successfully!');
         await loadWallet();
-        return response;
+        await loadRecentTransactions();
+        return { success: true, data: response.data };
       } else {
-        showError(response.data.message);
-        return response;
+        const message = response.data?.message || 'Failed to complete transfer';
+        showError(message);
+        return { success: false, message };
       }
     } catch (err) {
-      showError('Failed to complete transfer');
+      const message = err.response?.data?.message || 'Failed to complete transfer';
+      showError(message);
       console.error('Transfer error:', err);
-      return { success: false, message: 'Failed to complete transfer' };
+      return { success: false, message };
     }
   };
 

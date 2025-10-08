@@ -14,6 +14,7 @@ const AuditLog = require('./AuditLog');
 const PaymentIntent = require('./PaymentIntent');
 const Notification = require('./Notification');
 const ReminderHistory = require('./ReminderHistory');
+const Wallet = require('./Wallet');
 // Loans v2 P2P models
 const P2PLoan = require('./P2PLoan');
 const Escrow = require('./Escrow');
@@ -38,6 +39,7 @@ module.exports = {
   PaymentIntent,
   Notification,
   ReminderHistory,
+  Wallet,
   // P2P Loans v2
   P2PLoan,
   Escrow,

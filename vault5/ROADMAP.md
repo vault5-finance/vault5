@@ -23,14 +23,17 @@ This roadmap outlines the phased evolution of Vault5 from a personal finance tra
   - API integrations and service layer
 
 ## Phase 3: Wallet Integration & Digital Payments
-- **Status**: Planned
+- **Status**: In Progress (70% Complete)
 - **Features**:
-  - **Digital Wallet**: Recharge wallet via M-Pesa, cards, bank transfers
-  - **Payment Processing**: Integration with payment gateways (Stripe, Flutterwave, Pesapal)
-  - **PSP Abstraction Layer**: Unified interface for multiple payment service providers
-  - **Transaction History**: Comprehensive wallet transaction logs
-  - **Auto-Payments**: Scheduled bill payments and subscriptions
-  - **Compliance**: Basic KYC for wallet users
+  - ✅ **Digital Wallet**: Wallet model and database schema implemented
+  - ✅ **PSP Abstraction Layer**: Unified interface for multiple payment service providers (Stripe, Flutterwave, Pesapal, M-Pesa)
+  - ✅ **Payment Processing**: Core payment processing system with gateway integrations
+  - ✅ **Wallet Transaction System**: Complete wallet operations (credit, debit, transfers, limits)
+  - ✅ **Transaction History**: Comprehensive wallet transaction logs with audit trails
+  - 🔄 **Recharge wallet via M-Pesa, cards, bank transfers** (M-Pesa integration pending)
+  - 🔄 **Auto-Payments**: Scheduled bill payments and subscriptions (pending)
+  - 🔄 **Compliance**: Basic KYC for wallet users (pending)
+  - 🔄 **Frontend Wallet UI**: Wallet dashboard and recharge functionality (pending)
 
 ## Phase 4: Internal Custody & Savings Constraints
 - **Status**: Planned

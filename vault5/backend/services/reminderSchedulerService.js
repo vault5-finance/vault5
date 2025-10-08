@@ -1,320 +1,383 @@
-const { User, ReminderHistory } = require('../models');
+const { Lending, User, ReminderHistory } = require('../models');
+const gracePeriodService = require('./gracePeriodService');
 
 /**
  * Reminder Scheduler Service
- * Handles time-zone aware scheduling and delivery timing for reminders
+ * Manages the scheduling and queuing of overdue reminders
  */
 class ReminderSchedulerService {
-
   /**
-   * Check if current time is within user's preferred contact hours
-   * @param {Object} user - User document
-   * @param {Date} currentTime - Current time (defaults to now)
-   * @returns {boolean} - Whether within preferred hours
+   * Default escalation schedule (days overdue)
    */
-  isWithinPreferredHours(user, currentTime = new Date()) {
-    const preferences = user.preferences?.overdueReminders?.preferredContactTimes;
-
-    if (!preferences) {
-      // Default: 9 AM - 6 PM UTC
-      return currentTime.getUTCHours() >= 9 && currentTime.getUTCHours() <= 18;
-    }
-
-    const { startHour, endHour, timezone } = preferences;
-
-    // For now, use UTC time - in production, convert to user's timezone
-    // TODO: Implement proper timezone conversion
-    const currentHour = currentTime.getUTCHours();
-
-    // Handle cases where endHour is less than startHour (e.g., 22:00 to 06:00)
-    if (endHour < startHour) {
-      return currentHour >= startHour || currentHour <= endHour;
-    }
-
-    return currentHour >= startHour && currentHour <= endHour;
-  }
-
-  /**
-   * Get next available reminder time for a user
-   * @param {Object} user - User document
-   * @param {Date} fromTime - Starting time (defaults to now)
-   * @returns {Date} - Next available time
-   */
-  getNextAvailableTime(user, fromTime = new Date()) {
-    const preferences = user.preferences?.overdueReminders?.preferredContactTimes;
-
-    if (!preferences) {
-      // Default: next 9 AM UTC
-      const nextTime = new Date(fromTime);
-      nextTime.setUTCHours(9, 0, 0, 0);
-
-      if (nextTime <= fromTime) {
-        nextTime.setUTCDate(nextTime.getUTCDate() + 1);
-      }
-
-      return nextTime;
-    }
-
-    const { startHour, endHour } = preferences;
-    let nextTime = new Date(fromTime);
-
-    // Set to start of preferred hour
-    nextTime.setUTCHours(startHour, 0, 0, 0);
-
-    // If we're already past today's window, move to tomorrow
-    if (fromTime.getUTCHours() >= endHour ||
-        (fromTime.getUTCHours() === endHour && fromTime.getUTCMinutes() > 0)) {
-      nextTime.setUTCDate(nextTime.getUTCDate() + 1);
-    }
-    // If we're before today's window, use today
-    else if (fromTime.getUTCHours() < startHour) {
-      // nextTime is already set to today
-    }
-    // If we're within today's window, use current time
-    else {
-      nextTime = new Date(fromTime);
-    }
-
-    return nextTime;
-  }
-
-  /**
-   * Calculate optimal reminder times for a lending based on escalation schedule
-   * @param {Object} lending - Lending document
-   * @param {Object} user - User document
-   * @returns {Array} - Array of {tier, scheduledTime} objects
-   */
-  calculateReminderSchedule(lending, user) {
-    const escalationSchedule = user.getEscalationSchedule();
-    const gracePeriod = user.getGracePeriodForLoanType(lending.type);
-    const expectedReturnDate = new Date(lending.expectedReturnDate);
-
-    // Base time is expected return date + grace period
-    const baseTime = new Date(expectedReturnDate);
-    baseTime.setDate(baseTime.getDate() + gracePeriod);
-
-    const schedule = [];
-
-    // Calculate each reminder tier
-    const tiers = [
-      { key: 'first', days: escalationSchedule.firstReminder },
-      { key: 'second', days: escalationSchedule.secondReminder },
-      { key: 'third', days: escalationSchedule.thirdReminder },
-      { key: 'final', days: escalationSchedule.finalReminder }
-    ];
-
-    for (const tier of tiers) {
-      const reminderTime = new Date(baseTime);
-      reminderTime.setDate(reminderTime.getDate() + tier.days);
-
-      // Adjust to user's preferred contact hours
-      const scheduledTime = this.getNextAvailableTime(user, reminderTime);
-
-      schedule.push({
-        tier: tier.key,
-        scheduledTime,
-        daysOverdue: tier.days + gracePeriod
-      });
-    }
-
-    return schedule;
-  }
-
-  /**
-   * Check if a reminder should be sent now based on schedule and user preferences
-   * @param {Object} lending - Lending document
-   * @param {Object} user - User document
-   * @param {string} tier - Reminder tier to check
-   * @returns {boolean} - Whether reminder should be sent
-   */
-  async shouldSendReminderNow(lending, user, tier) {
-    // Check if user has reminders enabled
-    if (!user.preferences?.overdueReminders?.enabled) {
-      return false;
-    }
-
-    // Check if current time is within preferred hours
-    if (!this.isWithinPreferredHours(user)) {
-      return false;
-    }
-
-    // Check if this tier reminder has already been sent
-    const existingReminder = await ReminderHistory.findOne({
-      user: user._id,
-      lending: lending._id,
-      tier,
-      status: { $in: ['sent', 'delivered'] }
-    });
-
-    if (existingReminder) {
-      return false;
-    }
-
-    // Calculate if it's time for this tier
-    const schedule = this.calculateReminderSchedule(lending, user);
-    const tierSchedule = schedule.find(s => s.tier === tier);
-
-    if (!tierSchedule) {
-      return false;
-    }
-
-    const now = new Date();
-    const scheduledTime = tierSchedule.scheduledTime;
-
-    // Allow some flexibility (±1 hour) for cron job timing
-    const timeDiff = Math.abs(now - scheduledTime);
-    const oneHour = 60 * 60 * 1000;
-
-    return timeDiff <= oneHour;
-  }
-
-  /**
-   * Get pending reminders that should be sent now
-   * @returns {Array} - Array of {user, lending, tier} objects
-   */
-  async getPendingReminders() {
-    const now = new Date();
-    const pendingReminders = [];
-
-    try {
-      // Get all users with overdue reminders enabled
-      const users = await User.find({
-        'preferences.overdueReminders.enabled': true
-      }).select('_id preferences.overdueReminders');
-
-      for (const user of users) {
-        // Check if current time is within user's preferred hours
-        if (!this.isWithinPreferredHours(user, now)) {
-          continue;
-        }
-
-        // Get overdue lendings for this user
-        const { Lending } = require('../models');
-        const overdueLendings = await Lending.find({
-          user: user._id,
-          status: 'pending',
-          expectedReturnDate: { $lt: now }
-        });
-
-        for (const lending of overdueLendings) {
-          // Calculate which reminder tier should be sent
-          const schedule = this.calculateReminderSchedule(lending, user);
-
-          for (const tierSchedule of schedule) {
-            if (this.shouldSendReminderNow(lending, user, tierSchedule.tier)) {
-              pendingReminders.push({
-                user,
-                lending,
-                tier: tierSchedule.tier,
-                scheduledTime: tierSchedule.scheduledTime,
-                daysOverdue: tierSchedule.daysOverdue
-              });
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error getting pending reminders:', error);
-    }
-
-    return pendingReminders;
-  }
-
-  /**
-   * Schedule a reminder for future delivery
-   * @param {Object} user - User document
-   * @param {Object} lending - Lending document
-   * @param {string} tier - Reminder tier
-   * @param {Date} scheduledTime - When to send the reminder
-   * @returns {Object} - Scheduled reminder info
-   */
-  async scheduleReminder(user, lending, tier, scheduledTime) {
-    // In a production system, this would integrate with a job queue
-    // For now, we'll just log the scheduling
-
-    console.log(`Scheduled ${tier} reminder for user ${user._id}, lending ${lending._id} at ${scheduledTime.toISOString()}`);
-
+  get DEFAULT_ESCALATION_SCHEDULE() {
     return {
-      userId: user._id,
-      lendingId: lending._id,
-      tier,
-      scheduledTime,
-      status: 'scheduled'
+      firstReminder: 1,    // 1 day overdue
+      secondReminder: 7,   // 7 days overdue
+      thirdReminder: 14,   // 14 days overdue
+      finalReminder: 30,   // 30 days overdue
+      collectionNotice: 45, // 45 days overdue
+      legalNotice: 60      // 60 days overdue
     };
   }
 
   /**
-   * Get user's reminder schedule summary
-   * @param {string} userId - User ID
-   * @returns {Object} - Schedule summary
+   * Get all pending reminders that should be sent now
+   * @returns {Array} - Array of pending reminder objects
    */
-  async getUserScheduleSummary(userId) {
+  async getPendingReminders() {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Find all pending lendings that might be overdue
+      const pendingLendings = await Lending.find({
+        status: { $in: ['pending', 'overdue'] },
+        expectedReturnDate: { $exists: true }
+      }).populate('user');
+
+      const pendingReminders = [];
+
+      for (const lending of pendingLendings) {
+        const reminder = await this.checkLendingForReminder(lending, today);
+        if (reminder) {
+          pendingReminders.push(reminder);
+        }
+      }
+
+      console.log(`Found ${pendingReminders.length} pending reminders across ${pendingLendings.length} lendings`);
+      return pendingReminders;
+
+    } catch (error) {
+      console.error('Error getting pending reminders:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a lending needs a reminder sent now
+   * @param {Object} lending - Lending document with populated user
+   * @param {Date} today - Today's date (start of day)
+   * @returns {Object|null} - Reminder object or null
+   */
+  async checkLendingForReminder(lending, today) {
+    try {
+      const user = lending.user;
+      if (!user) return null;
+
+      // Calculate effective grace period
+      const effectiveGracePeriod = await gracePeriodService.calculateEffectiveGracePeriod(lending, user);
+      const expectedReturnDate = new Date(lending.expectedReturnDate);
+      const rawDaysOverdue = Math.floor((today - expectedReturnDate) / (1000 * 60 * 60 * 24));
+      const effectiveDaysOverdue = Math.max(0, rawDaysOverdue - effectiveGracePeriod);
+
+      // Skip if still within grace period
+      if (effectiveDaysOverdue <= 0) {
+        return null;
+      }
+
+      // Get user's escalation schedule
+      const schedule = user.getEscalationSchedule() || this.DEFAULT_ESCALATION_SCHEDULE;
+
+      // Determine which reminder tier should be sent
+      const reminderTier = this.determineReminderTier(effectiveDaysOverdue, schedule);
+      if (!reminderTier) return null;
+
+      // Check if this tier reminder has already been sent
+      const existingReminder = await ReminderHistory.findOne({
+        user: user._id,
+        lending: lending._id,
+        tier: reminderTier,
+        status: { $in: ['sent', 'delivered'] }
+      });
+
+      if (existingReminder) {
+        return null; // Already sent this tier
+      }
+
+      // Check if a higher tier reminder has been sent (don't send lower tiers if higher ones exist)
+      const higherTiers = this.getHigherTiers(reminderTier);
+      const higherTierSent = await ReminderHistory.findOne({
+        user: user._id,
+        lending: lending._id,
+        tier: { $in: higherTiers },
+        status: { $in: ['sent', 'delivered'] }
+      });
+
+      if (higherTierSent) {
+        return null; // Don't send lower tier if higher tier already sent
+      }
+
+      return {
+        user,
+        lending,
+        tier: reminderTier,
+        daysOverdue: effectiveDaysOverdue,
+        gracePeriod: effectiveGracePeriod,
+        rawDaysOverdue
+      };
+
+    } catch (error) {
+      console.error(`Error checking lending ${lending._id} for reminder:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Determine which reminder tier to send based on days overdue
+   * @param {number} daysOverdue - Effective days overdue
+   * @param {Object} schedule - Escalation schedule
+   * @returns {string|null} - Reminder tier or null
+   */
+  determineReminderTier(daysOverdue, schedule) {
+    if (daysOverdue >= schedule.legalNotice) return 'legal';
+    if (daysOverdue >= schedule.collectionNotice) return 'collection';
+    if (daysOverdue >= schedule.finalReminder) return 'final';
+    if (daysOverdue >= schedule.thirdReminder) return 'third';
+    if (daysOverdue >= schedule.secondReminder) return 'second';
+    if (daysOverdue >= schedule.firstReminder) return 'first';
+
+    return null;
+  }
+
+  /**
+   * Get higher tier reminders for a given tier
+   * @param {string} tier - Current tier
+   * @returns {Array} - Array of higher tier names
+   */
+  getHigherTiers(tier) {
+    const tierOrder = ['first', 'second', 'third', 'final', 'collection', 'legal'];
+    const currentIndex = tierOrder.indexOf(tier);
+
+    if (currentIndex === -1) return [];
+
+    return tierOrder.slice(currentIndex + 1);
+  }
+
+  /**
+   * Schedule a reminder for future sending
+   * @param {Object} reminderData - Reminder scheduling data
+   * @returns {Object} - Scheduled reminder info
+   */
+  async scheduleReminder(reminderData) {
+    try {
+      const {
+        userId,
+        lendingId,
+        tier,
+        scheduledFor,
+        priority = 'normal'
+      } = reminderData;
+
+      // Create a scheduled reminder record
+      const scheduledReminder = new ReminderHistory({
+        user: userId,
+        lending: lendingId,
+        tier,
+        status: 'scheduled',
+        scheduledFor: scheduledFor || new Date(),
+        priority,
+        metadata: {
+          scheduledAt: new Date(),
+          ...reminderData.metadata
+        }
+      });
+
+      await scheduledReminder.save();
+
+      console.log(`Scheduled ${tier} reminder for lending ${lendingId} at ${scheduledFor}`);
+      return scheduledReminder;
+
+    } catch (error) {
+      console.error('Error scheduling reminder:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get escalation schedule for a user
+   * @param {string} userId - User ID
+   * @returns {Object} - User's escalation schedule
+   */
+  async getUserEscalationSchedule(userId) {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return this.DEFAULT_ESCALATION_SCHEDULE;
+      }
+
+      return user.getEscalationSchedule() || this.DEFAULT_ESCALATION_SCHEDULE;
+    } catch (error) {
+      console.error('Error getting user escalation schedule:', error);
+      return this.DEFAULT_ESCALATION_SCHEDULE;
+    }
+  }
+
+  /**
+   * Update user's escalation schedule
+   * @param {string} userId - User ID
+   * @param {Object} schedule - New escalation schedule
+   * @returns {Object} - Updated schedule
+   */
+  async updateUserEscalationSchedule(userId, schedule) {
     try {
       const user = await User.findById(userId);
       if (!user) {
         throw new Error('User not found');
       }
 
-      const { Lending } = require('../models');
-      const overdueLendings = await Lending.find({
-        user: userId,
-        status: 'pending',
-        expectedReturnDate: { $lt: new Date() }
-      });
-
-      const summary = {
-        userId,
-        preferredHours: user.getPreferredContactHours(),
-        overdueLendingsCount: overdueLendings.length,
-        scheduledReminders: []
-      };
-
-      for (const lending of overdueLendings) {
-        const schedule = this.calculateReminderSchedule(lending, user);
-        summary.scheduledReminders.push({
-          lendingId: lending._id,
-          borrowerName: lending.borrowerName,
-          amount: lending.amount,
-          schedule
-        });
+      // Validate schedule
+      const validation = this.validateEscalationSchedule(schedule);
+      if (!validation.isValid) {
+        throw new Error(`Invalid schedule: ${validation.errors.join(', ')}`);
       }
 
-      return summary;
+      // Initialize preferences if not exists
+      if (!user.preferences) {
+        user.preferences = {};
+      }
+
+      user.preferences.escalationSchedule = schedule;
+      await user.save();
+
+      return schedule;
     } catch (error) {
-      console.error('Error getting user schedule summary:', error);
+      console.error('Error updating escalation schedule:', error);
       throw error;
     }
   }
 
   /**
-   * Validate user's preferred contact times
-   * @param {Object} contactTimes - Contact times object
-   * @returns {boolean} - Is valid
+   * Validate escalation schedule
+   * @param {Object} schedule - Schedule to validate
+   * @returns {Object} - Validation result
    */
-  validateContactTimes(contactTimes) {
-    const { startHour, endHour } = contactTimes;
+  validateEscalationSchedule(schedule) {
+    const errors = [];
+    const requiredFields = ['firstReminder', 'secondReminder', 'thirdReminder', 'finalReminder'];
 
-    if (!Number.isInteger(startHour) || !Number.isInteger(endHour)) {
-      return false;
+    // Check required fields
+    for (const field of requiredFields) {
+      if (typeof schedule[field] !== 'number' || schedule[field] < 1 || schedule[field] > 365) {
+        errors.push(`${field} must be a number between 1 and 365`);
+      }
     }
 
-    if (startHour < 0 || startHour > 23 || endHour < 0 || endHour > 23) {
-      return false;
+    // Check logical order
+    if (schedule.firstReminder >= schedule.secondReminder) {
+      errors.push('firstReminder must be less than secondReminder');
+    }
+    if (schedule.secondReminder >= schedule.thirdReminder) {
+      errors.push('secondReminder must be less than thirdReminder');
+    }
+    if (schedule.thirdReminder >= schedule.finalReminder) {
+      errors.push('thirdReminder must be less than finalReminder');
     }
 
-    return true;
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
   }
 
   /**
-   * Convert time to user's timezone (placeholder for future implementation)
-   * @param {Date} utcTime - UTC time
-   * @param {string} timezone - Target timezone
-   * @returns {Date} - Converted time
+   * Get reminder statistics for a user
+   * @param {string} userId - User ID
+   * @param {Object} dateRange - Date range filter
+   * @returns {Object} - Reminder statistics
    */
-  convertToUserTimezone(utcTime, timezone) {
-    // TODO: Implement proper timezone conversion using a library like moment-timezone
-    // For now, return UTC time
-    return new Date(utcTime);
+  async getReminderStatistics(userId, dateRange = {}) {
+    try {
+      const matchConditions = { user: userId };
+
+      // Add date range filter
+      if (dateRange.start || dateRange.end) {
+        matchConditions.sentAt = {};
+        if (dateRange.start) matchConditions.sentAt.$gte = new Date(dateRange.start);
+        if (dateRange.end) matchConditions.sentAt.$lte = new Date(dateRange.end);
+      }
+
+      const stats = await ReminderHistory.aggregate([
+        { $match: matchConditions },
+        {
+          $group: {
+            _id: {
+              tier: '$tier',
+              status: '$status'
+            },
+            count: { $sum: 1 },
+            totalAmount: { $sum: '$amount' }
+          }
+        },
+        {
+          $group: {
+            _id: '$_id.tier',
+            statuses: {
+              $push: {
+                status: '$_id.status',
+                count: '$count',
+                totalAmount: '$totalAmount'
+              }
+            },
+            totalCount: { $sum: '$count' },
+            totalAmount: { $sum: '$totalAmount' }
+          }
+        }
+      ]);
+
+      // Format the results
+      const formattedStats = {};
+      stats.forEach(stat => {
+        formattedStats[stat._id] = {
+          totalCount: stat.totalCount,
+          totalAmount: stat.totalAmount,
+          statuses: stat.statuses.reduce((acc, status) => {
+            acc[status.status] = {
+              count: status.count,
+              totalAmount: status.totalAmount
+            };
+            return acc;
+          }, {})
+        };
+      });
+
+      return formattedStats;
+    } catch (error) {
+      console.error('Error getting reminder statistics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel scheduled reminders for a lending
+   * @param {string} lendingId - Lending ID
+   * @param {Array} tiers - Optional array of tiers to cancel
+   * @returns {number} - Number of cancelled reminders
+   */
+  async cancelScheduledReminders(lendingId, tiers = null) {
+    try {
+      const conditions = {
+        lending: lendingId,
+        status: 'scheduled'
+      };
+
+      if (tiers) {
+        conditions.tier = { $in: tiers };
+      }
+
+      const result = await ReminderHistory.updateMany(
+        conditions,
+        {
+          status: 'cancelled',
+          cancelledAt: new Date()
+        }
+      );
+
+      console.log(`Cancelled ${result.modifiedCount} scheduled reminders for lending ${lendingId}`);
+      return result.modifiedCount;
+    } catch (error) {
+      console.error('Error cancelling scheduled reminders:', error);
+      throw error;
+    }
   }
 }
 
