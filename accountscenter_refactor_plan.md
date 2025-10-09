@@ -1,5 +1,24 @@
 # AccountsCenter Refactor Plan
 
+## 🎯 STRATEGIC REVIEW & ANALYSIS
+
+### Current State Issues (From Strategic Review)
+- **878-line monolithic component** with inline constants, modals, and logic
+- **Broken action connections** - buttons don't trigger modals properly
+- **Circular dependencies** between insights and accounts data
+- **Static UX** that shows information rather than driving actions
+
+### Target Architecture: Action-Driven Financial Command Center
+
+```
+AccountsCenter (Orchestrator)
+├── Header (Greeting + Global Stats)
+├── Overview (Progress Rings + AI Insights)
+├── AccountGrid (Action-First Cards)
+├── Analytics (Optional Deep Dive)
+└── FloatingActions (Quick Access)
+```
+
 ## 🔍 ARCHITECTURE PROPOSAL
 
 ### Modular Component Structure
@@ -88,6 +107,88 @@ vault5/frontend/src/pages/AccountsCenter/
     ├── accountThemes.js (60 lines)
     └── accountRules.js (80 lines)
 ```
+## 🧠 MENTAL BLUEPRINT: Action Flow Architecture
+
+### User Action Flow Diagram
+
+```mermaid
+graph TD
+    A[User Clicks Transfer on Account Card] --> B{Validate Account Rules}
+    B -->|Valid| C[Open Transfer Modal]
+    B -->|Invalid| D[Show Error Toast]
+    C --> E[User Enters Details]
+    E --> F[Submit Transfer]
+    F --> G[Optimistic UI Update]
+    G --> H[API Call]
+    H -->|Success| I[Update Real State]
+    H -->|Error| J[Rollback UI + Show Error]
+    I --> K[Close Modal + Success Toast]
+```
+
+### Data Flow Architecture
+
+```mermaid
+graph TD
+    A[AccountsCenter] --> B[useAccounts Hook]
+    B --> C[AccountsContext]
+    C --> D[API Service]
+    A --> E[useAccountActions Hook]
+    E --> F[Modal State]
+    F --> G[Transfer/Add Money Logic]
+    A --> H[useAIInsights Hook]
+    H --> I[Insights Generation]
+    I --> J[Conditional Display]
+```
+
+## 📋 DETAILED IMPLEMENTATION PLAN
+
+### Phase 1: Foundation (Component Decomposition)
+- Extract `AccountsCenterHeader.jsx` - greeting, total balance, refresh
+- Extract `AccountProgressOverview.jsx` - progress rings grid
+- Extract `AIInsightsPanel.jsx` - insights display with action buttons
+- Extract `AccountCard.jsx` - individual account with action buttons
+- Extract `TransferModal.jsx` & `AddMoneyModal.jsx` - modal components
+- Extract `FloatingActionBar.jsx` - bottom navigation
+
+### Phase 2: State Management Refactor
+- Create `AccountsContext.jsx` with reducer for global state
+- Implement `useAccounts.js` hook for data management
+- Implement `useAccountActions.js` hook for transfer/add money logic
+- Implement `useAIInsights.js` hook for insights generation
+- Remove all inline state from main component
+
+### Phase 3: Action Connection Fixes
+- Fix `handleQuickAction` to properly validate rules and open modals
+- Implement proper modal state management with `useState` for each modal
+- Connect insight action buttons to modal opening logic
+- Add optimistic updates for immediate UI feedback
+
+### Phase 4: Insights Logic Refactor
+- Move insights generation to separate hook
+- Remove circular dependency (insights don't depend on themselves)
+- Add proper memoization to prevent unnecessary recalculations
+- Implement insights caching with TTL
+
+### Phase 5: UX Hierarchy Enhancement
+- Make account cards action-first (buttons prominent)
+- Add conditional insights based on account states
+- Implement sticky header with key metrics
+- Add visual feedback for all actions (loading states, success animations)
+
+### Phase 6: Performance Optimizations
+- Add React.memo to prevent unnecessary re-renders
+- Implement proper useMemo for expensive calculations
+- Add error boundaries for graceful failure handling
+- Implement lazy loading for analytics panel
+
+## ✅ SUCCESS METRICS
+- Buttons perform actions immediately
+- No circular dependency warnings
+- Component size < 200 lines each
+- 95%+ test coverage
+- < 100ms interaction response time
+
+---
 
 ---
 
